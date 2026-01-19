@@ -45,10 +45,6 @@ inputs:
     description: 'SOPS AGE key content (from secrets, passed as input)'
     required: false
     default: ''
-  working_directory:
-    description: 'Working directory'
-    required: false
-    default: 'iac'
 
 runs:
   using: composite
