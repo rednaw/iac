@@ -26,18 +26,13 @@ jobs:
     name: Terraform Security (tfsec)
     runs-on: ubuntu-latest
     needs: setup
-    defaults:
-      run:
-        working-directory: iac
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
-
       - name: Setup tools
         uses: ./.github/actions/setup-iac-tools
         with:
           install_tfsec: 'true'
-
       - name: Run Terraform security scan
         run: task test:terraform:security
 
@@ -45,13 +40,9 @@ jobs:
     name: Terraform Validation
     runs-on: ubuntu-latest
     needs: setup
-    defaults:
-      run:
-        working-directory: iac
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
-
       - name: Setup tools
         uses: ./.github/actions/setup-iac-tools
         with:
@@ -61,7 +52,6 @@ jobs:
           install_age: 'true'
           setup_sops_key: 'true'
           sops_age_key: ${{ secrets.SOPS_AGE_KEY }}
-
       - name: Run Terraform validation
         run: task test:terraform:validate
 
@@ -69,13 +59,9 @@ jobs:
     name: Ansible Lint
     runs-on: ubuntu-latest
     needs: setup
-    defaults:
-      run:
-        working-directory: iac
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
-
       - name: Setup tools
         uses: ./.github/actions/setup-iac-tools
         with:
@@ -83,7 +69,6 @@ jobs:
           install_ansible: 'true'
           install_ansible_lint: 'true'
           install_ansible_collections: 'true'
-
       - name: Run Ansible lint
         run: task test:ansible:lint
 
@@ -91,19 +76,14 @@ jobs:
     name: Ansible Syntax
     runs-on: ubuntu-latest
     needs: setup
-    defaults:
-      run:
-        working-directory: iac
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
-
       - name: Setup tools
         uses: ./.github/actions/setup-iac-tools
         with:
           install_ansible: 'true'
           install_ansible_collections: 'true'
-
       - name: Run Ansible syntax check
         run: task test:ansible:syntax
 
@@ -111,18 +91,13 @@ jobs:
     name: Taskfile Validation
     runs-on: ubuntu-latest
     needs: setup
-    defaults:
-      run:
-        working-directory: iac
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
-
       - name: Setup tools
         uses: ./.github/actions/setup-iac-tools
         with:
           install_python: 'true'
           install_shellcheck: 'true'
-
       - name: Run Taskfile validation
         run: task test:taskfiles
