@@ -28,16 +28,6 @@ This keeps things simple and consistent for everyone.
 
 ---
 
-## Name & Branding
-
-Contributing code does not grant rights to use the project’s name or branding.
-
-Forks and derivative projects should follow the guidelines in
-[`TRADEMARK.md`](./TRADEMARK.md) so users can easily tell what’s official and
-what’s not.
-
----
-
 ## How to Contribute
 
 Typical flow:
