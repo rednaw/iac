@@ -32,9 +32,11 @@ jobs:
         with:
           images: registry.rednaw.nl/${{ env.IMAGE_NAME }}
           tags: |
-            type=ref,event=branch       # branch name
-            type=sha                    # short commit SHA
-            type=raw,value=latest       # latest tag always points to last successful image
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest
 
       - name: Build and push image
         uses: docker/build-push-action@v6
@@ -42,5 +44,6 @@ jobs:
           context: ./apps/hello
           file: ./apps/hello/Dockerfile
           push: true
+          # push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
