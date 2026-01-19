@@ -1,0 +1,20 @@
+output "server_ipv4" {
+  description = "IPv4 address of the server - use this to SSH"
+  value       = hcloud_server.giftfinder.ipv4_address
+}
+
+output "server_ipv6" {
+  description = "IPv6 address of the server"
+  value       = hcloud_server.giftfinder.ipv6_address
+}
+
+output "ssh_command" {
+  description = "Command to SSH into the server (as ubuntu user for manual admin work)"
+  value       = "ssh ubuntu@${hcloud_server.giftfinder.ipv4_address}"
+}
+
+output "server_name" {
+  description = "Name of the server (for SSH config host alias)"
+  value       = var.server_name
+}
+

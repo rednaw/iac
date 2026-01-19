@@ -1,0 +1,22 @@
+# Sudo configuration for ubuntu user
+# Passwordless sudo with comprehensive logging
+#
+# Security Note: NOPASSWD:ALL grants unlimited passwordless sudo access.
+# This is an accepted security trade-off for this application because:
+# - SSH access is restricted to specific IP addresses via Hetzner firewall
+# - SSH authentication is key-based only (password auth disabled)
+# - Fail2ban protects against brute force attacks
+# - Comprehensive audit logging captures all sudo activity (see below)
+# - This is a gift finder application, not a financial institution
+#
+# If the ubuntu account is compromised, an attacker would have full root access.
+# The logging below helps with post-incident forensics, but prevention relies
+# on the SSH security measures mentioned above.
+
+ubuntu ALL=(ALL) NOPASSWD:ALL
+
+# Logging configuration
+Defaults:ubuntu !requiretty
+Defaults:ubuntu logfile=/var/log/sudo-ubuntu.log
+Defaults:ubuntu log_input,log_output
+Defaults:ubuntu syslog=auth

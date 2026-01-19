@@ -1,0 +1,76 @@
+version: '3'
+
+tasks:
+  check-status:
+    desc: Check if servers are up and accessible (checks both dev and prod)
+    silent: true
+    cmds:
+      - |
+        for WORKSPACE in dev prod; do
+          echo "📋 Checking $WORKSPACE environment..."
+          terraform -chdir=terraform workspace select "$WORKSPACE" >/dev/null 2>&1
+          SERVER_IP=$(terraform -chdir=terraform output -raw server_ipv4 2>/dev/null | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' || echo "")
+          if [ -z "$SERVER_IP" ]; then
+            echo "  ⚠️  No server found (run 'task terraform:apply -- $WORKSPACE' to create)"
+            echo ""
+            continue
+          fi
+          if ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=accept-new -o BatchMode=yes "ubuntu@$SERVER_IP" "echo 'Server is up'" >/dev/null 2>&1; then
+            echo "  ✅ Server is up and ubuntu user is accessible ($SERVER_IP)"
+          elif ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=accept-new -o BatchMode=yes "root@$SERVER_IP" "echo 'Server is up'" >/dev/null 2>&1; then
+            echo "  ✅ Server is up ($SERVER_IP)"
+            echo "  ⚠️  Root access available, run 'task ansible:bootstrap -- $WORKSPACE' to set up ubuntu user"
+          else
+            echo "  ❌ Server is not reachable ($SERVER_IP)"
+          fi
+          echo ""
+        done
+
+  list-hetzner-keys:
+    desc: List Hetzner SSH keys with IDs
+    silent: true
+    cmds:
+      - |
+        echo "🔑 Listing Hetzner SSH keys..."
+        echo ""
+        command -v hcloud >/dev/null 2>&1 || { echo "❌ hcloud CLI not found. Install with: brew install hcloud"; exit 1; }
+        hcloud ssh-key list -o columns=name,id
+        echo ""
+        echo "💡 Use the 'ID' column for infrastructure-secrets.yml (ssh_keys: [\"ID\", ...])"
+
+  setup-remote-cursor:
+    desc: Add dev and prod servers to ~/.ssh/config for Cursor Remote-SSH
+    silent: true
+    cmds:
+      - |
+        echo "🔧 Updating SSH config for dev and prod servers..."
+        for WORKSPACE in dev prod; do
+          terraform -chdir=terraform workspace select $WORKSPACE >/dev/null 2>&1
+          SERVER_IP=$(terraform -chdir=terraform output -raw server_ipv4 2>/dev/null | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' || echo "")
+          SERVER_NAME=$(terraform -chdir=terraform output -raw server_name 2>/dev/null || echo "giftfinder-$WORKSPACE")
+          if [ -z "$SERVER_IP" ]; then
+            echo "  ⚠️  Skipping $WORKSPACE (no server found)"
+            continue
+          fi
+          if grep -q "^Host $SERVER_NAME$" ~/.ssh/config 2>/dev/null; then
+            if [ "$(uname -s)" = "Darwin" ]; then
+              sed -i '' "/^Host $SERVER_NAME$/,/^Host /s|^  HostName .*|  HostName $SERVER_IP|" ~/.ssh/config
+            else
+              sed -i "/^Host $SERVER_NAME$/,/^Host /s|^  HostName .*|  HostName $SERVER_IP|" ~/.ssh/config
+            fi
+            echo "  ✅ Updated $SERVER_NAME ($SERVER_IP)"
+          else
+            {
+              echo ""
+              echo "Host $SERVER_NAME"
+              echo "  HostName $SERVER_IP"
+              echo "  User ubuntu"
+              echo "  IdentityFile ~/.ssh/id_rsa"
+              echo "  IdentitiesOnly yes"
+              echo "  StrictHostKeyChecking accept-new"
+            } >> ~/.ssh/config
+            echo "  ✅ Added $SERVER_NAME ($SERVER_IP)"
+          fi
+        done
+        chmod 600 ~/.ssh/config
+

@@ -1,0 +1,17 @@
+# Terraform files
+terraform/*.tfstate
+terraform/*.tfstate.*
+terraform/.terraform/
+terraform/crash.log
+
+# Ansible generated files
+ansible/inventory/dev.ini
+ansible/inventory/prod.ini
+ansible/.ansible/
+
+# SOPS (Secrets OPerationS)
+secrets/infrastructure-secrets.yml
+.sops.yaml
+
+docs/attic
+

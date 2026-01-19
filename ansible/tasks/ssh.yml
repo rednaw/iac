@@ -1,0 +1,44 @@
+---
+- name: Configure SSH
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+    backup: yes
+  loop:
+    - { regexp: '^#?PermitRootLogin', line: 'PermitRootLogin no' }
+    - { regexp: '^#?PasswordAuthentication', line: 'PasswordAuthentication no' }
+    - { regexp: '^#?PubkeyAuthentication', line: 'PubkeyAuthentication yes' }
+    - { regexp: '^#?X11Forwarding', line: 'X11Forwarding no' }
+    - { regexp: '^#?MaxAuthTries', line: 'MaxAuthTries 3' }
+  register: ssh_config_changed
+  notify: Restart sshd
+
+- name: Ensure /run/sshd directory exists (required for sshd -t)
+  ansible.builtin.file:
+    path: /run/sshd
+    state: directory
+    mode: '0755'
+  when: ssh_config_changed.changed | default(false)
+  # noqa: no-handler  # Validation/setup task, not a service restart handler
+
+- name: Validate SSH configuration before restart
+  ansible.builtin.command: sshd -t
+  changed_when: false
+  failed_when: false
+  when: ssh_config_changed.changed | default(false)
+  register: sshd_test
+  check_mode: false
+  # noqa: no-handler  # Validation task, not a service restart handler
+
+- name: Fail if SSH configuration is invalid
+  ansible.builtin.fail:
+    msg: "SSH configuration is invalid. Check /etc/ssh/sshd_config. Error: {{ sshd_test.stderr | default(sshd_test.stdout) }}"
+  when:
+    - ssh_config_changed.changed | default(false)
+    - sshd_test.rc != 0
+
+- name: Flush handlers to apply SSH config changes immediately
+  ansible.builtin.meta: flush_handlers
+  when: ssh_config_changed.changed | default(false)
+  # noqa: no-handler  # Meta task that triggers handlers, not a handler itself

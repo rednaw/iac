@@ -1,0 +1,109 @@
+version: '3'
+
+tasks:
+  login:
+    desc: Authenticate with Terraform Cloud
+    dir: terraform
+    cmds:
+      - echo "🔐 Authenticating with Terraform Cloud..."
+      - cmd: terraform login
+        silent: true
+
+  init:
+    desc: "Initialize Terraform (use: task terraform:init -- dev or -- prod)"
+    dir: terraform
+    silent: true
+    cmds:
+      - |
+        WORKSPACE=$(../scripts/validate-workspace.sh terraform init "{{.CLI_ARGS}}")
+        echo "🚀 Initializing Terraform for workspace: giftfinder-$WORKSPACE..."
+        if [ ! -f "{{.SOPS_KEY_FILE}}" ]; then
+          echo "❌ SOPS key file not found! Run 'task secrets:keygen' first."
+          exit 1
+        fi
+        # Initialize backend first (connects to Terraform Cloud)
+        # Use -reconfigure for new workspaces or when backend config changed
+        SOPS_AGE_KEY_FILE="{{.SOPS_KEY_FILE}}" terraform init -reconfigure
+        # Then select workspace (must exist in Terraform Cloud)
+        # With prefix backend, select just the workspace name (Terraform adds prefix automatically)
+        if ! terraform workspace select "$WORKSPACE" 2>/dev/null; then
+          echo ""
+          echo "❌ Error: Workspace 'giftfinder-$WORKSPACE' not found in Terraform Cloud"
+          echo ""
+          echo "Create the workspace first in Terraform Cloud:"
+          echo "  1. Go to Terraform Cloud → Organization 'milledoni'"
+          echo "  2. Create workspace: 'giftfinder-$WORKSPACE'"
+          echo "     (Environment '$WORKSPACE' will be automatically derived from workspace name)"
+          echo ""
+          echo "See README.md for detailed setup instructions."
+          exit 1
+        fi
+
+  plan:
+    desc: "Plan Terraform changes (use: task terraform:plan -- dev or -- prod)"
+    dir: terraform
+    silent: true
+    cmds:
+      - |
+        WORKSPACE=$(../scripts/validate-workspace.sh terraform plan "{{.CLI_ARGS}}")
+        echo "📋 Planning Terraform changes for workspace: giftfinder-$WORKSPACE..."
+        if [ ! -f "{{.SOPS_KEY_FILE}}" ]; then
+          echo "❌ SOPS key file not found! Run 'task secrets:keygen' first."
+          exit 1
+        fi
+        terraform workspace select "$WORKSPACE"
+        SOPS_AGE_KEY_FILE="{{.SOPS_KEY_FILE}}" terraform plan
+
+  apply:
+    desc: "Apply Terraform changes (use: task terraform:apply -- dev or -- prod)"
+    dir: terraform
+    silent: true
+    cmds:
+      - |
+        WORKSPACE=$(../scripts/validate-workspace.sh terraform apply "{{.CLI_ARGS}}")
+        echo "✨ Applying Terraform changes to workspace: giftfinder-$WORKSPACE"
+        if [ ! -f "{{.SOPS_KEY_FILE}}" ]; then
+          echo "❌ SOPS key file not found! Run 'task secrets:keygen' first."
+          exit 1
+        fi
+        terraform workspace select "$WORKSPACE"
+        SOPS_AGE_KEY_FILE="{{.SOPS_KEY_FILE}}" terraform apply
+
+  destroy:
+    desc: "Destroy Terraform resources (use: task terraform:destroy -- dev or -- prod)"
+    dir: terraform
+    silent: true
+    cmds:
+      - |
+        WORKSPACE=$(../scripts/validate-workspace.sh terraform destroy "{{.CLI_ARGS}}")
+        echo "⚠️  WARNING: This will DESTROY all resources in workspace: giftfinder-$WORKSPACE"
+        echo "Terraform will ask for confirmation..."
+        echo ""
+        terraform workspace select "$WORKSPACE"
+        SERVER_IP=$(terraform output -raw server_ipv4 2>/dev/null | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' || echo "")
+        if [ ! -f "{{.SOPS_KEY_FILE}}" ]; then
+          echo "❌ SOPS key file not found! Run 'task secrets:keygen' first."
+          exit 1
+        fi
+        SOPS_AGE_KEY_FILE="{{.SOPS_KEY_FILE}}" terraform destroy
+        if [ -n "$SERVER_IP" ]; then
+          echo "🧹 Cleaning server host key from known_hosts..."
+          if ssh-keygen -R "$SERVER_IP" -f ~/.ssh/known_hosts 2>/dev/null; then
+            echo "✅ Host key removed"
+          else
+            echo "⚠️  Host key not found (may already be removed)"
+          fi
+        else
+          echo "ℹ️  No server IP found (server may not exist)"
+        fi
+
+  output:
+    desc: "Show Terraform outputs (use: task terraform:output -- dev or -- prod)"
+    dir: terraform
+    cmds:
+      - |
+        WORKSPACE=$(../scripts/validate-workspace.sh terraform output "{{.CLI_ARGS}}")
+        terraform workspace select "$WORKSPACE"
+        echo "📤 Getting Terraform outputs for workspace: giftfinder-$WORKSPACE..."
+        terraform output
+
