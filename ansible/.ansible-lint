@@ -1,0 +1,16 @@
+---
+# Ansible Lint Configuration
+# See: https://docs.ansible.com/projects/lint/configuring/
+
+profile: production
+
+# Skip style-only rules that don't affect functionality
+skip_list:
+  - yaml[truthy]              # Accept 'yes'/'no' (common Ansible practice)
+  - yaml[empty-lines]         # Allow blank lines for readability
+  - yaml[line-length]         # Allow long lines when necessary
+
+exclude_paths:
+  - .cache/
+  - .git/
+  - venv/

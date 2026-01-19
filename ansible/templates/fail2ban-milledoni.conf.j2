@@ -1,0 +1,86 @@
+# Milledoni fail2ban jail configuration
+#
+# Security Note: These rules are tuned to balance security with avoiding false positives.
+# Rules are more lenient than typical "paranoid" configurations to prevent blocking
+# legitimate users. Monitor fail2ban logs and adjust thresholds if needed.
+#
+# To check bans: sudo fail2ban-client status <jail-name>
+# To unban an IP: sudo fail2ban-client set <jail-name> unbanip <ip-address>
+
+[DEFAULT]
+# Default ban time: 1 hour
+bantime = 3600
+# Look back period: 10 minutes  
+findtime = 600
+# Email notifications (uncomment and configure if needed)
+# destemail = your@email.com
+# action = %(action_mwl)s
+
+# AbuseIPDB reporting (reports banned IPs to AbuseIPDB)
+# API key is configured from SOPS secrets
+# Categories: 18=Brute-Force, 20=Bad Web Bot, 21=Exploited Host, 22=SSH
+# See https://www.abuseipdb.com/categories for full list
+{% if abuseipdb_api_key | default('') != '' %}
+action = %(action_)s
+         %(action_abuseipdb)s[abuseipdb_apikey="{{ abuseipdb_api_key }}", abuseipdb_category="18,20,21,22"]
+{% else %}
+# AbuseIPDB reporting disabled (API key not configured in SOPS)
+action = %(action_)s
+{% endif %}
+
+# SSH brute force protection
+[sshd]
+enabled = true
+port = ssh
+logpath = /var/log/auth.log
+maxretry = 5
+bantime = 3600
+findtime = 600
+
+# Nginx HTTP authentication failures (uses standard filter)
+[nginx-http-auth]
+enabled = true
+port = http,https
+logpath = /var/log/nginx/error.log
+maxretry = 6
+bantime = 1800
+findtime = 600
+
+# Nginx rate limiting violations - using standard nginx-limit-req filter
+[nginx-limit-req]
+enabled = true
+port = http,https
+logpath = /var/log/nginx/error.log
+maxretry = 10
+bantime = 1800
+findtime = 600
+
+# Failed login attempts to Milledoni API
+[nginx-login-attempts]
+enabled = true
+port = http,https
+logpath = /var/log/nginx/access.log
+maxretry = 8
+bantime = 3600
+findtime = 600
+failregex = ^<HOST> -.*"/api/auth/login.*HTTP.*" (401|403) .*$
+
+# Block known bad bots and user agents
+# Blocks requests from known malicious user agents
+[nginx-badbots]
+enabled = true
+port = http,https
+logpath = /var/log/nginx/access.log
+maxretry = 3
+bantime = 86400
+findtime = 600
+
+# Block repeated 403 Forbidden errors
+# Blocks IPs that repeatedly trigger 403 Forbidden responses
+[nginx-forbidden]
+enabled = true
+port = http,https
+logpath = /var/log/nginx/error.log
+maxretry = 5
+bantime = 3600
+findtime = 600

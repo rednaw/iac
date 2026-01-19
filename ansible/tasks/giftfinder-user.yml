@@ -1,0 +1,45 @@
+---
+# Configure giftfinder user for running Docker applications
+# This user is intended for running Docker apps, not administrative tasks
+
+- name: Ensure giftfinder user exists
+  ansible.builtin.user:
+    name: giftfinder
+    home: /opt/giftfinder
+    shell: /bin/bash
+    groups: docker,sudo
+    append: yes
+    create_home: yes
+    system: no
+
+- name: Ensure giftfinder home directory exists
+  ansible.builtin.file:
+    path: /opt/giftfinder
+    state: directory
+    owner: giftfinder
+    group: giftfinder
+    mode: '0755'
+
+- name: Ensure giftfinder .docker directory exists
+  ansible.builtin.file:
+    path: /opt/giftfinder/.docker
+    state: directory
+    owner: giftfinder
+    group: giftfinder
+    mode: '0700'
+
+- name: Configure Docker registry auth for giftfinder user
+  ansible.builtin.copy:
+    content: |
+      {
+        "auths": {
+          "{{ infrastructure_secrets.registry_domain }}": {
+            "auth": "{{ (infrastructure_secrets.registry_username + ':' + infrastructure_secrets.registry_password) | b64encode }}"
+          }
+        }
+      }
+    dest: /opt/giftfinder/.docker/config.json
+    mode: '0600'
+    owner: giftfinder
+    group: giftfinder
+  no_log: true

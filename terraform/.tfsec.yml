@@ -1,0 +1,19 @@
+# tfsec configuration
+# https://aquasecurity.github.io/tfsec/latest/configuration/
+
+# Minimum severity level to report
+minimum_severity: MEDIUM
+
+# Exclude specific checks (add as needed)
+# Example: exclude: ["aws-s3-enable-bucket-encryption"]
+exclude: []
+
+# Include specific checks (empty = all checks)
+include: []
+
+# Exclude directories
+exclude_dirs: []
+
+# Custom severity overrides (if needed)
+severity_overrides: {}
+

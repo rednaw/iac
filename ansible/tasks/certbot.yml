@@ -1,0 +1,56 @@
+---
+# Certbot installation and certificate management
+
+- name: Install certbot and nginx plugin
+  ansible.builtin.apt:
+    name:
+      - certbot
+      - python3-certbot-nginx
+    state: present
+    update_cache: yes
+
+- name: Ensure certbot timer is enabled and started
+  ansible.builtin.systemd:
+    name: certbot.timer
+    enabled: yes
+    state: started
+
+# Determine environment and cert name
+- name: Extract environment from hostname
+  ansible.builtin.set_fact:
+    app_environment: "{{ 'dev' if '-dev' in inventory_hostname else 'prod' }}"
+    cert_domain: "{{ app_environment }}.rednaw.nl"
+
+- name: Build SAN domain list
+  ansible.builtin.set_fact:
+    all_domains: "{{ [cert_domain, 'registry.rednaw.nl', 'www.rednaw.nl'] }}"
+
+# Obtain or expand SAN certificate
+- name: Obtain/expand SAN certificate for all domains
+  ansible.builtin.command:
+    cmd: >
+      certbot certonly
+      --cert-name {{ cert_domain }}
+      --expand
+      --webroot
+      --webroot-path=/var/www/html
+      --non-interactive
+      --agree-tos
+      --register-unsafely-without-email
+      --keep-until-expiring
+      {% for domain in all_domains %}
+      -d {{ domain }}
+      {% endfor %}
+  register: certbot_result
+  changed_when: "'Congratulations' in certbot_result.stdout or 'Successfully' in certbot_result.stdout"
+  notify: Restart nginx
+
+# Ensure the certificate fact is accurate for templates
+- name: Re-check if certificate exists after Certbot
+  ansible.builtin.stat:
+    path: /etc/letsencrypt/live/{{ cert_domain }}/fullchain.pem
+  register: final_cert_check
+
+- name: Update SSL certificate fact for nginx templates
+  ansible.builtin.set_fact:
+    ssl_certs_exist: "{{ final_cert_check.stat.exists | bool }}"

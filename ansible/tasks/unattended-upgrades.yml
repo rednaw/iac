@@ -1,0 +1,13 @@
+---
+- name: Configure unattended-upgrades
+  ansible.builtin.copy:
+    src: files/apt-20auto-upgrades
+    dest: /etc/apt/apt.conf.d/20auto-upgrades
+    mode: '0644'
+
+- name: Configure unattended-upgrades behavior
+  ansible.builtin.copy:
+    src: files/apt-50unattended-upgrades
+    dest: /etc/apt/apt.conf.d/50unattended-upgrades
+    mode: '0644'
+

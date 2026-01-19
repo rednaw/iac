@@ -1,0 +1,139 @@
+---
+# Docker Registry v3 installation, configuration and authentication setup
+
+- name: Install apache2-utils for htpasswd
+  ansible.builtin.apt:
+    name: apache2-utils
+    state: present
+    update_cache: yes
+
+- name: Create registry storage directory
+  ansible.builtin.file:
+    path: /var/lib/docker-registry
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Create registry configuration directory
+  ansible.builtin.file:
+    path: /etc/docker-registry
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Create registry auth directory
+  ansible.builtin.file:
+    path: /etc/docker-registry/auth
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Generate htpasswd file
+  ansible.builtin.command: >
+    htpasswd -Bbn
+    {{ infrastructure_secrets.registry_username }}
+    {{ infrastructure_secrets.registry_password }}
+  register: htpasswd_output
+  changed_when: true
+  no_log: true
+
+- name: Write htpasswd file
+  ansible.builtin.copy:
+    content: "{{ htpasswd_output.stdout }}\n"
+    dest: /etc/docker-registry/auth/htpasswd
+    mode: '0644'
+    owner: root
+    group: root
+  no_log: true
+
+- name: Generate registry config file
+  ansible.builtin.template:
+    src: registry-config.yml.j2
+    dest: /etc/docker-registry/config.yml
+    mode: '0644'
+    owner: root
+    group: root
+    backup: yes
+
+- name: Ensure Docker config directory exists for root
+  ansible.builtin.file:
+    path: /root/.docker
+    state: directory
+    mode: '0700'
+    owner: root
+    group: root
+
+- name: Configure Docker to authenticate with registry (root)
+  ansible.builtin.copy:
+    content: |
+      {
+        "auths": {
+          "{{ infrastructure_secrets.registry_domain }}": {
+            "auth": "{{ (infrastructure_secrets.registry_username + ':' + infrastructure_secrets.registry_password) | b64encode }}"
+          }
+        }
+      }
+    dest: /root/.docker/config.json
+    mode: '0600'
+    owner: root
+    group: root
+  no_log: true
+
+- name: Ensure Docker config directory exists for ubuntu user
+  ansible.builtin.file:
+    path: /home/ubuntu/.docker
+    state: directory
+    mode: '0700'
+    owner: ubuntu
+    group: ubuntu
+
+- name: Configure Docker registry auth for ubuntu user
+  ansible.builtin.copy:
+    content: |
+      {
+        "auths": {
+          "{{ infrastructure_secrets.registry_domain }}": {
+            "auth": "{{ (infrastructure_secrets.registry_username + ':' + infrastructure_secrets.registry_password) | b64encode }}"
+          }
+        }
+      }
+    dest: /home/ubuntu/.docker/config.json
+    mode: '0600'
+    owner: ubuntu
+    group: ubuntu
+  no_log: true
+
+- name: Ensure registry network exists
+  community.docker.docker_network:
+    name: registry-network
+    driver: bridge
+    state: present
+
+- name: Pull registry image
+  community.docker.docker_image:
+    name: registry:3
+    source: pull
+
+- name: Ensure registry container is running
+  community.docker.docker_container:
+    name: registry
+    image: registry:3
+    state: started
+    restart_policy: unless-stopped
+    ports:
+      - "127.0.0.1:5001:5000"
+    volumes:
+      - /var/lib/docker-registry:/var/lib/registry
+      - /etc/docker-registry/auth:/auth
+      - /etc/docker-registry/config.yml:/etc/distribution/config.yml:ro
+    networks:
+      - name: registry-network
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 5000 || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s

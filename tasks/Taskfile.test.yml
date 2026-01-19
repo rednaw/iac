@@ -1,0 +1,119 @@
+version: '3'
+
+tasks:
+  run:
+    desc: Run all tests (validate, security scan, Ansible lint & syntax, taskfiles)
+    silent: true
+    cmds:
+      - |
+        echo "🧪 Running test suite..."
+        echo ""
+        VALIDATE_RESULT=0
+        SECURITY_RESULT=0
+        ANSIBLE_LINT_RESULT=0
+        ANSIBLE_SYNTAX_RESULT=0
+        TASKFILE_RESULT=0
+        task test:terraform:validate || VALIDATE_RESULT=$?
+        task test:terraform:security || SECURITY_RESULT=$?
+        task test:ansible:lint || ANSIBLE_LINT_RESULT=$?
+        task test:ansible:syntax || ANSIBLE_SYNTAX_RESULT=$?
+        task test:taskfiles || TASKFILE_RESULT=$?
+        echo ""
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "Test Results:"
+        if [ $VALIDATE_RESULT -eq 0 ]; then
+          echo "  ✅ Terraform Validation: PASSED"
+        else
+          echo "  ❌ Terraform Validation: FAILED"
+        fi
+        if [ $SECURITY_RESULT -eq 0 ]; then
+          echo "  ✅ Terraform Security:   PASSED"
+        else
+          echo "  ❌ Terraform Security:   FAILED"
+        fi
+        if [ $ANSIBLE_LINT_RESULT -eq 0 ]; then
+          echo "  ✅ Ansible Lint:         PASSED"
+        else
+          echo "  ❌ Ansible Lint:         FAILED"
+        fi
+        if [ $ANSIBLE_SYNTAX_RESULT -eq 0 ]; then
+          echo "  ✅ Ansible Syntax:       PASSED"
+        else
+          echo "  ❌ Ansible Syntax:       FAILED"
+        fi
+        if [ $TASKFILE_RESULT -eq 0 ]; then
+          echo "  ✅ Taskfiles:            PASSED"
+        else
+          echo "  ❌ Taskfiles:            FAILED"
+        fi
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        if [ $VALIDATE_RESULT -eq 0 ] && [ $SECURITY_RESULT -eq 0 ] && [ $ANSIBLE_LINT_RESULT -eq 0 ] && [ $ANSIBLE_SYNTAX_RESULT -eq 0 ] && [ $TASKFILE_RESULT -eq 0 ]; then
+          echo ""
+          echo "🎉 All tests passed!"
+          exit 0
+        else
+          echo ""
+          echo "❌ Some tests failed"
+          exit 1
+        fi
+
+  terraform:validate:
+    desc: Validate Terraform configuration
+    silent: true
+    dir: terraform
+    cmds:
+      - |
+        echo "🔍 Validating Terraform configuration..."
+        if [ ! -f "{{.SOPS_KEY_FILE}}" ]; then
+          echo "❌ SOPS key file \"{{.SOPS_KEY_FILE}}\" not found. Run 'task secrets:keygen' first."
+          exit 1
+        fi
+        if ! SOPS_AGE_KEY_FILE="{{.SOPS_KEY_FILE}}" terraform init -backend=false >/dev/null 2>&1; then
+          echo "❌ Terraform initialization failed"
+          exit 1
+        fi
+        if ! SOPS_AGE_KEY_FILE="{{.SOPS_KEY_FILE}}" terraform validate; then
+          echo "❌ Terraform validation failed"
+          exit 1
+        fi
+      - echo "✅ Terraform validation passed"
+
+  terraform:security:
+    desc: Run Terraform security scan (tfsec)
+    dir: terraform
+    silent: true
+    cmds:
+      - |
+        echo ""
+        echo "🔒 Running security scan with tfsec..."
+        tfsec . --minimum-severity MEDIUM || (echo "❌ Security scan found issues" && exit 1)
+      - echo "✅ Security scan passed"
+
+  ansible:lint:
+    desc: Lint Ansible playbooks (ansible-lint)
+    dir: ansible
+    silent: true
+    cmds:
+      - |
+        echo ""
+        echo "🔍 Linting Ansible playbooks..."
+        PYTHONWARNINGS=ignore::ResourceWarning ansible-lint site.yml bootstrap.yml || (echo "❌ Ansible linting found issues" && exit 1)
+      - echo "✅ Ansible linting passed"
+
+  ansible:syntax:
+    desc: Validate Ansible playbook syntax
+    dir: ansible
+    silent: true
+    cmds:
+      - |
+        echo ""
+        echo "🔍 Validating Ansible playbook syntax..."
+        ansible-playbook --syntax-check site.yml -i localhost, 2>/dev/null || (echo "❌ site.yml syntax check failed" && exit 1)
+        ansible-playbook --syntax-check bootstrap.yml -i localhost, 2>/dev/null || (echo "❌ bootstrap.yml syntax check failed" && exit 1)
+      - echo "✅ Ansible syntax validation passed"
+
+  taskfiles:
+    desc: Validate embedded scripts in Taskfiles
+    silent: true
+    cmds:
+      - python3 scripts/validate-taskfiles.py

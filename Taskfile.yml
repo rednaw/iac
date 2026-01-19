@@ -1,0 +1,57 @@
+version: '3'
+
+vars:
+  USERNAME:
+    sh: whoami
+  HOME:
+    sh: echo $HOME
+  SOPS_CONFIG_DIR: '{{.HOME}}/.config/sops/age'
+  SOPS_KEY_FILE: '{{.SOPS_CONFIG_DIR}}/keys-{{.USERNAME}}.txt'
+  SOPS_KEY_PUB: 'secrets/sops-key-{{.USERNAME}}.pub'
+
+includes:
+  terraform: tasks/Taskfile.terraform.yml
+  secrets: tasks/Taskfile.secrets.yml
+  ansible: tasks/Taskfile.ansible.yml
+  server: tasks/Taskfile.server.yml
+  test: tasks/Taskfile.test.yml
+
+tasks:
+  default:
+    desc: Show available commands
+    cmds:
+      - task: help
+
+  help:
+    desc: Show help message
+    silent: true
+    cmds:
+      - |
+        echo "Infrastructure as Code"
+        echo ""
+        echo "Terraform commands:"
+        echo "  task terraform:login                  # Authenticate with Terraform Cloud"
+        echo "  task terraform:init -- <workspace>    # Initialize workspace (dev or prod)"
+        echo "  task terraform:plan -- <workspace>    # Plan changes (dev or prod)"
+        echo "  task terraform:apply -- <workspace>   # Apply changes (dev or prod)"
+        echo "  task terraform:destroy -- <workspace> # Destroy resources (dev or prod)"
+        echo "  task terraform:output -- <workspace>  # Show outputs (dev or prod)"
+        echo ""
+        echo "Ansible commands:"
+        echo "  task ansible:install                  # Install required collections"
+        echo "  task ansible:bootstrap -- <workspace> # One-time bootstrap as root (dev or prod)"
+        echo "  task ansible:run -- <workspace>       # Configure server (Docker, Nginx, security)"
+        echo ""
+        echo "Testing:"
+        echo "  task test:run                         # Run all tests (validate, format check, security scan)"
+        echo ""
+        echo "Secrets Management (SOPS):"
+        echo "  task secrets:keygen                   # Generate age key pair"
+        echo "  task secrets:decrypt                  # Decrypt secrets for editing"
+        echo "  task secrets:encrypt                  # Encrypt secrets"
+        echo ""
+        echo "Utilities:"
+        echo "  task server:check-status              # Check if servers are up (checks both dev and prod)"
+        echo "  task server:list-hetzner-keys         # List Hetzner SSH keys with IDs"
+        echo "  task server:setup-remote-cursor       # Add server to ~/.ssh/config for Cursor Remote-SSH"
+
