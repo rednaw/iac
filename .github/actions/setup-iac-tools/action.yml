@@ -1,0 +1,145 @@
+name: 'Setup IAC Tools'
+description: 'Install common tools needed for IAC testing'
+inputs:
+  install_python:
+    description: 'Install Python'
+    required: false
+    default: 'false'
+  install_terraform:
+    description: 'Install Terraform'
+    required: false
+    default: 'false'
+  install_tfsec:
+    description: 'Install tfsec'
+    required: false
+    default: 'false'
+  install_ansible:
+    description: 'Install Ansible'
+    required: false
+    default: 'false'
+  install_ansible_lint:
+    description: 'Install Ansible Lint'
+    required: false
+    default: 'false'
+  install_shellcheck:
+    description: 'Install ShellCheck'
+    required: false
+    default: 'false'
+  install_sops:
+    description: 'Install SOPS'
+    required: false
+    default: 'false'
+  install_age:
+    description: 'Install age'
+    required: false
+    default: 'false'
+  install_ansible_collections:
+    description: 'Install Ansible collections'
+    required: false
+    default: 'false'
+  setup_sops_key:
+    description: 'Setup SOPS key from input'
+    required: false
+    default: 'false'
+  sops_age_key:
+    description: 'SOPS AGE key content (from secrets, passed as input)'
+    required: false
+    default: ''
+  working_directory:
+    description: 'Working directory'
+    required: false
+    default: 'iac'
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Python
+      if: inputs.install_python == 'true'
+      uses: actions/setup-python@v6
+      with:
+        python-version: 3.12
+
+    - name: Install Python dependencies
+      if: inputs.install_python == 'true'
+      shell: bash
+      run: |
+        python -m pip install --upgrade pip
+        pip install PyYAML
+
+    - name: Install Terraform
+      if: inputs.install_terraform == 'true'
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: "~> 1.5.0"
+
+    - name: Install tfsec
+      if: inputs.install_tfsec == 'true'
+      shell: bash
+      run: |
+        curl -LO https://github.com/aquasecurity/tfsec/releases/latest/download/tfsec-linux-amd64
+        sudo mv tfsec-linux-amd64 /usr/local/bin/tfsec
+        sudo chmod +x /usr/local/bin/tfsec
+
+    - name: Install Ansible
+      if: inputs.install_ansible == 'true'
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ansible
+
+    - name: Install Ansible Lint
+      if: inputs.install_ansible_lint == 'true'
+      shell: bash
+      run: pip install ansible-lint
+
+    - name: Install ShellCheck
+      if: inputs.install_shellcheck == 'true'
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y shellcheck
+
+    - name: Install Task (go-task)
+      uses: arduino/setup-task@v2
+      with:
+        version: 3.x
+
+    - name: Install SOPS
+      if: inputs.install_sops == 'true'
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+      run: |
+        SOPS_VERSION=$(curl -sH "Authorization: token $GITHUB_TOKEN" https://api.github.com/repos/getsops/sops/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+        curl -LO https://github.com/getsops/sops/releases/download/${SOPS_VERSION}/sops-${SOPS_VERSION}.linux.amd64
+        sudo mv sops-${SOPS_VERSION}.linux.amd64 /usr/local/bin/sops
+        sudo chmod +x /usr/local/bin/sops
+
+    - name: Install age (for SOPS)
+      if: inputs.install_age == 'true'
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+      run: |
+        AGE_VERSION=$(curl -sH "Authorization: token $GITHUB_TOKEN" https://api.github.com/repos/FiloSottile/age/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+        curl -LO https://github.com/FiloSottile/age/releases/download/${AGE_VERSION}/age-${AGE_VERSION}-linux-amd64.tar.gz
+        tar -xzf age-${AGE_VERSION}-linux-amd64.tar.gz
+        sudo mv age/age /usr/local/bin/age
+        sudo chmod +x /usr/local/bin/age
+        rm -rf age age-${AGE_VERSION}-linux-amd64.tar.gz
+
+    - name: Setup SOPS key
+      if: inputs.setup_sops_key == 'true' && inputs.sops_age_key != ''
+      shell: bash
+      env:
+        SOPS_AGE_KEY: ${{ inputs.sops_age_key }}
+      run: |
+        mkdir -p ~/.config/sops/age
+        echo "$SOPS_AGE_KEY" > ~/.config/sops/age/keys-$(whoami).txt
+        chmod 600 ~/.config/sops/age/keys-$(whoami).txt
+
+    - name: Install Ansible collections
+      if: inputs.install_ansible_collections == 'true'
+      shell: bash
+      working-directory: ${{ inputs.working_directory }}
+      run: task ansible:install
