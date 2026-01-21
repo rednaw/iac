@@ -6,7 +6,7 @@ on:
     branches: [ main ]
 
 env:
-  IMAGE_NAME: milledoni/hello-world
+  IMAGE_NAME: rednaw/hello-world
 
 jobs:
   build-and-push:

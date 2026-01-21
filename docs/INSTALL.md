@@ -5,7 +5,7 @@ Follow the steps below from top to bottom and you will be able to manage the Mil
 ## Install Tools
 ```bash
 # For production
-brew install terraform ansible sops age hcloud go-task/tap/go-task
+brew install terraform ansible sops age hcloud go-task/tap/go-task crane
 
 # For testing
 brew install tfsec ansible-lint shellcheck

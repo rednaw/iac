@@ -2,7 +2,7 @@
 # This container is accessible via dev.rednaw.nl/hello
 services:
   hello-world:
-    image: registry.rednaw.nl/milledoni/hello-world:hello
+    image: registry.rednaw.nl/rednaw/hello-world:hello
     ports:
       - "127.0.0.1:5000:5000"
     restart: unless-stopped
