@@ -14,8 +14,8 @@
 
 - name: Configure fail2ban
   ansible.builtin.template:
-    src: fail2ban-milledoni.conf.j2
-    dest: /etc/fail2ban/jail.d/milledoni.conf
+    src: fail2ban.conf.j2
+    dest: /etc/fail2ban/jail.d/rednaw.conf
     mode: '0644'
   notify: Restart fail2ban
 

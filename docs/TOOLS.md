@@ -1,7 +1,7 @@
 [**<---**](README.md)
 
 ## Tools used
-The Milledoni IAC setup uses the following tools:
+The IAC setup uses the following tools:
 
 #### production
 - [Terraform](https://developer.hashicorp.com/terraform) - Infrastructure as Code tool for provisioning cloud resources

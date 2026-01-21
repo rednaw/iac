@@ -1,6 +1,6 @@
 [**<---**](README.md)
 
-Follow the steps below from top to bottom and you will be able to manage the Milledoni infrastructure in a software defined way!
+Follow the steps below from top to bottom and you will be able to manage your infrastructure in a software defined way!
 
 ## Install Tools
 ```bash
