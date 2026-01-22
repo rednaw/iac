@@ -1,0 +1,167 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+version: '3'
+
+tasks:
+  deploy:
+    desc: "Deploy application (use: task application:deploy -- <WORKSPACE> <APP_ROOT> <SHA> <SEMVER>)"
+    silent: true
+    cmds:
+      - |
+        # Parse arguments from CLI_ARGS
+        ARGS="{{.CLI_ARGS}}"
+        if [ -z "$ARGS" ]; then
+          echo "❌ Error: No arguments provided"
+          echo ""
+          echo "Usage: task application:deploy -- <WORKSPACE> <APP_ROOT> <SHA> <SEMVER>"
+          echo ""
+          echo "Arguments:"
+          echo "  WORKSPACE   - dev or prod"
+          echo "  APP_ROOT   - Path to app root directory (e.g. ../hello)"
+          echo "  SHA         - Short commit SHA (7 characters)"
+          echo "  SEMVER      - Semantic version (e.g. 1.2.3)"
+          echo ""
+          echo "Example:"
+          echo "  task application:deploy -- dev ../hello abc1234 1.0.0"
+          exit 1
+        fi
+        
+        # Parse arguments (split by spaces)
+        # Note: This assumes arguments don't contain spaces (paths should be relative)
+        # shellcheck disable=SC2086
+        set -- $ARGS
+        
+        if [ $# -ne 4 ]; then
+          echo "❌ Error: Invalid number of arguments (expected 4, got $#)"
+          echo ""
+          echo "Usage: task application:deploy -- <WORKSPACE> <APP_ROOT> <SHA> <SEMVER>"
+          exit 1
+        fi
+        
+        WORKSPACE="$1"
+        APP_ROOT_PATH="$2"
+        SHA="$3"
+        SEMVER="$4"
+        
+        # Validate workspace
+        if [ "$WORKSPACE" != "dev" ] && [ "$WORKSPACE" != "prod" ]; then
+          echo "❌ Error: Invalid workspace '$WORKSPACE'. Must be 'dev' or 'prod'"
+          exit 1
+        fi
+        
+        # Validate SHA format (short SHA, 7 hex characters)
+        if ! echo "$SHA" | grep -qE '^[0-9a-fA-F]{7}$'; then
+          echo "❌ Error: Invalid SHA '$SHA'. Must be 7 hexadecimal characters (short SHA)"
+          exit 1
+        fi
+        
+        # Validate semver format (MAJOR.MINOR.PATCH)
+        if ! echo "$SEMVER" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+          echo "❌ Error: Invalid semver '$SEMVER'. Must be MAJOR.MINOR.PATCH (e.g. '1.2.3')"
+          exit 1
+        fi
+        
+        # Resolve IAC repo root (current directory when task runs from IAC root)
+        IAC_REPO="$(pwd)"
+        
+        # Resolve app root to absolute path
+        APP_ROOT="$(realpath "$APP_ROOT_PATH" 2>/dev/null || echo "$APP_ROOT_PATH")"
+        if [ ! -d "$APP_ROOT" ]; then
+          echo "❌ Error: App root does not exist or is not a directory: $APP_ROOT"
+          exit 1
+        fi
+        
+        # Validate descriptor exists
+        DESCRIPTOR="$APP_ROOT/$WORKSPACE.yml"
+        if [ ! -f "$DESCRIPTOR" ]; then
+          echo "❌ Error: Descriptor file not found: $DESCRIPTOR"
+          exit 1
+        fi
+        
+        # Check inventory file exists
+        INVENTORY_FILE="$IAC_REPO/ansible/inventory/$WORKSPACE.ini"
+        if [ ! -f "$INVENTORY_FILE" ]; then
+          echo "❌ Error: Inventory file not found: $INVENTORY_FILE"
+          echo ""
+          echo "Generate the inventory file first:"
+          echo "  Run: task terraform:apply -- $WORKSPACE"
+          exit 1
+        fi
+        
+        # Step 1: Run registry promotion script
+        echo "🚀 Promoting image: $SHA -> $SEMVER"
+        echo ""
+        if ! "$IAC_REPO/scripts/registry-promote.py" "$WORKSPACE" "$APP_ROOT" "$SHA" "$SEMVER"; then
+          echo ""
+          echo "❌ Error: Image promotion failed"
+          exit 1
+        fi
+        
+        echo ""
+        echo "📋 Reading deployment descriptor..."
+        
+        # Read descriptor using helper script
+        if ! DESCRIPTOR_DATA=$("$IAC_REPO/scripts/read-descriptor.py" "$DESCRIPTOR" 2>&1) || [ -z "$DESCRIPTOR_DATA" ]; then
+          echo "❌ Error: Failed to read deployment descriptor"
+          echo "$DESCRIPTOR_DATA" >&2
+          exit 1
+        fi
+        
+        REGISTRY_NAME=$(echo "$DESCRIPTOR_DATA" | cut -d'|' -f1)
+        IMAGE_NAME=$(echo "$DESCRIPTOR_DATA" | cut -d'|' -f2)
+        SERVICE_NAME=$(echo "$DESCRIPTOR_DATA" | cut -d'|' -f3)
+        
+        # Construct image reference with semantic version
+        IMAGE="$REGISTRY_NAME/$IMAGE_NAME:$SEMVER"
+        
+        # Derive deploy target from app root basename
+        APP_SLUG=$(basename "$APP_ROOT")
+        DEPLOY_TARGET="/opt/giftfinder/$APP_SLUG"
+        
+        echo "   Registry: $REGISTRY_NAME"
+        echo "   Image: $IMAGE_NAME"
+        echo "   Service: $SERVICE_NAME"
+        echo "   Deploy target: $DEPLOY_TARGET"
+        echo ""
+        
+        # Step 2: Deploy with Ansible
+        echo "🚀 Deploying application..."
+        echo ""
+        
+        # Remove old host keys from known_hosts to avoid conflicts after server recreation
+        # Extract IP/hostname from inventory (ignore errors if not found)
+        ANSIBLE_HOST=$(grep -E "^giftfinder-${WORKSPACE}" "$INVENTORY_FILE" | sed -n 's/.*ansible_host=\([^ ]*\).*/\1/p' || true)
+        ANSIBLE_USER=$(grep -E "^giftfinder-${WORKSPACE}" "$INVENTORY_FILE" | sed -n 's/.*ansible_user=\([^ ]*\).*/\1/p' || echo "ubuntu")
+        if [ -n "$ANSIBLE_HOST" ]; then
+          echo "🔑 Removing old host key for $ANSIBLE_HOST from known_hosts..."
+          ssh-keygen -R "$ANSIBLE_HOST" -f ~/.ssh/known_hosts 2>/dev/null || true
+          # Also try removing by IP in brackets format (for IPv6 compatibility)
+          ssh-keygen -R "[$ANSIBLE_HOST]" -f ~/.ssh/known_hosts 2>/dev/null || true
+          # Clear any ControlMaster connections that might be cached
+          ssh -O exit "$ANSIBLE_HOST" 2>/dev/null || true
+          # Accept the new host key by doing a test connection (ignore errors)
+          echo "🔑 Accepting new host key for $ANSIBLE_HOST..."
+          ssh -o StrictHostKeyChecking=accept-new -o ConnectTimeout=5 -o BatchMode=yes "${ANSIBLE_USER}@${ANSIBLE_HOST}" "echo" >/dev/null 2>&1 || true
+        fi
+        
+        # Change to app root directory
+        cd "$APP_ROOT" || {
+          echo "❌ Error: Failed to change to app root: $APP_ROOT"
+          exit 1
+        }
+        
+        # Run Ansible playbook
+        if ansible-playbook \
+          -i "$INVENTORY_FILE" \
+          deploy.yml \
+          -e "iac_repo_root=$IAC_REPO" \
+          -e "app_root=$APP_ROOT" \
+          -e "deploy_target=$DEPLOY_TARGET" \
+          -e "image=$IMAGE" \
+          -e "service_name=$SERVICE_NAME"; then
+          echo ""
+          echo "✅ Deployment completed successfully!"
+        else
+          echo ""
+          echo "❌ Error: Deployment failed"
+          exit 1
+        fi

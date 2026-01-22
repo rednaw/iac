@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
 version: '3'
 
 tasks:
@@ -69,22 +70,4 @@ tasks:
         echo "⚙️  Running full Ansible playbook for workspace: $WORKSPACE..."
         ansible-playbook -i "$INVENTORY_FILE" site.yml
 
-  deploy:
-    desc: "Deploy app (use: task ansible:deploy -- dev or -- prod)"
-    dir: ansible
-    silent: true
-    cmds:
-      - |
-        WORKSPACE=$(../scripts/validate-workspace.sh ansible run "{{.CLI_ARGS}}")
-        INVENTORY_FILE="inventory/$WORKSPACE.ini"
-        if [ ! -f "$INVENTORY_FILE" ]; then
-          echo "❌ Error: Inventory file not found: $INVENTORY_FILE"
-          echo ""
-          echo "Generate the inventory file first:"
-          echo "  Run: task terraform:apply -- $WORKSPACE"
-          echo ""
-          echo "This will create the inventory file automatically."
-          exit 1
-        fi
-        echo "⚙️  Running full Ansible playbook for workspace: $WORKSPACE..."
-        ansible-playbook -i "$INVENTORY_FILE" deploy.yml
+  

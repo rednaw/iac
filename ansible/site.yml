@@ -20,38 +20,38 @@
       ansible.builtin.import_tasks: tasks/secrets.yml
 
   tasks:
-    # - name: Base system setup
-    #   ansible.builtin.import_tasks: tasks/base.yml
+    - name: Base system setup
+      ansible.builtin.import_tasks: tasks/base.yml
 
-    # - name: Manage SSH authorized keys
-    #   ansible.builtin.import_tasks: tasks/authorized-keys.yml
+    - name: Manage SSH authorized keys
+      ansible.builtin.import_tasks: tasks/authorized-keys.yml
 
-    # - name: Unattended upgrades
-    #   ansible.builtin.import_tasks: tasks/unattended-upgrades.yml
+    - name: Unattended upgrades
+      ansible.builtin.import_tasks: tasks/unattended-upgrades.yml
 
-    # - name: SSH
-    #   ansible.builtin.import_tasks: tasks/ssh.yml
+    - name: SSH
+      ansible.builtin.import_tasks: tasks/ssh.yml
 
     - name: Nginx
       ansible.builtin.import_tasks: tasks/nginx.yml
 
-    # - name: Certbot SSL
-    #   ansible.builtin.import_tasks: tasks/certbot.yml
+    - name: Certbot SSL
+      ansible.builtin.import_tasks: tasks/certbot.yml
 
-    # - name: Nginx again
-    #   ansible.builtin.import_tasks: tasks/nginx.yml
+    - name: Nginx again
+      ansible.builtin.import_tasks: tasks/nginx.yml
 
-    # - name: Fail2ban
-    #   ansible.builtin.import_tasks: tasks/fail2ban.yml
+    - name: Fail2ban
+      ansible.builtin.import_tasks: tasks/fail2ban.yml
 
-    # - name: Docker
-    #   ansible.builtin.import_tasks: tasks/docker.yml
+    - name: Docker
+      ansible.builtin.import_tasks: tasks/docker.yml
 
-    # - name: Giftfinder User
-    #   ansible.builtin.import_tasks: tasks/giftfinder-user.yml
+    - name: Giftfinder User
+      ansible.builtin.import_tasks: tasks/giftfinder-user.yml
 
-    # - name: Docker Registry
-    #   ansible.builtin.import_tasks: tasks/registry.yml
+    - name: Docker Registry
+      ansible.builtin.import_tasks: tasks/registry.yml
 
   handlers:
     - name: Restart sshd
