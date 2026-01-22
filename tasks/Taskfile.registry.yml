@@ -25,7 +25,7 @@ tasks:
         ALL_TAGS=$(crane ls "$REPO" 2>/dev/null | sort)
         if [ -z "$ALL_TAGS" ]; then
           echo "❌ Error: Failed to list tags or repository is empty"
-          echo "💡 Tip: Make sure you're logged in: docker login $(echo $REPO | cut -d/ -f1)"
+          echo "💡 Tip: Make sure you're logged in: docker login $(echo "$REPO" | cut -d/ -f1)"
           exit 1
         fi
         
@@ -41,6 +41,7 @@ tasks:
         printf "%-12s %-12s\n" "SEMVER" "SHA"
         printf "%-12s %-12s\n" "------" "---"
         
+        # shellcheck disable=SC2086
         for SEMVER in $SEMVER_TAGS; do
           # Get source SHA from OCI annotation
           SOURCE_SHA=""
@@ -102,18 +103,21 @@ tasks:
         
         if [ -n "$SEMVER_TAGS" ]; then
           echo "📌 Semver tags:"
+          # shellcheck disable=SC2001
           echo "$SEMVER_TAGS" | sed 's/^/  /'
           echo ""
         fi
         
         if [ -n "$SHA_TAGS" ]; then
           echo "🔖 SHA tags:"
+          # shellcheck disable=SC2001
           echo "$SHA_TAGS" | sed 's/^/  /'
           echo ""
         fi
         
         if [ -n "$OTHER_TAGS" ]; then
           echo "🏷️  Other tags:"
+          # shellcheck disable=SC2001
           echo "$OTHER_TAGS" | sed 's/^/  /'
           echo ""
         fi
