@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
 version: '3'
 
 vars:
@@ -15,6 +16,7 @@ includes:
   ansible: tasks/Taskfile.ansible.yml
   server: tasks/Taskfile.server.yml
   test: tasks/Taskfile.test.yml
+  application: tasks/Taskfile.application.yml
 
 tasks:
   default:
@@ -49,6 +51,9 @@ tasks:
         echo "  task secrets:keygen                   # Generate age key pair"
         echo "  task secrets:decrypt                  # Decrypt secrets for editing"
         echo "  task secrets:encrypt                  # Encrypt secrets"
+        echo ""
+        echo "Application Deployment:"
+        echo "  task application:deploy -- <WORKSPACE> <APP_ROOT> <SHA> <SEMVER>  # Deploy application"
         echo ""
         echo "Utilities:"
         echo "  task server:check-status              # Check if servers are up (checks both dev and prod)"
