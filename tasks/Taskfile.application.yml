@@ -6,6 +6,14 @@ tasks:
     desc: "Deploy application (use: task application:deploy -- <WORKSPACE> <APP_ROOT> <SHA> <SEMVER>)"
     silent: true
     cmds:
+      - task: validate
+      - task: promote
+      - task: deploy-app
+
+  validate:
+    desc: "Validate deployment arguments and paths"
+    silent: true
+    cmds:
       - |
         # Parse arguments from CLI_ARGS
         ARGS="{{.CLI_ARGS}}"
@@ -87,7 +95,25 @@ tasks:
           exit 1
         fi
         
-        # Step 1: Run registry promotion script
+        # Export variables for use in subsequent tasks
+        export WORKSPACE APP_ROOT IAC_REPO SHA SEMVER INVENTORY_FILE
+
+  promote:
+    desc: "Promote image from SHA to semantic version"
+    silent: true
+    cmds:
+      - |
+        # Re-parse arguments and recompute paths (Taskfile runs each task in separate shell)
+        ARGS="{{.CLI_ARGS}}"
+        # shellcheck disable=SC2086
+        set -- $ARGS
+        WORKSPACE="$1"
+        APP_ROOT_PATH="$2"
+        SHA="$3"
+        SEMVER="$4"
+        IAC_REPO="$(pwd)"
+        APP_ROOT="$(realpath "$APP_ROOT_PATH" 2>/dev/null || echo "$APP_ROOT_PATH")"
+        
         echo "🚀 Promoting image: $SHA -> $SEMVER"
         echo ""
         if ! "$IAC_REPO/scripts/registry-promote.py" "$WORKSPACE" "$APP_ROOT" "$SHA" "$SEMVER"; then
@@ -95,36 +121,38 @@ tasks:
           echo "❌ Error: Image promotion failed"
           exit 1
         fi
+
+  deploy-app:
+    desc: "Deploy application with Ansible"
+    silent: true
+    cmds:
+      - |
+        # Re-parse arguments and recompute paths (Taskfile runs each task in separate shell)
+        ARGS="{{.CLI_ARGS}}"
+        # shellcheck disable=SC2086
+        set -- $ARGS
+        WORKSPACE="$1"
+        APP_ROOT_PATH="$2"
+        SHA="$3"
+        SEMVER="$4"
+        IAC_REPO="$(pwd)"
+        APP_ROOT="$(realpath "$APP_ROOT_PATH" 2>/dev/null || echo "$APP_ROOT_PATH")"
         
         # Derive deploy target from app root basename
         APP_SLUG=$(basename "$APP_ROOT")
         DEPLOY_TARGET="/opt/giftfinder/$APP_SLUG"
         
-        echo ""
-        
-        # Step 2: Deploy with Ansible
         echo "🚀 Deploying application..."
         echo ""
         
-        # Change to app root directory
-        cd "$APP_ROOT" || {
-          echo "❌ Error: Failed to change to app root: $APP_ROOT"
-          exit 1
-        }
-        
-        # Run Ansible playbook
+        # Run Ansible playbook from app root directory
         # Ansible will read vars from deploy.yml and construct the image using semver
-        if ansible-playbook \
-          -i "$INVENTORY_FILE" \
+        (cd "$APP_ROOT" && ansible-playbook \
+          -i "$IAC_REPO/ansible/inventory/$WORKSPACE.ini" \
           deploy.yml \
           -e "iac_repo_root=$IAC_REPO" \
           -e "app_root=$APP_ROOT" \
           -e "deploy_target=$DEPLOY_TARGET" \
-          -e "semver=$SEMVER"; then
-          echo ""
-          echo "✅ Deployment completed successfully!"
-        else
-          echo ""
-          echo "❌ Error: Deployment failed"
-          exit 1
-        fi
+          -e "semver=$SEMVER")
+      - echo ""
+      - echo "✅ Deployment completed successfully!"
