@@ -96,9 +96,14 @@ runs:
         sudo apt-get install -y shellcheck
 
     - name: Install Task (go-task)
-      uses: arduino/setup-task@v2
-      with:
-        version: 3.x
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+      run: |
+        TASK_VERSION=$(curl -sH "Authorization: token $GITHUB_TOKEN" https://api.github.com/repos/go-task/task/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+        curl -LO https://github.com/go-task/task/releases/download/${TASK_VERSION}/task_linux_amd64.deb
+        sudo dpkg -i task_linux_amd64.deb || sudo apt-get install -yf
+        rm -f task_linux_amd64.deb
 
     - name: Install SOPS
       if: inputs.install_sops == 'true'
