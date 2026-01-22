@@ -106,22 +106,6 @@ tasks:
         echo "🚀 Deploying application..."
         echo ""
         
-        # Remove old host keys from known_hosts to avoid conflicts after server recreation
-        # Extract IP/hostname from inventory (ignore errors if not found)
-        ANSIBLE_HOST=$(grep -E "^giftfinder-${WORKSPACE}" "$INVENTORY_FILE" | sed -n 's/.*ansible_host=\([^ ]*\).*/\1/p' || true)
-        ANSIBLE_USER=$(grep -E "^giftfinder-${WORKSPACE}" "$INVENTORY_FILE" | sed -n 's/.*ansible_user=\([^ ]*\).*/\1/p' || echo "ubuntu")
-        if [ -n "$ANSIBLE_HOST" ]; then
-          echo "🔑 Removing old host key for $ANSIBLE_HOST from known_hosts..."
-          ssh-keygen -R "$ANSIBLE_HOST" -f ~/.ssh/known_hosts 2>/dev/null || true
-          # Also try removing by IP in brackets format (for IPv6 compatibility)
-          ssh-keygen -R "[$ANSIBLE_HOST]" -f ~/.ssh/known_hosts 2>/dev/null || true
-          # Clear any ControlMaster connections that might be cached
-          ssh -O exit "$ANSIBLE_HOST" 2>/dev/null || true
-          # Accept the new host key by doing a test connection (ignore errors)
-          echo "🔑 Accepting new host key for $ANSIBLE_HOST..."
-          ssh -o StrictHostKeyChecking=accept-new -o ConnectTimeout=5 -o BatchMode=yes "${ANSIBLE_USER}@${ANSIBLE_HOST}" "echo" >/dev/null 2>&1 || true
-        fi
-        
         # Change to app root directory
         cd "$APP_ROOT" || {
           echo "❌ Error: Failed to change to app root: $APP_ROOT"

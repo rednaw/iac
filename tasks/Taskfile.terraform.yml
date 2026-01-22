@@ -68,7 +68,25 @@ tasks:
           exit 1
         fi
         terraform workspace select "$WORKSPACE"
+        
+        # Get existing server IP before applying (if server exists)
+        # This allows us to clean up old host keys before the server is recreated
+        EXISTING_IP=$(terraform output -raw server_ipv4 2>/dev/null | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' || echo "")
+        if [ -n "$EXISTING_IP" ]; then
+          echo "🔑 Removing old host key for $EXISTING_IP from known_hosts..."
+          ssh-keygen -R "$EXISTING_IP" -f ~/.ssh/known_hosts 2>/dev/null || true
+          ssh-keygen -R "[$EXISTING_IP]" -f ~/.ssh/known_hosts 2>/dev/null || true
+          ssh -O exit "$EXISTING_IP" 2>/dev/null || true
+        fi
+        
         SOPS_AGE_KEY_FILE="{{.SOPS_KEY_FILE}}" terraform apply
+        
+        # After applying, get the new server IP and accept the new host key
+        NEW_IP=$(terraform output -raw server_ipv4 2>/dev/null | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' || echo "")
+        if [ -n "$NEW_IP" ]; then
+          echo "🔑 Accepting new host key for $NEW_IP..."
+          ssh -o StrictHostKeyChecking=accept-new -o ConnectTimeout=5 -o BatchMode=yes "ubuntu@${NEW_IP}" "echo" >/dev/null 2>&1 || true
+        fi
 
   destroy:
     desc: "Destroy Terraform resources (use: task terraform:destroy -- dev or -- prod)"
@@ -81,19 +99,22 @@ tasks:
         echo "Terraform will ask for confirmation..."
         echo ""
         terraform workspace select "$WORKSPACE"
+        
+        # Get server IP before destroying (so we can clean up host keys after)
         SERVER_IP=$(terraform output -raw server_ipv4 2>/dev/null | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' || echo "")
         if [ ! -f "{{.SOPS_KEY_FILE}}" ]; then
           echo "❌ SOPS key file not found! Run 'task secrets:keygen' first."
           exit 1
         fi
         SOPS_AGE_KEY_FILE="{{.SOPS_KEY_FILE}}" terraform destroy
+        
+        # Clean up host keys after destroying
         if [ -n "$SERVER_IP" ]; then
           echo "🧹 Cleaning server host key from known_hosts..."
-          if ssh-keygen -R "$SERVER_IP" -f ~/.ssh/known_hosts 2>/dev/null; then
-            echo "✅ Host key removed"
-          else
-            echo "⚠️  Host key not found (may already be removed)"
-          fi
+          ssh-keygen -R "$SERVER_IP" -f ~/.ssh/known_hosts 2>/dev/null || true
+          ssh-keygen -R "[$SERVER_IP]" -f ~/.ssh/known_hosts 2>/dev/null || true
+          ssh -O exit "$SERVER_IP" 2>/dev/null || true
+          echo "✅ Host key removed"
         else
           echo "ℹ️  No server IP found (server may not exist)"
         fi
