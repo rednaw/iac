@@ -4,13 +4,13 @@
 
 - name: Configure Giftfinder Production Server
   hosts: all
-  become: yes
+  become: true
 
   pre_tasks:
     - name: Remove old server host key from known_hosts (if exists)
       ansible.builtin.command: ssh-keygen -R {{ ansible_host }} -f {{ lookup('env', 'HOME') }}/.ssh/known_hosts
       delegate_to: localhost
-      become: no
+      become: false
       changed_when: false
       run_once: true
       failed_when: false
