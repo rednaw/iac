@@ -196,6 +196,23 @@ def docker_push(image: str) -> None:
         sys.exit(1)
 
 
+def crane_mutate_add_annotation(image: str, annotation_key: str, annotation_value: str) -> None:
+    """Add OCI annotation to an image using crane mutate."""
+    try:
+        # Use crane mutate to add annotation to the remote image
+        # This will pull, mutate, and push the image
+        subprocess.run(
+            ['crane', 'mutate', image, '--annotation', f'{annotation_key}={annotation_value}'],
+            check=True,
+            capture_output=True
+        )
+    except subprocess.CalledProcessError as e:
+        print(f"⚠️  Warning: Failed to add annotation: {e.stderr.decode() if e.stderr else 'Unknown error'}", file=sys.stderr)
+        # Don't fail - annotation is nice to have but not critical
+    except FileNotFoundError:
+        print("⚠️  Warning: 'crane' command not found. Annotation not added.", file=sys.stderr)
+
+
 def check_tag_exists(image: str) -> bool:
     """Check if a tag already exists in the registry."""
     # Try to inspect the manifest - if it exists, the tag exists
@@ -277,6 +294,10 @@ def main():
     # Push semantic version tag
     print(f"📤 Pushing {semver_image}...")
     docker_push(semver_image)
+    
+    # Add OCI annotation to store source SHA
+    print(f"📝 Adding source SHA annotation...")
+    crane_mutate_add_annotation(semver_image, 'org.rednaw.source-sha', sha)
     
     print(f"✅ Successfully promoted {sha_image} to {semver_image}")
 

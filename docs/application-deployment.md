@@ -204,18 +204,15 @@ For listing tags, inspecting digests, and pruning, use **Crane** and **Docker** 
 
 **Deploy:**
 ```bash
-cd ~/projects/iac
 task application:deploy -- dev ../hello-world abc1234 1.0.0
 ```
 
 **List registry tags:**
 ```bash
-crane ls registry.rednaw.nl/rednaw/hello-world
+task registry:tags -- registry.rednaw.nl/rednaw/hello-world
 ```
 
-**Find SHA-only tags (prune candidates):**
+**View SHA-semver mapping:**
 ```bash
-crane ls registry.rednaw.nl/rednaw/hello-world | grep -E '^[0-9a-f]{7}$'
+task registry:map -- registry.rednaw.nl/rednaw/hello-world
 ```
-
-See the [Registry and containers cheat sheet](registry-containers-cheatsheet.md) for more commands.

@@ -17,6 +17,7 @@ includes:
   server: tasks/Taskfile.server.yml
   test: tasks/Taskfile.test.yml
   application: tasks/Taskfile.application.yml
+  registry: tasks/Taskfile.registry.yml
 
 tasks:
   default:
@@ -54,6 +55,10 @@ tasks:
         echo ""
         echo "Application Deployment:"
         echo "  task application:deploy -- <WORKSPACE> <APP_ROOT> <SHA> <SEMVER>  # Deploy application"
+        echo ""
+        echo "Registry Inspection:"
+        echo "  task registry:tags -- <REPO>          # Show tags grouped by type"
+        echo "  task registry:map -- <REPO>           # Show semver → SHA mapping"
         echo ""
         echo "Utilities:"
         echo "  task server:check-status              # Check if servers are up (checks both dev and prod)"
