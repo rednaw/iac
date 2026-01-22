@@ -70,10 +70,10 @@ tasks:
           exit 1
         fi
         
-        # Validate descriptor exists
-        DESCRIPTOR="$APP_ROOT/$WORKSPACE.yml"
-        if [ ! -f "$DESCRIPTOR" ]; then
-          echo "❌ Error: Descriptor file not found: $DESCRIPTOR"
+        # Validate deploy.yml exists
+        DEPLOY_YML="$APP_ROOT/deploy.yml"
+        if [ ! -f "$DEPLOY_YML" ]; then
+          echo "❌ Error: deploy.yml file not found: $DEPLOY_YML"
           exit 1
         fi
         
@@ -96,31 +96,10 @@ tasks:
           exit 1
         fi
         
-        echo ""
-        echo "📋 Reading deployment descriptor..."
-        
-        # Read descriptor using helper script
-        if ! DESCRIPTOR_DATA=$("$IAC_REPO/scripts/read-descriptor.py" "$DESCRIPTOR" 2>&1) || [ -z "$DESCRIPTOR_DATA" ]; then
-          echo "❌ Error: Failed to read deployment descriptor"
-          echo "$DESCRIPTOR_DATA" >&2
-          exit 1
-        fi
-        
-        REGISTRY_NAME=$(echo "$DESCRIPTOR_DATA" | cut -d'|' -f1)
-        IMAGE_NAME=$(echo "$DESCRIPTOR_DATA" | cut -d'|' -f2)
-        SERVICE_NAME=$(echo "$DESCRIPTOR_DATA" | cut -d'|' -f3)
-        
-        # Construct image reference with semantic version
-        IMAGE="$REGISTRY_NAME/$IMAGE_NAME:$SEMVER"
-        
         # Derive deploy target from app root basename
         APP_SLUG=$(basename "$APP_ROOT")
         DEPLOY_TARGET="/opt/giftfinder/$APP_SLUG"
         
-        echo "   Registry: $REGISTRY_NAME"
-        echo "   Image: $IMAGE_NAME"
-        echo "   Service: $SERVICE_NAME"
-        echo "   Deploy target: $DEPLOY_TARGET"
         echo ""
         
         # Step 2: Deploy with Ansible
@@ -150,14 +129,14 @@ tasks:
         }
         
         # Run Ansible playbook
+        # Ansible will read vars from deploy.yml and construct the image using semver
         if ansible-playbook \
           -i "$INVENTORY_FILE" \
           deploy.yml \
           -e "iac_repo_root=$IAC_REPO" \
           -e "app_root=$APP_ROOT" \
           -e "deploy_target=$DEPLOY_TARGET" \
-          -e "image=$IMAGE" \
-          -e "service_name=$SERVICE_NAME"; then
+          -e "semver=$SEMVER"; then
           echo ""
           echo "✅ Deployment completed successfully!"
         else

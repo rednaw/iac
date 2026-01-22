@@ -6,12 +6,13 @@ Usage: registry-promote.py <WORKSPACE> <APP_ROOT> <SHA> <SEMVER>
 
 This script:
 1. Validates inputs (WORKSPACE, APP_ROOT, SHA, SEMVER)
-2. Reads deployment descriptor from $APP_ROOT/<WORKSPACE>.yml
+2. Reads deployment configuration from $APP_ROOT/deploy.yml
 3. Decrypts infrastructure secrets to get registry credentials
 4. Logs into Docker registry
 5. Pulls the SHA-tagged image
 6. Tags it with the semantic version
 7. Pushes the semantic version tag
+8. Adds OCI annotation linking semver back to SHA
 
 Fails if the semantic tag already exists.
 """
@@ -66,39 +67,18 @@ def validate_app_root(app_root: Path) -> None:
         sys.exit(1)
 
 
-def validate_descriptor(descriptor_path: Path) -> None:
-    """Validate descriptor file exists and has correct extension."""
-    if not descriptor_path.exists():
-        print(f"❌ Error: Descriptor file does not exist: {descriptor_path}", file=sys.stderr)
-        sys.exit(1)
-    if descriptor_path.suffix not in ('.yml', '.yaml'):
-        print(f"❌ Error: Descriptor must have .yml or .yaml extension: {descriptor_path}", file=sys.stderr)
-        sys.exit(1)
-
-
-def read_descriptor(descriptor_path: Path) -> dict:
-    """Read and parse deployment descriptor YAML."""
-    try:
-        with open(descriptor_path, 'r') as f:
-            descriptor = yaml.safe_load(f)
-    except yaml.YAMLError as e:
-        print(f"❌ Error: Invalid YAML in descriptor: {e}", file=sys.stderr)
-        sys.exit(1)
-    except Exception as e:
-        print(f"❌ Error: Failed to read descriptor: {e}", file=sys.stderr)
-        sys.exit(1)
+def read_deploy_config(deploy_yml_path: Path) -> dict:
+    """Read and parse deployment configuration from deploy.yml."""
+    # Assume deploy.yml is a valid Ansible playbook
+    with open(deploy_yml_path, 'r') as f:
+        deploy_yml = yaml.safe_load(f)
     
-    if not isinstance(descriptor, dict):
-        print("❌ Error: Descriptor must be a YAML object", file=sys.stderr)
-        sys.exit(1)
+    # Extract vars from the play (first play in the list)
+    for doc in deploy_yml:
+        if isinstance(doc, dict) and 'hosts' in doc and 'vars' in doc:
+            return doc['vars']
     
-    required_fields = ['registry_name', 'image_name', 'service_name']
-    missing = [field for field in required_fields if field not in descriptor]
-    if missing:
-        print(f"❌ Error: Missing required fields in descriptor: {', '.join(missing)}", file=sys.stderr)
-        sys.exit(1)
-    
-    return descriptor
+    raise ValueError("Could not find vars in deploy.yml play")
 
 
 def decrypt_secrets(iac_root: Path) -> dict:
@@ -250,14 +230,11 @@ def main():
     app_root = Path(app_root_str).resolve()
     validate_app_root(app_root)
     
-    # Validate descriptor
-    descriptor_path = app_root / f'{workspace}.yml'
-    validate_descriptor(descriptor_path)
-    
-    # Read descriptor
-    descriptor = read_descriptor(descriptor_path)
-    registry_name = descriptor['registry_name']
-    image_name = descriptor['image_name']
+    # Read deployment configuration from deploy.yml
+    deploy_yml_path = app_root / 'deploy.yml'
+    config = read_deploy_config(deploy_yml_path)
+    registry_name = config['registry_name']
+    image_name = config['image_name']
     
     # Derive IAC root
     iac_root = get_iac_root()
