@@ -17,6 +17,7 @@ This script:
 Fails if the semantic tag already exists.
 """
 
+import json
 import os
 import re
 import subprocess
@@ -193,6 +194,23 @@ def crane_mutate_add_annotation(image: str, annotation_key: str, annotation_valu
         print("⚠️  Warning: 'crane' command not found. Annotation not added.", file=sys.stderr)
 
 
+def read_oci_annotation(image: str, annotation_key: str) -> str:
+    """Read OCI annotation from an image manifest using crane."""
+    try:
+        result = subprocess.run(
+            ['crane', 'manifest', image],
+            capture_output=True,
+            check=True,
+            text=True
+        )
+        manifest = json.loads(result.stdout)
+        # Check annotations (usually in .annotations)
+        return manifest.get('annotations', {}).get(annotation_key, '')
+    except (subprocess.CalledProcessError, FileNotFoundError, json.JSONDecodeError):
+        # If crane fails, return empty (description is optional)
+        return ''
+
+
 def check_tag_exists(image: str) -> bool:
     """Check if a tag already exists in the registry."""
     # Try to inspect the manifest - if it exists, the tag exists
@@ -272,9 +290,17 @@ def main():
     print(f"📤 Pushing {semver_image}...")
     docker_push(semver_image)
     
+    # Read description from SHA-tagged image (if available)
+    description = read_oci_annotation(sha_image, 'org.rednaw.description')
+    
     # Add OCI annotation to store source SHA
     print(f"📝 Adding source SHA annotation...")
     crane_mutate_add_annotation(semver_image, 'org.rednaw.source-sha', sha)
+    
+    # Copy description annotation to semver-tagged image (if available)
+    if description:
+        print(f"📝 Adding description annotation...")
+        crane_mutate_add_annotation(semver_image, 'org.rednaw.description', description)
     
     print(f"✅ Successfully promoted {sha_image} to {semver_image}")
 

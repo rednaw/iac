@@ -3,7 +3,7 @@ version: '3'
 
 tasks:
   map:
-    desc: "Show all tags with SHA, created, description (registry-only, config labels)"
+    desc: "Show SHA tags with their promoted semver version (registry-only, config labels)"
     silent: true
     cmds:
       - |
@@ -24,34 +24,61 @@ tasks:
         echo "📦 All tags for $REPO"
         echo ""
 
-        TAGS=$(crane ls "$REPO" 2>/dev/null | sort -r || true)
-        if [ -z "$TAGS" ]; then
+        ALL_TAGS=$(crane ls "$REPO" 2>/dev/null | sort -r || true)
+        if [ -z "$ALL_TAGS" ]; then
           echo "ℹ️  No tags found"
           exit 0
         fi
 
-        # Print header
-        echo -e "TAG\tSHA\tCREATED\tDESCRIPTION"
+        # Filter SHA tags (7 hex characters)
+        SHA_TAGS=$(echo "$ALL_TAGS" | grep -E '^[0-9a-f]{7}$' || true)
+        if [ -z "$SHA_TAGS" ]; then
+          echo "ℹ️  No SHA tags found"
+          exit 0
+        fi
 
-        for TAG in $TAGS; do
-          CONFIG_JSON=$(crane config "$REPO:$TAG" 2>/dev/null || true)
+        # Get all semver tags
+        SEMVER_TAGS=$(echo "$ALL_TAGS" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' || true)
 
-          DESCRIPTION=""
-          REVISION=""
-          CREATED=""
+        # Print header first (will be processed with data by column -t)
+        {
+          echo -e "TAG\tVERSION\tCREATED\tDESCRIPTION"
 
-          if [ -n "$CONFIG_JSON" ]; then
-            DESCRIPTION=$(echo "$CONFIG_JSON" | jq -r '.config.Labels["org.opencontainers.image.description"] // ""')
-            REVISION=$(echo "$CONFIG_JSON" | jq -r '.config.Labels["org.opencontainers.image.revision"] // ""')
-            CREATED=$(echo "$CONFIG_JSON" | jq -r '.config.Labels["org.opencontainers.image.created"] // ""' | cut -d'+' -f1)
-          fi
+          # shellcheck disable=SC2086
+          for SHA_TAG in $SHA_TAGS; do
+            CONFIG_JSON=$(crane config "$REPO:$SHA_TAG" 2>/dev/null || true)
 
-          SHORT_SHA=""
-          [ -n "$REVISION" ] && SHORT_SHA="${REVISION:0:7}"
+            DESCRIPTION=""
+            CREATED=""
+            VERSION=""
 
-          # truncate description for readability
-          [ ${#DESCRIPTION} -gt 38 ] && DESCRIPTION="${DESCRIPTION:0:38}"
+            if [ -n "$CONFIG_JSON" ]; then
+              DESCRIPTION=$(echo "$CONFIG_JSON" | jq -r '.config.Labels["org.opencontainers.image.description"] // ""')
+              CREATED=$(echo "$CONFIG_JSON" | jq -r '.config.Labels["org.opencontainers.image.created"] // ""' | cut -d'+' -f1)
+            fi
 
-          # always output 4 fields
-          echo -e "${TAG}\t${SHORT_SHA}\t${CREATED}\t${DESCRIPTION}"
-        done | column -t -s $'\t'
+            # Find semver version by checking which semver tag has this SHA in its annotation
+            # shellcheck disable=SC2086
+            for SEMVER in $SEMVER_TAGS; do
+              MANIFEST_JSON=$(crane manifest "$REPO:$SEMVER" 2>/dev/null || true)
+              if [ -n "$MANIFEST_JSON" ]; then
+                SOURCE_SHA=$(echo "$MANIFEST_JSON" | jq -r '.annotations."org.rednaw.source-sha" // empty' 2>/dev/null)
+                if [ "$SOURCE_SHA" = "$SHA_TAG" ]; then
+                  VERSION="$SEMVER"
+                  break
+                fi
+              fi
+            done
+
+            # Truncate description for readability
+            [ ${#DESCRIPTION} -gt 38 ] && DESCRIPTION="${DESCRIPTION:0:38}"
+
+            # Use single space for empty values (column -t collapses consecutive tabs)
+            # This ensures proper column alignment
+            printf "%s\t%s\t%s\t%s\n" \
+              "$SHA_TAG" \
+              "${VERSION:- }" \
+              "${CREATED:- }" \
+              "${DESCRIPTION:- }"
+          done
+        } | column -t -s $'\t'
