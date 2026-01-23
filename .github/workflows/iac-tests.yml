@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   setup:
-    name: Setup
+    name: Run all tests
     runs-on: ubuntu-latest
     steps:
       - name: Check SOPS key availability

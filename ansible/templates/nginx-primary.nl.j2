@@ -56,7 +56,20 @@ server {
 
     server_tokens off;
 
+    root /var/www/html;
+
+    # Serve default nginx welcome page when app is not deployed (502 from proxy)
+    error_page 502 /index.html;
+
+    # Location to serve the error page (static file) - must come before location /
+    location = /index.html {
+        root /var/www/html;
+        internal;
+    }
+
+    # Proxy to application
     location / {
+        proxy_intercept_errors on;
         proxy_pass http://127.0.0.1:5000;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;

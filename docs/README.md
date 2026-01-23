@@ -6,6 +6,7 @@
 - [Security](SECURITY.md)
 - [Troubleshooting](TROUBLESHOOTING.md)
 - [Running Curson on the server](CURSOR.md)
+- [Deploying your application](application-deployment.md)
 ```
 Infrastructure as Code
 
@@ -29,6 +30,13 @@ Secrets Management (SOPS):
   task secrets:keygen                   # Generate age key pair
   task secrets:decrypt                  # Decrypt secrets for editing
   task secrets:encrypt                  # Encrypt secrets
+
+Application Deployment:
+  task application:deploy -- <WORKSPACE> <APP_ROOT> <SHA> <SEMVER>  # Deploy application
+
+Registry Inspection:
+  task registry:tags -- <REPO>          # Show tags grouped by type
+  task registry:map -- <REPO>           # Show semver → SHA mapping
 
 Utilities:
   task server:check-status              # Check if servers are up (checks both dev and prod)

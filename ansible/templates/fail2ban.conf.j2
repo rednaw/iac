@@ -1,4 +1,4 @@
-# Milledoni fail2ban jail configuration
+# Fail2ban jail configuration
 #
 # Security Note: These rules are tuned to balance security with avoiding false positives.
 # Rules are more lenient than typical "paranoid" configurations to prevent blocking
@@ -55,7 +55,7 @@ maxretry = 10
 bantime = 1800
 findtime = 600
 
-# Failed login attempts to Milledoni API
+# Failed login attempts
 [nginx-login-attempts]
 enabled = true
 port = http,https

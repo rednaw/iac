@@ -1,0 +1,107 @@
+---
+# Deploy application role
+# This role handles the deployment of containerized applications
+#
+# Required variables:
+#   app_root: Absolute path to the app root directory (on localhost)
+#   deploy_target: Path on the server where the app will be deployed (e.g. /opt/giftfinder/app-name)
+#   image: Full image reference with semantic version (e.g. registry.rednaw.nl/rednaw/hello-world:1.2.3)
+#   service_name: Name of the service in docker-compose.yml
+#
+# Requires infrastructure_secrets to be loaded (registry credentials)
+
+- name: Check if app secrets file exists
+  ansible.builtin.stat:
+    path: "{{ app_root }}/env.enc"
+  register: app_secrets_file
+  delegate_to: localhost
+  become: false
+
+- name: Decrypt app secrets to temporary file
+  ansible.builtin.shell: |
+    SOPS_AGE_KEY_FILE={{ lookup('env', 'HOME') }}/.config/sops/age/keys-{{ lookup('env', 'USER') }}.txt \
+    sops -d --input-type yaml --output-type yaml {{ app_root }}/env.enc
+  register: decrypted_app_secrets
+  changed_when: false
+  delegate_to: localhost
+  become: false
+  when: app_secrets_file.stat.exists
+  no_log: true
+
+- name: Ensure deploy target directory exists
+  ansible.builtin.file:
+    path: "{{ deploy_target }}"
+    state: directory
+    owner: giftfinder
+    group: giftfinder
+    mode: '0755'
+
+- name: Write decrypted app secrets to .env file on server
+  ansible.builtin.copy:
+    content: "{{ decrypted_app_secrets.stdout }}"
+    dest: "{{ deploy_target }}/.env"
+    owner: giftfinder
+    group: giftfinder
+    mode: '0600'
+  when: app_secrets_file.stat.exists
+  no_log: true
+
+- name: Ensure IMAGE variable is set in .env file
+  ansible.builtin.lineinfile:
+    path: "{{ deploy_target }}/.env"
+    line: "IMAGE={{ image }}"
+    regexp: '^IMAGE='
+    owner: giftfinder
+    group: giftfinder
+    mode: '0600'
+    create: true
+
+- name: Copy docker-compose.yml to server
+  ansible.builtin.copy:
+    src: "{{ app_root }}/docker-compose.yml"
+    dest: "{{ deploy_target }}/docker-compose.yml"
+    owner: giftfinder
+    group: giftfinder
+    mode: '0644'
+
+- name: Ensure giftfinder user .docker directory exists
+  ansible.builtin.file:
+    path: /opt/giftfinder/.docker
+    state: directory
+    owner: giftfinder
+    group: giftfinder
+    mode: '0700'
+
+- name: Configure Docker registry auth for giftfinder user
+  ansible.builtin.copy:
+    content: |
+      {
+        "auths": {
+          "{{ infrastructure_secrets.registry_domain }}": {
+            "auth": "{{ (infrastructure_secrets.registry_username + ':' + infrastructure_secrets.registry_password) | b64encode }}"
+          }
+        }
+      }
+    dest: /opt/giftfinder/.docker/config.json
+    mode: '0600'
+    owner: giftfinder
+    group: giftfinder
+  no_log: true
+
+- name: Stop and remove existing containers (if any)
+  community.docker.docker_compose_v2:
+    project_src: "{{ deploy_target }}"
+    state: absent
+  become: true
+  become_user: giftfinder
+  ignore_errors: true
+
+- name: Deploy application with Docker Compose
+  community.docker.docker_compose_v2:
+    project_src: "{{ deploy_target }}"
+    state: present
+    pull: missing
+    recreate: always
+    remove_orphans: true
+  become: true
+  become_user: giftfinder

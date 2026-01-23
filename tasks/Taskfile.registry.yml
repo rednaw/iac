@@ -1,0 +1,84 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+version: '3'
+
+tasks:
+  map:
+    desc: "Show SHA tags with their promoted semver version (registry-only, config labels)"
+    silent: true
+    cmds:
+      - |
+        set -euo pipefail
+
+        REPO="{{.CLI_ARGS}}"
+        if [ -z "$REPO" ]; then
+          echo "❌ Error: Repository not specified"
+          echo ""
+          echo "Usage:"
+          echo "  task registry:map -- <REPO>"
+          echo ""
+          echo "Example:"
+          echo "  task registry:map -- registry.rednaw.nl/rednaw/hello-world"
+          exit 1
+        fi
+
+        echo "📦 All tags for $REPO"
+        echo ""
+
+        ALL_TAGS=$(crane ls "$REPO" 2>/dev/null | sort -r || true)
+        if [ -z "$ALL_TAGS" ]; then
+          echo "ℹ️  No tags found"
+          exit 0
+        fi
+
+        # Filter SHA tags (7 hex characters)
+        SHA_TAGS=$(echo "$ALL_TAGS" | grep -E '^[0-9a-f]{7}$' || true)
+        if [ -z "$SHA_TAGS" ]; then
+          echo "ℹ️  No SHA tags found"
+          exit 0
+        fi
+
+        # Get all semver tags
+        SEMVER_TAGS=$(echo "$ALL_TAGS" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' || true)
+
+        # Print header first (will be processed with data by column -t)
+        {
+          echo -e "TAG\tVERSION\tCREATED\tDESCRIPTION"
+
+          # shellcheck disable=SC2086
+          for SHA_TAG in $SHA_TAGS; do
+            CONFIG_JSON=$(crane config "$REPO:$SHA_TAG" 2>/dev/null || true)
+
+            DESCRIPTION=""
+            CREATED=""
+            VERSION=""
+
+            if [ -n "$CONFIG_JSON" ]; then
+              DESCRIPTION=$(echo "$CONFIG_JSON" | jq -r '.config.Labels["org.opencontainers.image.description"] // ""')
+              CREATED=$(echo "$CONFIG_JSON" | jq -r '.config.Labels["org.opencontainers.image.created"] // ""' | cut -d'+' -f1)
+            fi
+
+            # Find semver version by checking which semver tag has this SHA in its annotation
+            # shellcheck disable=SC2086
+            for SEMVER in $SEMVER_TAGS; do
+              MANIFEST_JSON=$(crane manifest "$REPO:$SEMVER" 2>/dev/null || true)
+              if [ -n "$MANIFEST_JSON" ]; then
+                SOURCE_SHA=$(echo "$MANIFEST_JSON" | jq -r '.annotations."org.rednaw.source-sha" // empty' 2>/dev/null)
+                if [ "$SOURCE_SHA" = "$SHA_TAG" ]; then
+                  VERSION="$SEMVER"
+                  break
+                fi
+              fi
+            done
+
+            # Truncate description for readability
+            [ ${#DESCRIPTION} -gt 38 ] && DESCRIPTION="${DESCRIPTION:0:38}"
+
+            # Use single space for empty values (column -t collapses consecutive tabs)
+            # This ensures proper column alignment
+            printf "%s\t%s\t%s\t%s\n" \
+              "$SHA_TAG" \
+              "${VERSION:- }" \
+              "${CREATED:- }" \
+              "${DESCRIPTION:- }"
+          done
+        } | column -t -s $'\t'
