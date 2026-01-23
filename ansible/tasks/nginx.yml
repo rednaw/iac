@@ -50,6 +50,15 @@
     mode: '0755'
     recurse: yes
 
+- name: Copy default nginx welcome page to webroot
+  ansible.builtin.copy:
+    src: /usr/share/nginx/html/index.html
+    dest: /var/www/html/index.html
+    owner: www-data
+    group: www-data
+    mode: '0644'
+    remote_src: yes
+
 - name: Remove all existing enabled sites
   ansible.builtin.find:
     paths: /etc/nginx/sites-enabled

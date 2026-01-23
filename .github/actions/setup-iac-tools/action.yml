@@ -96,9 +96,13 @@ runs:
         sudo apt-get install -y shellcheck
 
     - name: Install Task (go-task)
-      uses: arduino/setup-task@v2
-      with:
-        version: 3.x
+      shell: bash
+      run: |
+        # Use the official installation script which handles PATH automatically
+        # -d = directory to install to, -b = binary name
+        sh -c "$(curl --location --fail https://taskfile.dev/install.sh)" -- -d -b /usr/local/bin
+        # Verify task is installed and in PATH
+        task --version || (echo "Error: task installation failed" && exit 1)
 
     - name: Install SOPS
       if: inputs.install_sops == 'true'

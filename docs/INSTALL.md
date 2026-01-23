@@ -1,15 +1,15 @@
 [**<---**](README.md)
 
-Follow the steps below from top to bottom and you will be able to manage the Milledoni infrastructure in a software defined way!
+Follow the steps below from top to bottom and you will be able to manage your infrastructure in a software defined way!
 
 ## Install Tools
 ```bash
-# For production
-brew install terraform ansible sops age hcloud go-task/tap/go-task
-
-# For testing
-brew install tfsec ansible-lint shellcheck
+# For managing infrastructure and deploying apps
+brew install terraform ansible sops age hcloud go-task/tap/go-task crane
 pip install PyYAML
+
+# For running the test
+brew install tfsec ansible-lint shellcheck
 ```
 
 ## Initialize hcloud CLI:
