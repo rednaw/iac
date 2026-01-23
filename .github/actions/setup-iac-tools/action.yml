@@ -97,24 +97,12 @@ runs:
 
     - name: Install Task (go-task)
       shell: bash
-      env:
-        GITHUB_TOKEN: ${{ github.token }}
       run: |
-        TASK_VERSION=$(curl -sH "Authorization: token $GITHUB_TOKEN" https://api.github.com/repos/go-task/task/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
-        curl -LO https://github.com/go-task/task/releases/download/${TASK_VERSION}/task_linux_amd64.deb
-        sudo dpkg -i task_linux_amd64.deb || sudo apt-get install -yf
-        rm -f task_linux_amd64.deb
+        # Use the official installation script which handles PATH automatically
+        # -d = directory to install to, -b = binary name
+        sh -c "$(curl --location --fail https://taskfile.dev/install.sh)" -- -d -b /usr/local/bin
         # Verify task is installed and in PATH
-        TASK_PATH=$(which task || echo "")
-        if [ -z "$TASK_PATH" ]; then
-          echo "Error: task not found in PATH after installation"
-          echo "Checking common locations..."
-          ls -la /usr/local/bin/task || true
-          ls -la /usr/bin/task || true
-          exit 1
-        fi
-        echo "✅ Task installed at: $TASK_PATH"
-        task --version
+        task --version || (echo "Error: task installation failed" && exit 1)
 
     - name: Install SOPS
       if: inputs.install_sops == 'true'
