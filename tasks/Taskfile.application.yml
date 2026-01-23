@@ -133,7 +133,6 @@ tasks:
         set -- $ARGS
         WORKSPACE="$1"
         APP_ROOT_PATH="$2"
-        SHA="$3"
         SEMVER="$4"
         IAC_REPO="$(pwd)"
         APP_ROOT="$(realpath "$APP_ROOT_PATH" 2>/dev/null || echo "$APP_ROOT_PATH")"
