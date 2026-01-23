@@ -3,121 +3,55 @@ version: '3'
 
 tasks:
   map:
-    desc: "Show semver -> SHA mapping for a repository (use: task registry:map -- <REPO>)"
+    desc: "Show all tags with SHA, created, description (registry-only, config labels)"
     silent: true
     cmds:
       - |
+        set -euo pipefail
+
         REPO="{{.CLI_ARGS}}"
         if [ -z "$REPO" ]; then
           echo "❌ Error: Repository not specified"
           echo ""
-          echo "Usage: task registry:map -- <REPO>"
+          echo "Usage:"
+          echo "  task registry:map -- <REPO>"
           echo ""
           echo "Example:"
           echo "  task registry:map -- registry.rednaw.nl/rednaw/hello-world"
           exit 1
         fi
-        
-        echo "📦 Semver → SHA mapping for $REPO"
+
+        echo "📦 All tags for $REPO"
         echo ""
-        
-        # Get all tags
-        ALL_TAGS=$(crane ls "$REPO" 2>/dev/null | sort)
-        if [ -z "$ALL_TAGS" ]; then
-          echo "❌ Error: Failed to list tags or repository is empty"
-          echo "💡 Tip: Make sure you're logged in: docker login $(echo "$REPO" | cut -d/ -f1)"
-          exit 1
-        fi
-        
-        # Filter semver tags (MAJOR.MINOR.PATCH format)
-        SEMVER_TAGS=$(echo "$ALL_TAGS" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V)
-        
-        if [ -z "$SEMVER_TAGS" ]; then
-          echo "ℹ️  No semver tags found"
+
+        TAGS=$(crane ls "$REPO" 2>/dev/null | sort -r || true)
+        if [ -z "$TAGS" ]; then
+          echo "ℹ️  No tags found"
           exit 0
         fi
-        
-        # Read OCI annotation from each semver tag's manifest
-        printf "%-12s %-12s\n" "SEMVER" "SHA"
-        printf "%-12s %-12s\n" "------" "---"
-        
-        # shellcheck disable=SC2086
-        for SEMVER in $SEMVER_TAGS; do
-          # Get source SHA from OCI annotation
-          SOURCE_SHA=""
-          
-          # Try crane manifest first (faster)
-          if command -v crane >/dev/null 2>&1 && command -v jq >/dev/null 2>&1; then
-            MANIFEST_JSON=$(crane manifest "$REPO:$SEMVER" 2>/dev/null)
-            if [ -n "$MANIFEST_JSON" ]; then
-              # OCI annotations are in .annotations or .config.annotations
-              SOURCE_SHA=$(echo "$MANIFEST_JSON" | jq -r '.annotations."org.rednaw.source-sha" // .config.annotations."org.rednaw.source-sha" // empty' 2>/dev/null)
-            fi
+
+        # Print header
+        echo -e "TAG\tSHA\tCREATED\tDESCRIPTION"
+
+        for TAG in $TAGS; do
+          CONFIG_JSON=$(crane config "$REPO:$TAG" 2>/dev/null || true)
+
+          DESCRIPTION=""
+          REVISION=""
+          CREATED=""
+
+          if [ -n "$CONFIG_JSON" ]; then
+            DESCRIPTION=$(echo "$CONFIG_JSON" | jq -r '.config.Labels["org.opencontainers.image.description"] // ""')
+            REVISION=$(echo "$CONFIG_JSON" | jq -r '.config.Labels["org.opencontainers.image.revision"] // ""')
+            CREATED=$(echo "$CONFIG_JSON" | jq -r '.config.Labels["org.opencontainers.image.created"] // ""' | cut -d'+' -f1)
           fi
-          
-          # Fallback to docker manifest inspect
-          if [ -z "$SOURCE_SHA" ] && command -v docker >/dev/null 2>&1 && command -v jq >/dev/null 2>&1; then
-            MANIFEST=$(docker manifest inspect "$REPO:$SEMVER" 2>/dev/null)
-            if [ -n "$MANIFEST" ]; then
-              SOURCE_SHA=$(echo "$MANIFEST" | jq -r '.annotations."org.rednaw.source-sha" // .config.annotations."org.rednaw.source-sha" // empty' 2>/dev/null)
-            fi
-          fi
-          
-          if [ -n "$SOURCE_SHA" ] && [ "$SOURCE_SHA" != "null" ]; then
-            printf "%-12s %-12s\n" "$SEMVER" "$SOURCE_SHA"
-          else
-            printf "%-12s %-12s\n" "$SEMVER" "(no annotation)"
-          fi
-        done
-  
-  tags:
-    desc: "Show all tags grouped by type (use: task registry:tags -- <REPO>)"
-    silent: true
-    cmds:
-      - |
-        REPO="{{.CLI_ARGS}}"
-        if [ -z "$REPO" ]; then
-          echo "❌ Error: Repository not specified"
-          echo ""
-          echo "Usage: task registry:tags -- <REPO>"
-          echo ""
-          echo "Example:"
-          echo "  task registry:tags -- registry.rednaw.nl/rednaw/hello-world"
-          exit 1
-        fi
-        
-        echo "📦 Tags for $REPO"
-        echo ""
-        
-        # Get all tags
-        ALL_TAGS=$(crane ls "$REPO" 2>/dev/null | sort)
-        if [ -z "$ALL_TAGS" ]; then
-          echo "❌ Error: Failed to list tags or repository is empty"
-          exit 1
-        fi
-        
-        # Group tags
-        SEMVER_TAGS=$(echo "$ALL_TAGS" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V)
-        SHA_TAGS=$(echo "$ALL_TAGS" | grep -E '^[0-9a-f]{7}$' | sort)
-        OTHER_TAGS=$(echo "$ALL_TAGS" | grep -vE '^[0-9]+\.[0-9]+\.[0-9]+$' | grep -vE '^[0-9a-f]{7}$' | sort)
-        
-        if [ -n "$SEMVER_TAGS" ]; then
-          echo "📌 Semver tags:"
-          # shellcheck disable=SC2001
-          echo "$SEMVER_TAGS" | sed 's/^/  /'
-          echo ""
-        fi
-        
-        if [ -n "$SHA_TAGS" ]; then
-          echo "🔖 SHA tags:"
-          # shellcheck disable=SC2001
-          echo "$SHA_TAGS" | sed 's/^/  /'
-          echo ""
-        fi
-        
-        if [ -n "$OTHER_TAGS" ]; then
-          echo "🏷️  Other tags:"
-          # shellcheck disable=SC2001
-          echo "$OTHER_TAGS" | sed 's/^/  /'
-          echo ""
-        fi
+
+          SHORT_SHA=""
+          [ -n "$REVISION" ] && SHORT_SHA="${REVISION:0:7}"
+
+          # truncate description for readability
+          [ ${#DESCRIPTION} -gt 38 ] && DESCRIPTION="${DESCRIPTION:0:38}"
+
+          # always output 4 fields
+          echo -e "${TAG}\t${SHORT_SHA}\t${CREATED}\t${DESCRIPTION}"
+        done | column -t -s $'\t'
