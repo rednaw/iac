@@ -104,6 +104,17 @@ runs:
         curl -LO https://github.com/go-task/task/releases/download/${TASK_VERSION}/task_linux_amd64.deb
         sudo dpkg -i task_linux_amd64.deb || sudo apt-get install -yf
         rm -f task_linux_amd64.deb
+        # Verify task is installed and in PATH
+        TASK_PATH=$(which task || echo "")
+        if [ -z "$TASK_PATH" ]; then
+          echo "Error: task not found in PATH after installation"
+          echo "Checking common locations..."
+          ls -la /usr/local/bin/task || true
+          ls -la /usr/bin/task || true
+          exit 1
+        fi
+        echo "✅ Task installed at: $TASK_PATH"
+        task --version
 
     - name: Install SOPS
       if: inputs.install_sops == 'true'
