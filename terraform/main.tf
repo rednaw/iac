@@ -66,16 +66,3 @@ resource "hcloud_server" "giftfinder" {
   }
 }
 
-# Generate Ansible inventory from Terraform outputs
-resource "local_file" "ansible_inventory" {
-  content = templatefile("${path.module}/templates/inventory.ini.tpl", {
-    server_name = local.server_name
-    server_ip   = hcloud_server.giftfinder.ipv4_address
-    server_user = var.server_user
-    environment = local.environment
-  })
-  filename             = "${path.module}/../ansible/inventory/${local.environment}.ini"
-  file_permission      = "0644"
-  directory_permission = "0755"
-}
-

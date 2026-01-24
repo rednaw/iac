@@ -2,107 +2,18 @@
 version: '3'
 
 tasks:
-  deploy:
-    desc: "Deploy application (use: task application:deploy -- <WORKSPACE> <APP_ROOT> <SHA> <SEMVER>)"
-    silent: true
-    cmds:
-      - task: validate
-      - task: promote
-      - task: deploy-app
-
-  validate:
-    desc: "Validate deployment arguments and paths"
+  promote:
+    desc: "Promote image (use: task application:promote -- <WORKSPACE> <APP_ROOT> <SHA> <SEMVER>)"
     silent: true
     cmds:
       - |
-        # Parse arguments from CLI_ARGS
-        ARGS="{{.CLI_ARGS}}"
-        if [ -z "$ARGS" ]; then
-          echo "❌ Error: No arguments provided"
-          echo ""
-          echo "Usage: task application:deploy -- <WORKSPACE> <APP_ROOT> <SHA> <SEMVER>"
-          echo ""
-          echo "Arguments:"
-          echo "  WORKSPACE   - dev or prod"
-          echo "  APP_ROOT   - Path to app root directory (e.g. ../hello)"
-          echo "  SHA         - Short commit SHA (7 characters)"
-          echo "  SEMVER      - Semantic version (e.g. 1.2.3)"
-          echo ""
-          echo "Example:"
-          echo "  task application:deploy -- dev ../hello abc1234 1.0.0"
-          exit 1
-        fi
-        
-        # Parse arguments (split by spaces)
-        # Note: This assumes arguments don't contain spaces (paths should be relative)
-        # shellcheck disable=SC2086
-        set -- $ARGS
-        
         if [ $# -ne 4 ]; then
           echo "❌ Error: Invalid number of arguments (expected 4, got $#)"
           echo ""
-          echo "Usage: task application:deploy -- <WORKSPACE> <APP_ROOT> <SHA> <SEMVER>"
+          echo "Usage: task application:promote -- <WORKSPACE> <APP_ROOT> <SHA> <SEMVER>"
           exit 1
         fi
-        
-        WORKSPACE="$1"
-        APP_ROOT_PATH="$2"
-        SHA="$3"
-        SEMVER="$4"
-        
-        # Validate workspace
-        if [ "$WORKSPACE" != "dev" ] && [ "$WORKSPACE" != "prod" ]; then
-          echo "❌ Error: Invalid workspace '$WORKSPACE'. Must be 'dev' or 'prod'"
-          exit 1
-        fi
-        
-        # Validate SHA format (short SHA, 7 hex characters)
-        if ! echo "$SHA" | grep -qE '^[0-9a-fA-F]{7}$'; then
-          echo "❌ Error: Invalid SHA '$SHA'. Must be 7 hexadecimal characters (short SHA)"
-          exit 1
-        fi
-        
-        # Validate semver format (MAJOR.MINOR.PATCH)
-        if ! echo "$SEMVER" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
-          echo "❌ Error: Invalid semver '$SEMVER'. Must be MAJOR.MINOR.PATCH (e.g. '1.2.3')"
-          exit 1
-        fi
-        
-        # Resolve IAC repo root (current directory when task runs from IAC root)
-        IAC_REPO="$(pwd)"
-        
-        # Resolve app root to absolute path
-        APP_ROOT="$(realpath "$APP_ROOT_PATH" 2>/dev/null || echo "$APP_ROOT_PATH")"
-        if [ ! -d "$APP_ROOT" ]; then
-          echo "❌ Error: App root does not exist or is not a directory: $APP_ROOT"
-          exit 1
-        fi
-        
-        # Validate deploy.yml exists
-        DEPLOY_YML="$APP_ROOT/deploy.yml"
-        if [ ! -f "$DEPLOY_YML" ]; then
-          echo "❌ Error: deploy.yml file not found: $DEPLOY_YML"
-          exit 1
-        fi
-        
-        # Check inventory file exists
-        INVENTORY_FILE="$IAC_REPO/ansible/inventory/$WORKSPACE.ini"
-        if [ ! -f "$INVENTORY_FILE" ]; then
-          echo "❌ Error: Inventory file not found: $INVENTORY_FILE"
-          echo ""
-          echo "Generate the inventory file first:"
-          echo "  Run: task terraform:apply -- $WORKSPACE"
-          exit 1
-        fi
-        
-        # Export variables for use in subsequent tasks
-        export WORKSPACE APP_ROOT IAC_REPO SHA SEMVER INVENTORY_FILE
 
-  promote:
-    desc: "Promote image from SHA to semantic version"
-    silent: true
-    cmds:
-      - |
         # Re-parse arguments and recompute paths (Taskfile runs each task in separate shell)
         ARGS="{{.CLI_ARGS}}"
         # shellcheck disable=SC2086
@@ -122,18 +33,23 @@ tasks:
           exit 1
         fi
 
-  deploy-app:
-    desc: "Deploy application with Ansible"
+  deploy:
+    desc: "Deploy application (use: task application:deploy -- <WORKSPACE> <APP_ROOT> <SEMVER>)"
     silent: true
     cmds:
       - |
-        # Re-parse arguments and recompute paths (Taskfile runs each task in separate shell)
         ARGS="{{.CLI_ARGS}}"
         # shellcheck disable=SC2086
         set -- $ARGS
+        if [ $#  -ne 3 ]; then
+          echo "❌ Error: Invalid number of arguments (expected 3, got $#)"
+          echo ""
+          echo "Usage: task application:deploy -- <WORKSPACE> <APP_ROOT> <SEMVER>"
+          exit 1
+        fi
         WORKSPACE="$1"
         APP_ROOT_PATH="$2"
-        SEMVER="$4"
+        SEMVER="$3"
         IAC_REPO="$(pwd)"
         APP_ROOT="$(realpath "$APP_ROOT_PATH" 2>/dev/null || echo "$APP_ROOT_PATH")"
         
@@ -143,10 +59,10 @@ tasks:
         
         echo "🚀 Deploying application..."
         echo ""
-        
-        # Run Ansible playbook from app root directory
-        # Ansible will read vars from deploy.yml and construct the image using semver
-        (cd "$APP_ROOT" && ansible-playbook \
+        echo "🔑 Preparing known_hosts..."
+        task hostkeys:prepare -- "$WORKSPACE"
+        # Run Ansible playbook from app root; use IAC ansible.cfg (accept-new)
+        (cd "$APP_ROOT" && ANSIBLE_CONFIG="$IAC_REPO/ansible/ansible.cfg" ansible-playbook \
           -i "$IAC_REPO/ansible/inventory/$WORKSPACE.ini" \
           deploy.yml \
           -e "iac_repo_root=$IAC_REPO" \

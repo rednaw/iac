@@ -327,7 +327,7 @@ task registry:tags -- registry.rednaw.nl/rednaw/your-app
 ## Troubleshooting
 
 **"Host key verification failed"**
-- This happens after server recreation. The deploy command handles this automatically.
+- Tasks run `hostkeys:prepare` before SSH/Ansible and use `accept-new` only. See [SSH host keys](SSH-host-keys.md).
 
 **"Failed to list tags"**
 - Make sure you're logged into the registry: `docker login registry.rednaw.nl`

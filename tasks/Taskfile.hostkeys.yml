@@ -1,0 +1,30 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+version: '3'
+
+# Workspace → hostname mapping (single source of truth).
+
+tasks:
+  hostname:
+    desc: "Output hostname for workspace (use: task hostkeys:hostname -- dev|prod)"
+    silent: true
+    cmds:
+      - |
+        WORKSPACE="{{.CLI_ARGS}}"
+        case "$WORKSPACE" in
+          dev)  echo "dev.rednaw.nl" ;;
+          prod) echo "prod.rednaw.nl" ;;
+          *)    echo "❌ Error: Invalid workspace '$WORKSPACE'. Use: dev or prod" >&2; exit 1 ;;
+        esac
+
+  prepare:
+    desc: "Remove host key for workspace from known_hosts (use: task hostkeys:prepare -- dev|prod)"
+    silent: true
+    cmds:
+      - |
+        WORKSPACE="{{.CLI_ARGS}}"
+        case "$WORKSPACE" in
+          dev)  HOSTNAME="dev.rednaw.nl" ;;
+          prod) HOSTNAME="prod.rednaw.nl" ;;
+          *)    echo "❌ Error: Invalid workspace '$WORKSPACE'. Use: dev or prod" >&2; exit 1 ;;
+        esac
+        ssh-keygen -R "$HOSTNAME" -f ~/.ssh/known_hosts 2>/dev/null || true

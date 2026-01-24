@@ -11,6 +11,7 @@ vars:
   SOPS_KEY_PUB: 'secrets/sops-key-{{.USERNAME}}.pub'
 
 includes:
+  hostkeys: tasks/Taskfile.hostkeys.yml
   terraform: tasks/Taskfile.terraform.yml
   secrets: tasks/Taskfile.secrets.yml
   ansible: tasks/Taskfile.ansible.yml
