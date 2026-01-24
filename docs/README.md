@@ -1,12 +1,28 @@
 [**<---**](../README.md)
 # Infrastructure as Code
-- [Setting up your environment](INSTALL.md)
-- [Static code analysis](TESTING.md)
-- [Tools used](TOOLS.md)
-- [Security](SECURITY.md)
+<table>
+<tr>
+<td valign="top">
+
+- [Geting started](INSTALL.md)
+- [Run Curson on the server](CURSOR.md)
+- [Deploy your application](application-deployment.md)
+
+</td>
+<td width="80"></td>
+<td valign="top">
+
+- [Testing](TESTING.md)
+- [Tools and technologies used](TOOLS.md)
+- [Secrets and lies](SECURITY.md)
 - [Troubleshooting](TROUBLESHOOTING.md)
-- [Running Curson on the server](CURSOR.md)
-- [Deploying your application](application-deployment.md)
+
+
+
+</td>
+</tr>
+</table>
+
 ```
 Infrastructure as Code
 
