@@ -37,27 +37,23 @@ secrets/sops-key-{username}.pub                     # Your public key (in Git)
 ```
 
 ### Initial Setup
-
 Encrypted secrets file (`secrets/infrastructure-secrets.yml.enc`) created and committed, it contains:
 - 'Main' Hetzner Cloud API token used by terraform 
 - Hetzner SSH key IDs for all team members, needed for running ansible and SSH access
 - Allowed SSH IP addresses for firewall source IP filtering (restricts SSH access to specific IPs)
 
-
-### New Team Members
-
-#### Generate a SOPS key pair:
+### Generate a SOPS key pair:
    ```bash
    task secrets:keygen
    git add secrets/sops-key-*.pub
    git commit -m "Add SOPS public key"
    ```
 
-#### Your SOPS private key is stored securely:
+### Your SOPS private key is stored securely:
    - Private key is stored in `~/.config/sops/age/keys-{username}.txt` (outside the repo)
-   - For backup, consider storing in a password manager (1Password, Bitwarden, etc.)
+   - For backup, consider storing in a password manager like ProtonPass, 1Password, etc.
 
-#### Add your SOPS key to the list of keys that can decrypt
+### Add your SOPS key to the list of keys that can decrypt
   - Ask an existing team member to:
      ```bash
      git pull
@@ -67,11 +63,6 @@ Encrypted secrets file (`secrets/infrastructure-secrets.yml.enc`) created and co
      ```
   - Pull the updated secrets file: `git pull`
   - Now you can also encrypt/decrypt secrets, currently only the infrastructure secrets, in the future also application secrets (database password etc.)
-
-### Remove Team Member
-1. Remove their public SOPS key from Git
-2. Re-encrypt: `task secrets:decrypt` → `task secrets:encrypt` → commit
-
 
 ## Configure SSH
 
