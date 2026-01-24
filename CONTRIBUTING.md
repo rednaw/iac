@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for your interest in contributing — that’s awesome! 🎉
+Thanks for your interest in contributing
 All kinds of contributions are welcome: code, docs, ideas, bug reports, or
 just thoughtful feedback.
 
@@ -62,4 +62,4 @@ If something feels off, please speak up.
 
 ---
 
-Thanks for helping make this project better 💚
+Thanks for helping make this project better!ß

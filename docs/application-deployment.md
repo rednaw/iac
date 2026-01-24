@@ -55,7 +55,7 @@ This guide explains how to deploy containerized applications using our infrastru
 ### Key Concepts
 
 **1. GitHub Actions (CI)**
-- Builds your Docker image on every push
+- Builds your Docker image on every push to main branch
 - Tags images with **short commit SHA** (7 characters, e.g. `abc1234`)
 - Pushes to the private registry
 - **Does NOT deploy** - deployments are manual
