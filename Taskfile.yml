@@ -56,7 +56,7 @@ tasks:
         echo "  task secrets:encrypt                   # Encrypt secrets"
         echo ""
         echo "Application Deployment:"
-        echo "  task application:deploy -- <WORKSPACE> <APP_ROOT> <SHA> [DEPLOYED_BY]
+        echo "  task application:deploy -- <WORKSPACE> <APP_ROOT> <SHA> [DEPLOYED_BY]"
         echo ""
         echo "Registry:"
         echo "  task registry:overview                 # List tags (TAG, CREATED, DESCRIPTION) for all repos"

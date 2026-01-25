@@ -52,7 +52,7 @@ tasks:
         DIGEST=$(crane digest "$IMAGE_REF" 2>&1) || true
         if [ -z "$DIGEST" ] || [[ ! "$DIGEST" =~ ^sha256: ]]; then
           echo "❌ Error: Could not resolve digest for $IMAGE_REF"
-          [ -n "$DIGEST" ] && echo "$DIGEST" | sed 's/^/   /'
+         [ -n "$DIGEST" ] && echo " $DIGEST"
           echo "   Make sure the image exists in the registry and you're logged in: docker login $REGISTRY_NAME"
           exit 1
         fi
