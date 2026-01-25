@@ -31,14 +31,21 @@ A quick guide for deploying your containerized application to the iac infrastruc
          │ You run: task application:deploy -- <WORKSPACE> <APP_ROOT> <SHA>
          ▼
 ┌─────────────────┐
-│  Ansible        │  ← Deploys to server
-│  (deploy.yml)   │     Image = registry/app:<SHA>
+│  Taskfile       │  ← Resolves tag → digest
+│                 │     Extracts metadata (description, built_at)
+└────────┬────────┘     Passes digest to Ansible
+         │
+         │ Image digest: registry/app@sha256:...
+         ▼
+┌─────────────────┐
+│  Ansible        │  ← Deploys digest-pinned image
+│  (deploy.yml)   │     Writes deploy-info.yml, deploy-history.yml
 └────────┬────────┘     Copies docker-compose.yml, runs Docker Compose
          │
          ▼
 ┌─────────────────┐
-│  Server         │  ← Your app runs here
-│  (Docker)       │
+│  Server         │  ← Your app runs here (pinned to digest)
+│  (Docker)       │     deploy-info.yml records current deployment
 └─────────────────┘
 ```
 
@@ -54,8 +61,9 @@ A quick guide for deploying your containerized application to the iac infrastruc
 **2. Deployment**
 
 - Run `task application:deploy -- <WORKSPACE> <APP_ROOT> <SHA>` from the IAC project
-- SHA is the unique identifier; CI sets image description from the git commit message
-- Ansible deploys the image `registry/rednaw/app:<SHA>` via Docker Compose
+- The deploy command resolves the SHA tag → immutable digest
+- Ansible deploys the **digest-pinned** image (e.g. `registry/app@sha256:...`)
+- Deployment records are written to `/opt/giftfinder/<app>/deploy-info.yml` and `deploy-history.yml`
 
 **3. Manual Control**
 
@@ -73,7 +81,13 @@ cd ~/projects/iac
 task application:deploy -- dev ../your-app abc1234
 ```
 
-Use the short SHA (7 characters) of the commit whose image you want to deploy.
+Use the short SHA (7 characters) of the commit whose image you want to deploy. The deploy command resolves the tag to an immutable digest and deploys that.
+
+**Optional:** Override the deployer attribution:
+
+```bash
+task application:deploy -- dev ../your-app abc1234 "CI Pipeline"
+```
 
 ---
 
@@ -106,8 +120,7 @@ Create `deploy.yml` in your app root:
     registry_name: registry.rednaw.nl
     image_name: rednaw/your-app
     service_name: your-app
-    # Image tag = short commit SHA (passed from deploy command)
-    image: "{{ registry_name }}/{{ image_name }}:{{ sha }}"
+    # Image digest is resolved from tag and passed by Taskfile
 
   pre_tasks:
     - name: Load infrastructure secrets
@@ -125,10 +138,10 @@ Create `deploy.yml` in your app root:
 
 **Configuration:**
 
-- `registry_name`: Registry domain (usually `registry.rednaw.nl`)
-- `image_name`: Image name in the registry (e.g. `rednaw/your-app`)
+- `registry_name`: Registry domain (usually `registry.rednaw.nl`) — used by Taskfile to resolve image
+- `image_name`: Image name in the registry (e.g. `rednaw/your-app`) — used by Taskfile to resolve image
 - `service_name`: Service name in `docker-compose.yml`
-- `image`: Built from `registry_name`, `image_name`, and `sha`; `sha` is passed by the deploy command
+- Image digest is resolved from the SHA tag by the Taskfile and passed to Ansible
 
 **What the deploy-app role does:**
 
@@ -139,7 +152,7 @@ Create `deploy.yml` in your app root:
 
 ### 2. Docker Compose
 
-Use `${IMAGE}` for the image; it is set during deploy:
+Use `${IMAGE}` for the image; it is set to a digest-pinned reference during deploy (e.g. `registry.rednaw.nl/rednaw/app@sha256:...`):
 
 ```yaml
 services:
@@ -194,8 +207,11 @@ task application:deploy -- prod ../your-app f2f8d1d
 **What happens:**
 
 1. Prepares `known_hosts` for the workspace hostname
-2. Runs Ansible with `deploy.yml`; image = `registry/rednaw/app:<SHA>`
-3. App runs via Docker Compose on the server
+2. Resolves SHA tag → immutable digest using `crane digest`
+3. Extracts image metadata (description, built_at) from image labels
+4. Runs Ansible with digest-pinned image (e.g. `registry/app@sha256:...`)
+5. Ansible writes deployment records (`deploy-info.yml`, `deploy-history.yml`)
+6. App runs via Docker Compose on the server, pinned to the digest
 
 ---
 
@@ -223,10 +239,42 @@ task application:deploy -- dev ../your-app abc1234
 ### List registry tags
 
 ```bash
-task registry:map
+task registry:overview
 ```
 
-Shows TAG, CREATED, and DESCRIPTION (from git commit message) for each tag in the registry.
+Shows TAG, CREATED, and DESCRIPTION for all repos in the registry.
+
+### Inspect image with deployment status
+
+```bash
+task images:overview -- dev rednaw/hello-world
+```
+
+Shows tags for a specific image repository, with the currently deployed digest marked (→). Reads deployment state from the server.
+
+---
+
+## Deployment Tracking
+
+Each deployment creates two files on the server:
+
+### `deploy-info.yml` (Current State)
+
+Located at `/opt/giftfinder/<app>/deploy-info.yml`. Records what is **currently running**:
+
+- Image digest, tag, description, build time
+- Deployment timestamp and deployer attribution
+- Overwritten on each successful deploy
+
+### `deploy-history.yml` (Audit Trail)
+
+Located at `/opt/giftfinder/<app>/deploy-history.yml`. Append-only log of all deployments:
+
+- Historical deployments with full metadata
+- Enables queries like "what was running yesterday at 05:00?"
+- Never rewritten; only appended
+
+You can inspect these files directly on the server or use `images:overview` to see deployment status.
 
 ---
 
@@ -239,7 +287,16 @@ Shows TAG, CREATED, and DESCRIPTION (from git commit message) for each tag in th
 
 **"Failed to read deployment configuration from deploy.yml"**
 
-- Ensure `deploy.yml` exists in your app root and has a `vars` section with `registry_name`, `image_name`, and `service_name`, and that `image` is set from `sha`.
+- Ensure `deploy.yml` exists in your app root and has a `vars` section with `registry_name`, `image_name`, and `service_name`.
+
+**"Could not resolve digest for ..."**
+
+- Make sure the image exists in the registry and you're logged in: `docker login registry.rednaw.nl`
+- Verify the SHA tag is correct (7 hexadecimal characters)
+
+**"crane command not found"**
+
+- Install crane: `brew install crane`
 
 ---
 
