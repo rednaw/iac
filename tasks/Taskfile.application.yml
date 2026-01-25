@@ -2,58 +2,26 @@
 version: '3'
 
 tasks:
-  promote:
-    desc: "Promote image (use: task application:promote -- <WORKSPACE> <APP_ROOT> <SHA> <SEMVER>)"
+  deploy:
+    desc: "Deploy application (use: task application:deploy -- <WORKSPACE> <APP_ROOT> <SHA>)"
     silent: true
     cmds:
       - |
-        if [ $# -ne 4 ]; then
-          echo "❌ Error: Invalid number of arguments (expected 4, got $#)"
-          echo ""
-          echo "Usage: task application:promote -- <WORKSPACE> <APP_ROOT> <SHA> <SEMVER>"
-          exit 1
-        fi
-
-        # Re-parse arguments and recompute paths (Taskfile runs each task in separate shell)
         ARGS="{{.CLI_ARGS}}"
         # shellcheck disable=SC2086
         set -- $ARGS
+        if [ $# -ne 3 ]; then
+          echo "❌ Error: Invalid number of arguments (expected 3, got $#)"
+          echo ""
+          echo "Usage: task application:deploy -- <WORKSPACE> <APP_ROOT> <SHA>"
+          exit 1
+        fi
         WORKSPACE="$1"
         APP_ROOT_PATH="$2"
         SHA="$3"
-        SEMVER="$4"
         IAC_REPO="$(pwd)"
         APP_ROOT="$(realpath "$APP_ROOT_PATH" 2>/dev/null || echo "$APP_ROOT_PATH")"
         
-        echo "🚀 Promoting image: $SHA -> $SEMVER"
-        echo ""
-        if ! "$IAC_REPO/scripts/registry-promote.py" "$WORKSPACE" "$APP_ROOT" "$SHA" "$SEMVER"; then
-          echo ""
-          echo "❌ Error: Image promotion failed"
-          exit 1
-        fi
-
-  deploy:
-    desc: "Deploy application (use: task application:deploy -- <WORKSPACE> <APP_ROOT> <SEMVER>)"
-    silent: true
-    cmds:
-      - |
-        ARGS="{{.CLI_ARGS}}"
-        # shellcheck disable=SC2086
-        set -- $ARGS
-        if [ $#  -ne 3 ]; then
-          echo "❌ Error: Invalid number of arguments (expected 3, got $#)"
-          echo ""
-          echo "Usage: task application:deploy -- <WORKSPACE> <APP_ROOT> <SEMVER>"
-          exit 1
-        fi
-        WORKSPACE="$1"
-        APP_ROOT_PATH="$2"
-        SEMVER="$3"
-        IAC_REPO="$(pwd)"
-        APP_ROOT="$(realpath "$APP_ROOT_PATH" 2>/dev/null || echo "$APP_ROOT_PATH")"
-        
-        # Derive deploy target from app root basename
         APP_SLUG=$(basename "$APP_ROOT")
         DEPLOY_TARGET="/opt/giftfinder/$APP_SLUG"
         
@@ -61,13 +29,12 @@ tasks:
         echo ""
         echo "🔑 Preparing known_hosts..."
         task hostkeys:prepare -- "$WORKSPACE"
-        # Run Ansible playbook from app root; use IAC ansible.cfg (accept-new)
         (cd "$APP_ROOT" && ANSIBLE_CONFIG="$IAC_REPO/ansible/ansible.cfg" ansible-playbook \
           -i "$IAC_REPO/ansible/inventory/$WORKSPACE.ini" \
           deploy.yml \
           -e "iac_repo_root=$IAC_REPO" \
           -e "app_root=$APP_ROOT" \
           -e "deploy_target=$DEPLOY_TARGET" \
-          -e "semver=$SEMVER")
+          -e "sha=$SHA")
       - echo ""
       - echo "✅ Deployment completed successfully!"

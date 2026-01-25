@@ -2,8 +2,8 @@
 version: '3'
 
 tasks:
-  map:
-    desc: "Show SHA tags with their promoted semver version (registry-only, config labels)"
+  tags:
+    desc: "List registry tags (TAG, CREATED, DESCRIPTION) for each repo"
     silent: true
     cmds:
       - |
@@ -39,4 +39,3 @@ tasks:
           done
           echo
         done
-        echo "✅ Registry diagnostics complete"

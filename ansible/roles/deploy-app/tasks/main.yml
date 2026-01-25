@@ -5,7 +5,7 @@
 # Required variables:
 #   app_root: Absolute path to the app root directory (on localhost)
 #   deploy_target: Path on the server where the app will be deployed (e.g. /opt/giftfinder/app-name)
-#   image: Full image reference with semantic version (e.g. registry.rednaw.nl/rednaw/hello-world:1.2.3)
+#   image: Full image reference with tag (e.g. registry.rednaw.nl/rednaw/hello-world:abc1234)
 #   service_name: Name of the service in docker-compose.yml
 #
 # Requires infrastructure_secrets to be loaded (registry credentials)
