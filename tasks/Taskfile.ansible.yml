@@ -20,13 +20,10 @@ tasks:
         INVENTORY_FILE="inventory/$WORKSPACE.ini"
         if [ ! -f "$INVENTORY_FILE" ]; then
           echo "❌ Error: Inventory file not found: $INVENTORY_FILE"
-          echo ""
-          echo "Generate the inventory file first:"
-          echo "  Run: task terraform:apply -- $WORKSPACE"
-          echo ""
-          echo "This will create the inventory file automatically."
           exit 1
         fi
+        echo "🔑 Preparing known_hosts..."
+        task hostkeys:prepare -- "$WORKSPACE"
         echo "⚙️  Running full Ansible playbook for workspace: $WORKSPACE..."
         ansible-playbook -i "$INVENTORY_FILE" site.yml
 
@@ -38,17 +35,10 @@ tasks:
       - |
         WORKSPACE=$(../scripts/validate-workspace.sh ansible bootstrap "{{.CLI_ARGS}}")
         echo "NOTE: This step connects as root using your Hetzner SSH key to set up the ubuntu user."
-        terraform -chdir=../terraform workspace select "$WORKSPACE"
-        SERVER_IP=$(terraform -chdir=../terraform output -raw server_ipv4 2>/dev/null | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' || echo "")
-        if [ -z "$SERVER_IP" ]; then
-          echo "❌ Error: Could not get server IP for workspace '$WORKSPACE'"
-          echo ""
-          echo "Make sure the server exists:"
-          echo "  1. Run: task terraform:apply -- $WORKSPACE"
-          echo "  2. Then run: task terraform:output -- $WORKSPACE (to verify IP)"
-          exit 1
-        fi
-        ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i "$SERVER_IP," bootstrap.yml
+        HOSTNAME=$(task hostkeys:hostname -- "$WORKSPACE")
+        echo "🔑 Preparing known_hosts..."
+        task hostkeys:prepare -- "$WORKSPACE"
+        ansible-playbook -i "${HOSTNAME}," bootstrap.yml
 
   run:
     desc: "Configure server (use: task ansible:run -- dev or -- prod)"
@@ -60,14 +50,9 @@ tasks:
         INVENTORY_FILE="inventory/$WORKSPACE.ini"
         if [ ! -f "$INVENTORY_FILE" ]; then
           echo "❌ Error: Inventory file not found: $INVENTORY_FILE"
-          echo ""
-          echo "Generate the inventory file first:"
-          echo "  Run: task terraform:apply -- $WORKSPACE"
-          echo ""
-          echo "This will create the inventory file automatically."
           exit 1
         fi
+        echo "🔑 Preparing known_hosts..."
+        task hostkeys:prepare -- "$WORKSPACE"
         echo "⚙️  Running full Ansible playbook for workspace: $WORKSPACE..."
         ansible-playbook -i "$INVENTORY_FILE" site.yml
-
-  

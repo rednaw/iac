@@ -7,15 +7,6 @@
   become: true
 
   pre_tasks:
-    - name: Remove old server host key from known_hosts (if exists)
-      ansible.builtin.command: ssh-keygen -R {{ ansible_host }} -f {{ lookup('env', 'HOME') }}/.ssh/known_hosts
-      delegate_to: localhost
-      become: false
-      changed_when: false
-      run_once: true
-      failed_when: false
-      # noqa: run-once[task]  # Only needs to run once (delegated to localhost)
-
     - name: Decrypt and load infrastructure secrets
       ansible.builtin.import_tasks: tasks/secrets.yml
 

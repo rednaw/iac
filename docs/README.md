@@ -48,11 +48,10 @@ Secrets Management (SOPS):
   task secrets:encrypt                  # Encrypt secrets
 
 Application Deployment:
-  task application:deploy -- <WORKSPACE> <APP_ROOT> <SHA> <SEMVER>  # Deploy application
+  task application:deploy -- <WORKSPACE> <APP_ROOT> <SHA>
 
-Registry Inspection:
-  task registry:tags -- <REPO>          # Show tags grouped by type
-  task registry:map -- <REPO>           # Show semver → SHA mapping
+Registry:
+  task registry:tags                    # List tags (TAG, CREATED, DESCRIPTION)
 
 Utilities:
   task server:check-status              # Check if servers are up (checks both dev and prod)

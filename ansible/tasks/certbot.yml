@@ -18,7 +18,7 @@
 # Determine environment and cert name
 - name: Extract environment from hostname
   ansible.builtin.set_fact:
-    app_environment: "{{ 'dev' if '-dev' in inventory_hostname else 'prod' }}"
+    app_environment: "{{ 'dev' if 'dev.' in inventory_hostname else 'prod' }}"
     cert_domain: "{{ app_environment }}.rednaw.nl"
 
 - name: Build SAN domain list
