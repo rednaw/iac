@@ -2,12 +2,21 @@
 version: '3'
 
 tasks:
-  tags:
-    desc: "List registry tags (TAG, CREATED, DESCRIPTION) for each repo"
+  overview:
+    desc: "List registry tags (TAG, CREATED, DESCRIPTION) for all repos"
     silent: true
     cmds:
       - |
         set -euo pipefail
+
+        if ! command -v crane >/dev/null 2>&1; then
+          echo "❌ Error: 'crane' command not found. Install with: brew install crane" >&2
+          exit 1
+        fi
+        if ! command -v jq >/dev/null 2>&1; then
+          echo "❌ Error: 'jq' command not found. Install with: brew install jq" >&2
+          exit 1
+        fi
 
         REGISTRY="registry.rednaw.nl"
         REPOS=$(crane catalog "$REGISTRY" 2>/dev/null || true)
@@ -39,3 +48,4 @@ tasks:
           done
           echo
         done
+

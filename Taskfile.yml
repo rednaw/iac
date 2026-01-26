@@ -19,6 +19,7 @@ includes:
   test: tasks/Taskfile.test.yml
   application: tasks/Taskfile.application.yml
   registry: tasks/Taskfile.registry.yml
+  images: tasks/Taskfile.images.yml
 
 tasks:
   default:
@@ -55,10 +56,13 @@ tasks:
         echo "  task secrets:encrypt                   # Encrypt secrets"
         echo ""
         echo "Application Deployment:"
-        echo "  task application:deploy -- <WORKSPACE> <APP_ROOT> <SHA>  # Deploy by commit SHA"
+        echo "  task application:deploy -- <WORKSPACE> <APP_ROOT> <SHA> [DEPLOYED_BY]"
         echo ""
         echo "Registry:"
-        echo "  task registry:tags                     # List tags (TAG, CREATED, DESCRIPTION) for all repos"
+        echo "  task registry:overview                 # List tags (TAG, CREATED, DESCRIPTION) for all repos"
+        echo ""
+        echo "Images:"
+        echo "  task images:overview -- <WORKSPACE> <IMAGE_REPO>  # Show image overview with deployment status"
         echo ""
         echo "Utilities:"
         echo "  task server:check-status               # Check if servers are up (checks both dev and prod)"
