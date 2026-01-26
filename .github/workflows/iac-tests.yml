@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   setup:
-    name: Run all tests
+    name: Trigger all tests
     runs-on: ubuntu-latest
     steps:
       - name: Check SOPS key availability
@@ -64,10 +64,10 @@ jobs:
       - name: Setup tools
         uses: ./.github/actions/setup-iac-tools
         with:
-          install_python: 'true'
           install_ansible: 'true'
-          install_ansible_lint: 'true'
           install_ansible_collections: 'true'
+          install_ansible_lint: 'true'
+          install_python: 'true'
       - name: Run Ansible lint
         run: task test:ansible:lint
 
