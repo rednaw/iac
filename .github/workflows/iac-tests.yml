@@ -54,20 +54,21 @@ jobs:
       - name: Run Terraform validation
         run: task test:terraform:validate
 
-  ansible-lint:
-    name: Ansible Lint
-    runs-on: ubuntu-latest
-    needs: setup
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-      - name: Setup tools
-        uses: ./.github/actions/setup-iac-tools
-        with:
-          install_ansible: 'true'
-          install_ansible_lint: 'true'
-      - name: Run Ansible lint
-        run: task test:ansible:lint
+  # 2026-01-26: "Temporarily" disabled until ansible galaxy 500 errors are gone
+  # ansible-lint:
+  #   name: Ansible Lint
+  #   runs-on: ubuntu-latest
+  #   needs: setup
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v6
+  #     - name: Setup tools
+  #       uses: ./.github/actions/setup-iac-tools
+  #       with:
+  #         install_ansible: 'true'
+  #         install_ansible_lint: 'true'
+  #     - name: Run Ansible lint
+  #       run: task test:ansible:lint
 
   ansible-syntax:
     name: Ansible Syntax
