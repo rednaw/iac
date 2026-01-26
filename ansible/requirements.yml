@@ -2,7 +2,9 @@
 # Install with: task ansible:install
 
 collections:
-  - name: ansible.posix
-    version: ">=1.0.0"
-  - name: community.docker
-    version: ">=3.0.0"
+  - name: https://github.com/ansible-collections/ansible.posix
+    type: git
+    version: "2.1.0"
+  - name: https://github.com/ansible-collections/community.docker
+    type: git
+    version: "5.0.5"
