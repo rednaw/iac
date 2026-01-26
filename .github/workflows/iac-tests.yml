@@ -65,9 +65,7 @@ jobs:
         uses: ./.github/actions/setup-iac-tools
         with:
           install_ansible: 'true'
-          install_ansible_collections: 'true'
           install_ansible_lint: 'true'
-          install_python: 'true'
       - name: Run Ansible lint
         run: task test:ansible:lint
 
