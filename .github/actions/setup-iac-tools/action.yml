@@ -142,4 +142,4 @@ runs:
       if: inputs.install_ansible_collections == 'true'
       shell: bash
       working-directory: ${{ inputs.working_directory }}
-      run: task ansible:install
+      run: ansible-galaxy collection install -r ansible/requirements.yml
