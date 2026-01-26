@@ -98,7 +98,7 @@ tasks:
       - |
         echo ""
         echo "🔍 Linting Ansible playbooks..."
-        PYTHONWARNINGS=ignore::ResourceWarning ansible-lint site.yml bootstrap.yml || (echo "❌ Ansible linting found issues" && exit 1)
+        ansible-lint site.yml bootstrap.yml || (echo "❌ Ansible linting found issues" && exit 1)
       - echo "✅ Ansible linting passed"
 
   ansible:syntax:

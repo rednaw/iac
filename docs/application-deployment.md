@@ -1,250 +1,158 @@
-# Application Deployment Guide
+# Deploy Your Application
 
-A quick guide for deploying your containerized application to the iac infrastructure.
+This page explains how to **deploy your application** using this Infrastructure‑as‑Code (IaC) repository.
+
+You stay in control of:
+- your application code
+- your CI workflow
+- when and what you deploy
+
+This repository provides **safe rails** for deploying Docker images to a remote server.
 
 ---
 
 ## Overview
 
-### The Flow
+```mermaid
+flowchart LR
+    subgraph LOCAL["Developer"]
+        A["Merge pull request"]
+        B["task images:overview"]
+        C["task application:deploy"]
+    end
 
+    subgraph GITHUB["GitHub workflow"]
+        D["Test, build, tag & push image"]
+    end
+
+    subgraph REGISTRY["Registry"]
+      E["→ 8378ce7 important fix 706c88c first release"]
+    end
+
+    subgraph SERVER["Server"]
+      F["Deployed app"]
+    end
+
+    A -->|triggers| D
+    B -->|queries| E
+    C -->|deploys to| F
+    D -->|pushes| E
+    F -->|pulls| E
 ```
-┌─────────────────┐
-│  Your Code      │
-│  (GitHub)       │
-└────────┬────────┘
-         │
-         │ Push to main
-         ▼
-┌─────────────────┐
-│  GitHub Actions │  ← Builds Docker image
-│  (CI)           │     Tags with short SHA (7 chars)
-└────────┬────────┘     Pushes to registry
-         │
-         │ Image: registry.rednaw.nl/rednaw/app:abc1234
-         ▼
-┌─────────────────┐
-│  Private        │  ← Stores images by SHA tag
-│  Registry       │
-└────────┬────────┘
-         │
-         │ You run: task application:deploy -- <WORKSPACE> <APP_ROOT> <SHA>
-         ▼
-┌─────────────────┐
-│  Ansible        │  ← Deploys to server
-│  (deploy.yml)   │     Image = registry/app:<SHA>
-└────────┬────────┘     Copies docker-compose.yml, runs Docker Compose
-         │
-         ▼
-┌─────────────────┐
-│  Server         │  ← Your app runs here
-│  (Docker)       │
-└─────────────────┘
-```
-
-### Key Concepts
-
-**1. GitHub Actions (CI)**
-
-- Builds your Docker image on every push to main
-- Tags images with **short commit SHA** (7 characters, e.g. `abc1234`)
-- Pushes to the private registry
-- Does **not** deploy; deployments are manual
-
-**2. Deployment**
-
-- Run `task application:deploy -- <WORKSPACE> <APP_ROOT> <SHA>` from the IAC project
-- SHA is the unique identifier; CI sets image description from the git commit message
-- Ansible deploys the image `registry/rednaw/app:<SHA>` via Docker Compose
-
-**3. Manual Control**
-
-- No automatic deployments; you choose when and what to deploy
-- Deploy any built image by its commit SHA
 
 ---
 
-## Quick Start
+## Prerequisites
 
-**Deploy your app:**
+You need:
+- a Docker image built and pushed by your GitHub Actions workflow
+- access to this IaC repository
+- the `task` CLI installed
+
+> For now, 
+> - the IaC repository should be cloned next to your project
+> - deployment commands are run from the IaC repository root
+
+
+---
+
+## See What Can Be Deployed
+
+List available images and versions:
 
 ```bash
-cd ~/projects/iac
-task application:deploy -- dev ../your-app abc1234
+task images:overview
 ```
 
-Use the short SHA (7 characters) of the commit whose image you want to deploy.
+This shows:
+- image tags (usually short SHAs)
+- build time
+- description (from commit message)
+- which version is currently deployed (`→`)
+
+Use this to decide *what* you want to deploy.
 
 ---
 
-## What You Need
+## Deploy a Version
 
-Your app needs these files in its root directory:
-
-```
-your-app/
-  deploy.yml                              # Deployment config + app-specific setup
-  docker-compose.yml                      # Docker Compose config
-  .github/workflows/build-and-push.yml    # GitHub Actions workflow
-  env.enc                                 # Optional: encrypted app secrets
-```
-
----
-
-## Setting Up Your App
-
-### 1. Create Deployment Playbook
-
-Create `deploy.yml` in your app root:
-
-```yaml
----
-- name: Deploy Your Application
-  hosts: all
-  become: yes
-  vars:
-    registry_name: registry.rednaw.nl
-    image_name: rednaw/your-app
-    service_name: your-app
-    # Image tag = short commit SHA (passed from deploy command)
-    image: "{{ registry_name }}/{{ image_name }}:{{ sha }}"
-
-  pre_tasks:
-    - name: Load infrastructure secrets
-      ansible.builtin.import_tasks: "{{ iac_repo_root }}/ansible/tasks/secrets.yml"
-      vars:
-        secrets_file: "{{ iac_repo_root }}/secrets/infrastructure-secrets.yml.enc"
-
-  tasks:
-    # App-specific setup: directories, permissions, etc.
-
-  roles:
-    - name: Deploy application
-      role: "{{ iac_repo_root }}/ansible/roles/deploy-app"
-```
-
-**Configuration:**
-
-- `registry_name`: Registry domain (usually `registry.rednaw.nl`)
-- `image_name`: Image name in the registry (e.g. `rednaw/your-app`)
-- `service_name`: Service name in `docker-compose.yml`
-- `image`: Built from `registry_name`, `image_name`, and `sha`; `sha` is passed by the deploy command
-
-**What the deploy-app role does:**
-
-- Decrypts `env.enc` → `.env` (if present)
-- Copies `docker-compose.yml` to the server
-- Configures Docker registry auth
-- Creates the deploy directory and runs Docker Compose
-
-### 2. Docker Compose
-
-Use `${IMAGE}` for the image; it is set during deploy:
-
-```yaml
-services:
-  your-app:
-    image: ${IMAGE}
-    ports:
-      - "127.0.0.1:5000:5000"
-    restart: unless-stopped
-```
-
-### 3. Optional: App Secrets
-
-If your app needs secrets at runtime, create `env.enc` in your app root. The deploy process decrypts it to `.env` on the server at `/opt/giftfinder/your-app/.env`.
-
-### 4. GitHub Workflow
-
-Create `.github/workflows/build-and-push.yml` in your app root. It should:
-
-- Build the Docker image on push to main (and optionally on pull requests)
-- Tag the image with the short commit SHA (`${GITHUB_SHA:0:7}`)
-- Push to your private registry
-- Use `vars.REGISTRY_USERNAME` and `secrets.REGISTRY_PASSWORD` for registry auth
-
-CI does **not** deploy; you run `task application:deploy` manually.
-
----
-
-## Deploying
-
-### Deploy Command
-
-Run from the IAC project:
+Deploy a specific version:
 
 ```bash
-cd ~/projects/iac
-task application:deploy -- <WORKSPACE> <APP_ROOT> <SHA>
+task application:deploy -- <workspace> <app_path> <tag>
 ```
 
-**Arguments:**
-
-- `WORKSPACE`: `dev` or `prod`
-- `APP_ROOT`: Path to your app root (e.g. `../your-app`)
-- `SHA`: Short commit SHA (7 characters) of the image to deploy
-
-**Examples:**
+Example:
 
 ```bash
-task application:deploy -- dev ../your-app abc1234
-task application:deploy -- prod ../your-app f2f8d1d
+task application:deploy -- dev ../hello-world 6350192
 ```
 
-**What happens:**
-
-1. Prepares `known_hosts` for the workspace hostname
-2. Runs Ansible with `deploy.yml`; image = `registry/rednaw/app:<SHA>`
-3. App runs via Docker Compose on the server
+What happens:
+- the tag is resolved to an immutable digest
+- Docker Compose is updated on the server
+- the app is restarted
+- deployment metadata is recorded
 
 ---
 
-## Project Layout
+## Roll Back
 
-Your app and the IAC project must be **side by side**:
-
-```
-~/projects/
-  iac/           # Infrastructure project
-  your-app/      # Your application
-```
-
----
-
-## Common Tasks
-
-### Deploy an image
+Rollback is just deploying an earlier version:
 
 ```bash
-cd ~/projects/iac
-task application:deploy -- dev ../your-app abc1234
+task application:deploy -- dev ../hello-world eb53023
 ```
 
-### List registry tags
-
-```bash
-task registry:map
-```
-
-Shows TAG, CREATED, and DESCRIPTION (from git commit message) for each tag in the registry.
+No special rollback logic.  
+No hidden state.
 
 ---
 
-## Troubleshooting
+## GitHub Actions Workflow
 
+Your project should have a workflow that
+- Only runs on push or merge to main
+- Only runs if all tests succeed
+- Builds a container image for each commit to `main`
+- Tags the image with the short commit SHA
+- Pushes the image to the private registry
+- Includes basic OCI metadata:
+  - `org.opencontainers.image.description`
+  - `org.opencontainers.image.created`
+  - `org.opencontainers.image.revision`
+  - `org.opencontainers.image.source`
 
-**"Failed to list tags"**
+### Recommended Approach
 
-- Log in to the registry: `docker login registry.rednaw.nl`
-
-**"Failed to read deployment configuration from deploy.yml"**
-
-- Ensure `deploy.yml` exists in your app root and has a `vars` section with `registry_name`, `image_name`, and `service_name`, and that `image` is set from `sha`.
+1. Copy the `hello-world` workflow into your repository.
+2. Update image name and build args as needed.
+3. Keep tag and label conventions to ensure deploy and inspection tools work.
 
 ---
 
-## See Also
+## What Gets Recorded
 
-- [Registry and containers cheat sheet](future/registry-containers-cheatsheet.md)
-- [SSH host keys](SSH-host-keys.md)
-- IAC docs: INSTALL, SECURITY, TROUBLESHOOTING
+Each deployment records:
+- image digest
+- image tag
+- description
+- image build time
+- deployment time
+
+This enables:
+- reliable rollbacks
+- answering “what was running when?”
+- safe cleanup later
+
+---
+
+## Design Notes
+
+- **Humans deploy by tag**
+- **Machines run by digest**
+- No auto‑deploys
+- No forced workflows
+- No GitOps assumptions
+
+You decide when a version goes live.

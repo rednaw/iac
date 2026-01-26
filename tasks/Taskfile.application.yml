@@ -3,38 +3,96 @@ version: '3'
 
 tasks:
   deploy:
-    desc: "Deploy application (use: task application:deploy -- <WORKSPACE> <APP_ROOT> <SHA>)"
+    desc: "Deploy application (use: task application:deploy -- <WORKSPACE> <APP_ROOT> <SHA> [DEPLOYED_BY])"
     silent: true
     cmds:
       - |
         ARGS="{{.CLI_ARGS}}"
         # shellcheck disable=SC2086
         set -- $ARGS
-        if [ $# -ne 3 ]; then
-          echo "❌ Error: Invalid number of arguments (expected 3, got $#)"
+        if [ $# -lt 3 ] || [ $# -gt 4 ]; then
+          echo "❌ Error: Invalid number of arguments (expected 3-4, got $#)"
           echo ""
-          echo "Usage: task application:deploy -- <WORKSPACE> <APP_ROOT> <SHA>"
+          echo "Usage: task application:deploy -- <WORKSPACE> <APP_ROOT> <SHA> [DEPLOYED_BY]"
           exit 1
         fi
         WORKSPACE="$1"
         APP_ROOT_PATH="$2"
         SHA="$3"
+        DEPLOYED_BY="${4:-${USER}}"
         IAC_REPO="$(pwd)"
         APP_ROOT="$(realpath "$APP_ROOT_PATH" 2>/dev/null || echo "$APP_ROOT_PATH")"
+        
+        if [ ! -f "$APP_ROOT/deploy.yml" ]; then
+          echo "❌ Error: deploy.yml not found in $APP_ROOT"
+          exit 1
+        fi
+        
+        # Extract registry_name and image_name from deploy.yml (trim whitespace)
+        REGISTRY_NAME=$(grep -E '^\s*registry_name:' "$APP_ROOT/deploy.yml" | head -1 | sed -n 's/.*registry_name:[[:space:]]*\([^[:space:]#]*\).*/\1/p' | xargs || echo "")
+        IMAGE_NAME=$(grep -E '^\s*image_name:' "$APP_ROOT/deploy.yml" | head -1 | sed -n 's/.*image_name:[[:space:]]*\([^[:space:]#]*\).*/\1/p' | xargs || echo "")
+        
+        if [ -z "$REGISTRY_NAME" ] || [ -z "$IMAGE_NAME" ]; then
+          echo "❌ Error: Could not extract registry_name and image_name from deploy.yml"
+          exit 1
+        fi
+        
+        IMAGE_REF="${REGISTRY_NAME}/${IMAGE_NAME}:${SHA}"
+        
+        echo "🔍 Resolving tag → digest..."
+        if ! command -v crane >/dev/null 2>&1; then
+          echo "❌ Error: 'crane' command not found. Install with: brew install crane"
+          exit 1
+        fi
+        if ! command -v jq >/dev/null 2>&1; then
+          echo "❌ Error: 'jq' command not found. Install with: brew install jq"
+          exit 1
+        fi
+        
+        DIGEST=$(crane digest "$IMAGE_REF" 2>&1) || true
+        if [ -z "$DIGEST" ] || [[ ! "$DIGEST" =~ ^sha256: ]]; then
+          echo "❌ Error: Could not resolve digest for $IMAGE_REF"
+         [ -n "$DIGEST" ] && echo " $DIGEST"
+          echo "   Make sure the image exists in the registry and you're logged in: docker login $REGISTRY_NAME"
+          exit 1
+        fi
+        
+        echo "📋 Extracting image metadata..."
+        IMAGE_CONFIG=$(crane config "$IMAGE_REF" 2>/dev/null || echo "")
+        if [ -z "$IMAGE_CONFIG" ]; then
+          echo "⚠️  Warning: Could not read image config, proceeding without metadata"
+          DESCRIPTION=""
+          BUILT_AT=""
+        else
+          DESCRIPTION=$(echo "$IMAGE_CONFIG" | jq -r '.config.Labels["org.opencontainers.image.description"] // ""' 2>/dev/null || echo "")
+          BUILT_AT=$(echo "$IMAGE_CONFIG" | jq -r '.config.Labels["org.opencontainers.image.created"] // ""' 2>/dev/null || echo "")
+        fi
         
         APP_SLUG=$(basename "$APP_ROOT")
         DEPLOY_TARGET="/opt/giftfinder/$APP_SLUG"
         
+        # Construct digest-only image reference for Docker Compose
+        IMAGE_DIGEST="${REGISTRY_NAME}/${IMAGE_NAME}@${DIGEST}"
+        
         echo "🚀 Deploying application..."
+        echo "   Image: $IMAGE_DIGEST"
+        echo "   Tag: $SHA"
+        echo "   Deployed by: $DEPLOYED_BY"
         echo ""
         echo "🔑 Preparing known_hosts..."
         task hostkeys:prepare -- "$WORKSPACE"
+        
         (cd "$APP_ROOT" && ANSIBLE_CONFIG="$IAC_REPO/ansible/ansible.cfg" ansible-playbook \
           -i "$IAC_REPO/ansible/inventory/$WORKSPACE.ini" \
           deploy.yml \
           -e "iac_repo_root=$IAC_REPO" \
           -e "app_root=$APP_ROOT" \
           -e "deploy_target=$DEPLOY_TARGET" \
-          -e "sha=$SHA")
+          -e "workspace=$WORKSPACE" \
+          -e "image_digest=$IMAGE_DIGEST" \
+          -e "image_tag=$SHA" \
+          -e "image_description=$DESCRIPTION" \
+          -e "image_built_at=$BUILT_AT" \
+          -e "deployed_by=$DEPLOYED_BY")
       - echo ""
       - echo "✅ Deployment completed successfully!"

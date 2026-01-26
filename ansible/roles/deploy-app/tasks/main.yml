@@ -5,8 +5,15 @@
 # Required variables:
 #   app_root: Absolute path to the app root directory (on localhost)
 #   deploy_target: Path on the server where the app will be deployed (e.g. /opt/giftfinder/app-name)
-#   image: Full image reference with tag (e.g. registry.rednaw.nl/rednaw/hello-world:abc1234)
+#   image_digest: Full image reference with digest (e.g. registry.rednaw.nl/rednaw/hello-world@sha256:...)
+#   image_tag: Tag used to resolve digest (e.g. abc1234)
 #   service_name: Name of the service in docker-compose.yml
+#   workspace: Workspace name (dev or prod)
+#   deployed_by: Human-readable attribution (defaults to $USER)
+#
+# Optional variables:
+#   image_description: Description from image labels
+#   image_built_at: Build timestamp from image labels
 #
 # Requires infrastructure_secrets to be loaded (registry credentials)
 
@@ -46,10 +53,10 @@
   when: app_secrets_file.stat.exists
   no_log: true
 
-- name: Ensure IMAGE variable is set in .env file
+- name: Ensure IMAGE variable is set in .env file (digest-only)
   ansible.builtin.lineinfile:
     path: "{{ deploy_target }}/.env"
-    line: "IMAGE={{ image }}"
+    line: "IMAGE={{ image_digest }}"
     regexp: '^IMAGE='
     owner: giftfinder
     group: giftfinder
@@ -105,3 +112,78 @@
     remove_orphans: true
   become: true
   become_user: giftfinder
+  register: deploy_result
+
+- name: Extract image repo and digest from image_digest
+  ansible.builtin.set_fact:
+    image_repo: "{{ image_digest.split('@')[0] }}"
+    image_digest_only: "{{ image_digest.split('@')[1] }}"
+
+- name: Get current timestamp
+  ansible.builtin.command: date -u +"%Y-%m-%dT%H:%M:%SZ"
+  register: deploy_timestamp
+  changed_when: false
+
+- name: Get app name from deploy_target
+  ansible.builtin.set_fact:
+    app_name: "{{ deploy_target.split('/')[-1] }}"
+
+- name: Write deploy-info.yml (current deployment)
+  ansible.builtin.copy:
+    content: |
+      app: {{ app_name }}
+      workspace: {{ workspace }}
+
+      image:
+        repo: {{ image_repo }}
+        tag: {{ image_tag }}
+        digest: {{ image_digest_only }}
+        description: {{ image_description | default('') | quote }}
+        built_at: {{ image_built_at | default('') | quote }}
+
+      deployment:
+        deployed_at: {{ deploy_timestamp.stdout }}
+        deployed_by: {{ deployed_by }}
+    dest: "{{ deploy_target }}/deploy-info.yml"
+    owner: giftfinder
+    group: giftfinder
+    mode: '0644'
+
+- name: Check if deploy-history.yml exists
+  ansible.builtin.stat:
+    path: "{{ deploy_target }}/deploy-history.yml"
+  register: deploy_history_file
+
+- name: Create deploy-history.yml if it doesn't exist
+  ansible.builtin.file:
+    path: "{{ deploy_target }}/deploy-history.yml"
+    state: touch
+    owner: giftfinder
+    group: giftfinder
+    mode: '0644'
+  when: not deploy_history_file.stat.exists
+
+- name: Append to deploy-history.yml
+  ansible.builtin.shell: |
+    cat >> "{{ deploy_target }}/deploy-history.yml" <<EOF
+    - image:
+        tag: {{ image_tag }}
+        digest: {{ image_digest_only }}
+        description: {{ image_description | default('') | quote }}
+        built_at: {{ image_built_at | default('') | quote }}
+
+      deployment:
+        deployed_at: {{ deploy_timestamp.stdout }}
+        deployed_by: {{ deployed_by }}
+        workspace: {{ workspace }}
+    EOF
+  become: true
+  become_user: giftfinder
+  changed_when: true
+
+- name: Ensure deploy-history.yml has correct permissions
+  ansible.builtin.file:
+    path: "{{ deploy_target }}/deploy-history.yml"
+    owner: giftfinder
+    group: giftfinder
+    mode: '0644'

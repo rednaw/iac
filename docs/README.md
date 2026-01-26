@@ -48,10 +48,13 @@ Secrets Management (SOPS):
   task secrets:encrypt                  # Encrypt secrets
 
 Application Deployment:
-  task application:deploy -- <WORKSPACE> <APP_ROOT> <SHA>
+  task application:deploy -- <WORKSPACE> <APP_ROOT> <SHA> [DEPLOYED_BY]
 
 Registry:
-  task registry:tags                    # List tags (TAG, CREATED, DESCRIPTION)
+  task registry:overview                # List tags (TAG, CREATED, DESCRIPTION) for all repos
+
+Images:
+  task images:overview -- <WORKSPACE> <IMAGE_REPO>  # Show image overview with deployment status
 
 Utilities:
   task server:check-status              # Check if servers are up (checks both dev and prod)
