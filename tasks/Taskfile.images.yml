@@ -39,16 +39,7 @@ tasks:
         
         echo "IMAGE: $IMAGE_REPO"
         echo ""
-        
-        if ! command -v crane >/dev/null 2>&1; then
-          echo "❌ Error: 'crane' command not found. Install with: brew install crane"
-          exit 1
-        fi
-        if ! command -v jq >/dev/null 2>&1; then
-          echo "❌ Error: 'jq' command not found. Install with: brew install jq"
-          exit 1
-        fi
-        
+                
         TAGS=$(crane ls "$FULL_REPO" 2>/dev/null | sort -r || true)
         if [ -z "$TAGS" ]; then
           echo "  ℹ️  No tags found"

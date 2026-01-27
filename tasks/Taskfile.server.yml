@@ -28,7 +28,6 @@ tasks:
       - |
         echo "🔑 Listing Hetzner SSH keys..."
         echo ""
-        command -v hcloud >/dev/null 2>&1 || { echo "❌ hcloud CLI not found. Install with: brew install hcloud"; exit 1; }
         hcloud ssh-key list -o columns=name,id
         echo ""
         echo "💡 Use the 'ID' column for infrastructure-secrets.yml (ssh_keys: [\"ID\", ...])"
