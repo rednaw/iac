@@ -4,8 +4,13 @@ import subprocess
 import yaml
 import json
 from pathlib import Path
+from datetime import datetime
 
 REGISTRY = "registry.rednaw.nl"
+
+# ANSI color codes
+BOLD = "\033[1m"
+RESET = "\033[0m"
 
 # ------------------------------------------------------------
 # Utilities
@@ -87,7 +92,21 @@ def get_current_deployed_digest(hostname: str, app_name: str, workspace: str) ->
 
 def list_tags(full_repo: str) -> list[str]:
     output = run(f"crane ls {full_repo} 2>/dev/null || true")
-    return sorted(output.splitlines(), reverse=True)
+    return output.splitlines()
+
+
+def parse_timestamp(ts: str) -> datetime | None:
+    """Parse timestamp string to datetime object for sorting."""
+    if not ts:
+        return None
+    
+    try:
+        if "T" in ts:
+            return datetime.fromisoformat(ts.replace("Z", "+00:00"))
+        # Try parsing as formatted timestamp
+        return datetime.strptime(ts, "%Y-%m-%d %H:%M:%S")
+    except (ValueError, AttributeError):
+        return None
 
 
 def get_image_metadata(full_repo: str, tag: str) -> tuple[str, str, str]:
@@ -122,18 +141,42 @@ def get_image_metadata(full_repo: str, tag: str) -> tuple[str, str, str]:
 # ------------------------------------------------------------
 
 def print_header():
-    print(f"  {'':2} {'TAG':16} {'CREATED':20} {'DESCRIPTION':40}")
-    print(f"  {'':2} {'---':16} {'-------':20} {'-----------':40}")
+    print(f"  {'':2} {'CREATED':20} {'TAG':16} {'DESCRIPTION':40}")
+    print(f"  {'':2} {'-------':20} {'---':16} {'-----------':40}")
 
 
 def print_overview(full_repo: str, tags: list[str], deployed_digest: str):
-    print_header()
-
+    # Collect all image metadata
+    images = []
     for tag in tags:
         digest, created, description = get_image_metadata(full_repo, tag)
-        marker = "→" if digest and digest == deployed_digest else ""
-        print(f"  {marker:2} {tag:16} {created:20} {description:40}")
-
+        images.append({
+            "tag": tag,
+            "digest": digest,
+            "created": created,
+            "description": description,
+            "is_deployed": digest and digest == deployed_digest,
+        })
+    
+    # Sort by timestamp (newest first), images without timestamps go to end
+    images.sort(key=lambda x: (
+        x["created"] == "",  # Empty timestamps last
+        parse_timestamp(x["created"]) or datetime.min  # Parse for comparison
+    ), reverse=True)
+    
+    # print_header()
+    
+    for img in images:
+        tag = img["tag"]
+        created = img["created"]
+        description = img["description"]
+        is_deployed = img["is_deployed"]
+        row = f"  {created:20} {description:40} {tag:16}"
+        if is_deployed:
+            print(f"{BOLD}{row}{RESET}")
+        else:
+            print(f"{row}")
+    
     print("")
 
 

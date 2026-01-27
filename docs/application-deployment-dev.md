@@ -89,12 +89,11 @@ If the tag doesn't exist or the environment is invalid, you'll get a clear error
 See available versions and deployment status:
 
 ```bash
-task overview -- <environment> [image_name]
+task overview -- <environment>
 ```
 
 **Arguments:**
 - `<environment>`: `dev` or `prod`
-- `[image_name]`: Optional image name override (defaults to `rednaw/<app-slug>`)
 
 **Examples:**
 ```bash
