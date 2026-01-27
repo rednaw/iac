@@ -9,7 +9,6 @@
 #   image_tag: Tag used to resolve digest (e.g. abc1234)
 #   service_name: Name of the service in docker-compose.yml
 #   workspace: Workspace name (dev or prod)
-#   deployed_by: Human-readable attribution (defaults to $USER)
 #
 # Optional variables:
 #   image_description: Description from image labels
@@ -143,7 +142,6 @@
 
       deployment:
         deployed_at: {{ deploy_timestamp.stdout }}
-        deployed_by: {{ deployed_by }}
     dest: "{{ deploy_target }}/deploy-info.yml"
     owner: giftfinder
     group: giftfinder
@@ -174,7 +172,6 @@
 
       deployment:
         deployed_at: {{ deploy_timestamp.stdout }}
-        deployed_by: {{ deployed_by }}
         workspace: {{ workspace }}
     EOF
   become: true

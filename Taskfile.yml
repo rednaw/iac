@@ -55,7 +55,7 @@ tasks:
         echo "  task secrets:encrypt                   # Encrypt secrets"
         echo ""
         echo "Application Deployment:"
-        echo "  task application:deploy   -- <WORKSPACE> <APP_ROOT> <SHA> [DEPLOYED_BY]"
+        echo "  task application:deploy   -- <WORKSPACE> <APP_ROOT> <SHA>"
         echo "  task application:overview -- <WORKSPACE> <IMAGE_REPO>"
         echo ""
         echo "Registry:"

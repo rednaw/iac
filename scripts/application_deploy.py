@@ -5,7 +5,6 @@ import os
 import yaml
 import json
 from pathlib import Path
-import getpass
 
 def run(cmd, capture_output=True, check=False, cwd=None, env=None):
     """Run a shell command and return its stdout."""
@@ -103,7 +102,6 @@ def deploy_with_ansible(
     sha: str,
     description: str,
     built_at: str,
-    deployed_by: str,
 ):
     """Run the Ansible playbook to deploy the application."""
     ansible_env = os.environ.copy()
@@ -118,33 +116,30 @@ def deploy_with_ansible(
         f"-e image_digest={image_digest} "
         f"-e image_tag={sha} "
         f"-e image_description='{description}' "
-        f"-e image_built_at='{built_at}' "
-        f"-e deployed_by={deployed_by}",
+        f"-e image_built_at='{built_at}'",
         cwd=str(app_root),
         env=ansible_env,
         check=True,
     )
 
 
-def print_deploy_info(image_digest: str, sha: str, deployed_by: str):
+def print_deploy_info(image_digest: str, sha: str):
     """Print deployment summary."""
     print("🚀 Deploying application...")
     print(f"   Image: {image_digest}")
     print(f"   Tag: {sha}")
-    print(f"   Deployed by: {deployed_by}")
     print("")
 
 
 def main():
     # --- Parse arguments ---
     args = sys.argv[1:]
-    if len(args) < 3 or len(args) > 4:
-        print("❌ Error: Invalid number of arguments (expected 3-4)")
-        print("Usage: task application:deploy -- <WORKSPACE> <APP_ROOT> <SHA> [DEPLOYED_BY]")
+    if len(args) != 3:
+        print("❌ Error: Invalid number of arguments (expected 3)")
+        print("Usage: task application:deploy -- <WORKSPACE> <APP_ROOT> <SHA>")
         sys.exit(1)
 
     workspace, app_root_path, sha = args[:3]
-    deployed_by = args[3] if len(args) == 4 else getpass.getuser()
 
     iac_repo = Path.cwd()
     app_root = Path(app_root_path).resolve()
@@ -159,12 +154,12 @@ def main():
     image_digest = f"{registry_name}/{image_name}@{digest}"
 
     # --- Print info ---
-    print_deploy_info(image_digest, sha, deployed_by)
+    print_deploy_info(image_digest, sha)
 
     # --- Prepare and deploy ---
     prepare_known_hosts(workspace)
     deploy_with_ansible(
-        workspace, app_root, iac_repo, deploy_target, image_digest, sha, description, built_at, deployed_by
+        workspace, app_root, iac_repo, deploy_target, image_digest, sha, description, built_at
     )
 
     print("\n✅ Deployment completed successfully!")

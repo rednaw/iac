@@ -3,7 +3,7 @@ version: '3'
 
 tasks:
   deploy:
-    desc: "Deploy application (use: task application:deploy -- <WORKSPACE> <APP_ROOT> <SHA> [DEPLOYED_BY])"
+    desc: "Deploy application (use: task application:deploy -- <WORKSPACE> <APP_ROOT> <SHA>)"
     silent: true
     cmds:
       - python3 scripts/application_deploy.py {{.CLI_ARGS}}
