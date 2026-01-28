@@ -74,13 +74,13 @@ deployed_by: "wander@casa"
 
 ---
 
-## images:overview
+## application:overview
 
 Purpose: per-image, per-workspace view with deploy state.
 
 Invocation:
 ```bash
-task images:overview -- dev rednaw/hello-world
+task application:overview -- dev rednaw/hello-world
 ```
 
 Behavior:
