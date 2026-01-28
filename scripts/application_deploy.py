@@ -153,11 +153,8 @@ def main():
     description, built_at = get_image_metadata(image_ref)
     image_digest = f"{registry_name}/{image_name}@{digest}"
 
-    # --- Print info ---
-    print_deploy_info(image_digest, sha)
-
-    # --- Prepare and deploy ---
     prepare_known_hosts(workspace)
+    print_deploy_info(image_digest, sha)
     deploy_with_ansible(
         workspace, app_root, iac_repo, deploy_target, image_digest, sha, description, built_at
     )

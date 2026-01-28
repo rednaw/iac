@@ -173,9 +173,9 @@ def print_overview(full_repo: str, tags: list[str], deployed_digest: str):
         is_deployed = img["is_deployed"]
         row = f"  {created:20} {description:40} {tag:16}"
         if is_deployed:
-            print(f"{BOLD}{row}{RESET}")
+            print(f"{BOLD} -> {row}{RESET}")
         else:
-            print(f"{row}")
+            print(f"    {row}")
     
     print("")
 
