@@ -1,0 +1,90 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+#
+# Application deployment tasks - include this from your app's Taskfile.yml:
+#
+#   version: '3'
+#   vars:
+#     REGISTRY_NAME: registry.example.com
+#     IMAGE_NAME: myorg/myapp
+#   includes:
+#     iac:
+#       taskfile: ../iac/tasks/Taskfile.app.yml
+#
+# Then run: task iac:deploy -- dev abc123
+#           task iac:versions -- dev
+
+version: '3'
+
+vars:
+  IAC_ROOT:
+    sh: realpath "{{.TASKFILE_DIR}}/.."
+  APP_ROOT:
+    sh: pwd
+
+tasks:
+  default:
+    desc: Show available commands
+    silent: true
+    cmds:
+      - |
+        echo "Application Deployment"
+        echo ""
+        echo "Commands:"
+        echo "  task iac:deploy   -- <environment> <sha>      # Deploy a version"
+        echo "  task iac:versions -- <environment>            # List available versions"
+        echo ""
+        echo "Examples:"
+        echo "  task iac:deploy -- dev 706c88c"
+        echo "  task iac:versions -- dev"
+
+  deploy:
+    desc: "Deploy application (use: task iac:deploy -- <environment> <sha>)"
+    silent: true
+    requires:
+      vars: [REGISTRY_NAME, IMAGE_NAME]
+    cmds:
+      - |
+        ARGS="{{.CLI_ARGS}}"
+        set -- $ARGS
+        if [ $# -ne 2 ]; then
+          echo "Usage: task iac:deploy -- <environment> <sha>"
+          echo "Example: task iac:deploy -- dev 706c88c"
+          exit 1
+        fi
+        WORKSPACE="$1"
+        SHA="$2"
+        
+        if [ "$WORKSPACE" != "dev" ] && [ "$WORKSPACE" != "prod" ]; then
+          echo "Invalid environment '$WORKSPACE'. Use: dev or prod"
+          exit 1
+        fi
+        
+        # Prepare SSH host keys
+        cd "{{.IAC_ROOT}}" && task hostkeys:prepare -- "$WORKSPACE"
+        
+        # Run Ansible deployment
+        ANSIBLE_CONFIG="{{.IAC_ROOT}}/ansible/ansible.cfg" \
+        ansible-playbook \
+          -i "{{.IAC_ROOT}}/ansible/inventory/${WORKSPACE}.ini" \
+          "{{.IAC_ROOT}}/ansible/playbooks/deploy-app.yml" \
+          -e "app_root={{.APP_ROOT}}" \
+          -e "workspace=${WORKSPACE}" \
+          -e "sha=${SHA}" \
+          -e "registry_name={{.REGISTRY_NAME}}" \
+          -e "image_name={{.IMAGE_NAME}}"
+
+  versions:
+    desc: "List available versions (use: task iac:versions -- <environment>)"
+    silent: true
+    requires:
+      vars: [IMAGE_NAME]
+    cmds:
+      - |
+        ARGS="{{.CLI_ARGS}}"
+        set -- $ARGS
+        if [ $# -ne 1 ]; then
+          echo "Usage: task iac:versions -- <environment>"
+          echo "Example: task iac:versions -- dev"
+          exit 1
+        fi
+        cd "{{.IAC_ROOT}}" && python3 scripts/application_versions.py "$1" "{{.IMAGE_NAME}}"

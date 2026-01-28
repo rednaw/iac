@@ -17,7 +17,6 @@ includes:
   ansible: tasks/Taskfile.ansible.yml
   server: tasks/Taskfile.server.yml
   test: tasks/Taskfile.test.yml
-  application: tasks/Taskfile.application.yml
   registry: tasks/Taskfile.registry.yml
 
 tasks:
@@ -55,8 +54,8 @@ tasks:
         echo "  task secrets:encrypt                   # Encrypt secrets"
         echo ""
         echo "Application Deployment:"
-        echo "  task application:deploy   -- <WORKSPACE> <APP_ROOT> <SHA>"
-        echo "  task application:overview -- <WORKSPACE> <IMAGE_REPO>"
+        echo "  Run from app directory: task iac:deploy -- <env> <sha>"
+        echo "  Run from app directory: task iac:versions -- <env>"
         echo ""
         echo "Registry:"
         echo "  task registry:overview                 # List tags (TAG, CREATED, DESCRIPTION) for all repos"

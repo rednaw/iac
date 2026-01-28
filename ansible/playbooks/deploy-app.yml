@@ -1,0 +1,28 @@
+---
+# Deploy application playbook
+#
+# This playbook deploys a containerized application using the deploy-app role.
+# It reads configuration from the application's deploy.yml.
+#
+# Required variables (passed via -e):
+#   app_root: Absolute path to the application directory
+#   workspace: Environment name (dev or prod)
+#   sha: Image tag / commit SHA to deploy
+#
+# Expected files in app_root:
+#   deploy.yml:         Application config (registry_name, image_name)
+#   docker-compose.yml: Docker Compose service definition
+#   env.enc:            (optional) Encrypted environment variables
+
+- name: Deploy Application
+  hosts: all
+  become: yes
+
+  pre_tasks:
+    - name: Load infrastructure secrets
+      ansible.builtin.import_tasks: "{{ playbook_dir }}/../tasks/secrets.yml"
+      vars:
+        secrets_file: "{{ playbook_dir }}/../../secrets/infrastructure-secrets.yml.enc"
+
+  roles:
+    - role: "{{ playbook_dir }}/../roles/deploy-app"
