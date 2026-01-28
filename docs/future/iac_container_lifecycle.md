@@ -67,7 +67,7 @@ This provides:
 1. CI builds image  
 2. CI assigns multiple tags  
 3. Image is pushed once; tags reference the same digest  
-4. Humans inspect registry state via `images:overview`  
+4. Humans inspect registry state via `application:overview`  
 5. Deployment selects a tag  
 6. Tag is resolved to digest  
 7. Digest is deployed  
@@ -87,7 +87,7 @@ Each image carries **first-class metadata**, automatically populated from Git hi
 | `org.opencontainers.image.revision` | Full git SHA | Traceability to exact source |
 | `org.opencontainers.image.source` | Repository URL | Optional reference to repo |
 
-This metadata is surfaced via the **`images:overview`** task:
+This metadata is surfaced via the **`application:overview`** task:
 
 ```text
 IMAGE: rednaw/hello-world
@@ -111,7 +111,7 @@ Key points:
 - **Docker Registry v3**: image storage  
 - **GitHub Actions**: CI build & push  
 - **Crane (go-containerregistry)**: registry inspection, tag → digest resolution, metadata access  
-- **Task**: UX layer (`images:overview`)  
+- **Task**: UX layer (`application:overview`)  
 - **Ansible**: execution layer  
 
 ---
@@ -143,7 +143,7 @@ Key points:
 | Image retention | ⬜ | Automated cleanup rules TBD |
 | Tag vs digest display | ✅ | Tag shown for humans; digest recorded internally |
 | Multiple tags per image | ⬜ | Should we add semantic version or other descriptors? |
-| Registry inspection task | ✅ | `images:overview` shows tag, digest, created, description; currently deployed marked |
+| Registry inspection task | ✅ | `application:overview` shows tag, digest, created, description; currently deployed marked |
 | Automation / CI integration | ⬜ | Should registry inspection run in CI? Local-only for now |
 
 ---
@@ -153,7 +153,7 @@ Key points:
 1. Decide on **automated cleanup rules**  
 2. Decide if **semantic versioning** or additional tags should be applied  
 3. Optionally integrate **registry inspection into CI**  
-4. Refine `images:overview` formatting if needed  
+4. Refine `application:overview` formatting if needed  
 5. Document the **tagging and rollback convention** for contributors  
 
 ---

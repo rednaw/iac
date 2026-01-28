@@ -200,7 +200,7 @@ Scope:
 
 ---
 
-### 8.2 `images:overview`
+### 8.2 `application:overview`
 
 Purpose:
 - Inspect a **single image repository**

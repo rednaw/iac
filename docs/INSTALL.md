@@ -5,7 +5,7 @@ Follow the steps below from top to bottom and you will be able to manage your in
 ## Install Tools
 ```bash
 # For managing infrastructure and deploying apps
-brew install terraform ansible sops age hcloud go-task/tap/go-task crane
+brew install terraform ansible sops age hcloud go-task/tap/go-task crane jq
 pip install PyYAML
 
 # For running the test
