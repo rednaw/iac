@@ -1,7 +1,7 @@
 ---
 # Deploy application playbook
 #
-# Deploys a containerized application using the deploy-app role.
+# Deploys a containerized application using the deploy_app role.
 #
 # Required variables (passed via -e):
 #   registry_name: Docker registry hostname
@@ -16,11 +16,11 @@
 
 - name: Deploy Application
   hosts: all
-  become: yes
+  become: true
 
   pre_tasks:
     - name: Load infrastructure secrets
       ansible.builtin.import_tasks: ../tasks/secrets.yml
 
   roles:
-    - deploy-app
+    - deploy_app

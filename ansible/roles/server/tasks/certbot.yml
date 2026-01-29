@@ -7,12 +7,12 @@
       - certbot
       - python3-certbot-nginx
     state: present
-    update_cache: yes
+    update_cache: true
 
 - name: Ensure certbot timer is enabled and started
   ansible.builtin.systemd:
     name: certbot.timer
-    enabled: yes
+    enabled: true
     state: started
 
 # Determine environment and cert name

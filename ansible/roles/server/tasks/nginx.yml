@@ -7,7 +7,7 @@
     app_environment: "{{ 'dev' if 'dev.' in inventory_hostname else 'prod' }}"
     base_domain: "rednaw.nl"
 
-- name: Set cert_domain to match certbot --cert-name (used for /etc/letsencrypt/live/...)
+- name: Set cert_domain to match certbot --cert-name
   ansible.builtin.set_fact:
     cert_domain: "{{ app_environment }}.{{ base_domain }}"
 
@@ -48,7 +48,7 @@
     owner: www-data
     group: www-data
     mode: '0755'
-    recurse: yes
+    recurse: true
 
 - name: Copy default nginx welcome page to webroot
   ansible.builtin.copy:
@@ -57,7 +57,7 @@
     owner: www-data
     group: www-data
     mode: '0644'
-    remote_src: yes
+    remote_src: true
 
 - name: Remove all existing enabled sites
   ansible.builtin.find:
@@ -79,7 +79,7 @@
     src: "{{ item.template }}"
     dest: /etc/nginx/sites-available/{{ item.name }}
     mode: '0644'
-    backup: yes
+    backup: true
   vars:
     domain_name: "{{ item.name }}"
     cert_domain: "{{ cert_domain }}"
@@ -110,5 +110,5 @@
 - name: Ensure Nginx is enabled and running
   ansible.builtin.systemd:
     name: nginx
-    enabled: yes
+    enabled: true
     state: started

@@ -8,9 +8,9 @@
     home: /opt/deploy
     shell: /bin/bash
     groups: docker,sudo
-    append: yes
-    create_home: yes
-    system: no
+    append: true
+    create_home: true
+    system: false
 
 - name: Ensure deploy home directory exists
   ansible.builtin.file:

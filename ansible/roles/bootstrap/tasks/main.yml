@@ -2,7 +2,7 @@
 # Bootstrap role: prepare ubuntu user for subsequent Ansible runs
 # This role runs as root and creates the ubuntu user with sudo access
 
-- name: Ensure Ansible remote_tmp directory exists with correct permissions
+- name: Create Ansible temp directory
   ansible.builtin.file:
     path: /root/.ansible/tmp
     state: directory
@@ -10,18 +10,18 @@
     owner: root
     group: root
 
-- name: Ensure ubuntu user exists with home and sudo
+- name: Create ubuntu user
   ansible.builtin.user:
     name: ubuntu
     shell: /bin/bash
-    create_home: yes
+    create_home: true
     groups: sudo
-    append: yes
+    append: true
 
-- name: Configure passwordless sudo with enhanced logging for ubuntu user
+- name: Configure sudo access
   ansible.builtin.template:
     src: sudoers-ubuntu.j2
     dest: /etc/sudoers.d/90-ubuntu-sudo
     mode: '0440'
     validate: 'visudo -cf %s'
-    backup: yes
+    backup: true

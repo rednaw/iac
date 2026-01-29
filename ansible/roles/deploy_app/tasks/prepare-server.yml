@@ -10,7 +10,7 @@
 #   app_secrets_file: Stat result for env.enc
 #   decrypted_app_secrets: Decrypted secrets content
 
-- name: Ensure deploy target directory exists
+- name: Ensure deploy directory exists
   ansible.builtin.file:
     path: "{{ deploy_target }}"
     state: directory
@@ -18,7 +18,7 @@
     group: deploy
     mode: '0755'
 
-- name: Write decrypted app secrets to .env file on server
+- name: Copy app secrets to .env
   ansible.builtin.copy:
     content: "{{ decrypted_app_secrets.stdout }}"
     dest: "{{ deploy_target }}/.env"
@@ -28,7 +28,7 @@
   when: app_secrets_file.stat.exists
   no_log: true
 
-- name: Ensure IMAGE variable is set in .env file
+- name: Set IMAGE in .env
   ansible.builtin.lineinfile:
     path: "{{ deploy_target }}/.env"
     line: "IMAGE={{ image_digest }}"
@@ -38,7 +38,7 @@
     mode: '0600'
     create: true
 
-- name: Copy docker-compose.yml to server
+- name: Copy docker-compose.yml
   ansible.builtin.copy:
     src: "{{ app_root }}/docker-compose.yml"
     dest: "{{ deploy_target }}/docker-compose.yml"

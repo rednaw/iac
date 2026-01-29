@@ -74,7 +74,7 @@ task iac:deploy -- prod abc1234
    - Prepares SSH host keys (`task hostkeys:prepare`)
    - Runs the IAC `deploy-app.yml` playbook
 
-3. **The `deploy-app` role:**
+3. **The `deploy_app` role:**
    - Resolves tag → digest using `crane digest`
    - Extracts metadata using `crane config` (description, build time)
    - Decrypts app secrets if `env.enc` exists
@@ -239,11 +239,11 @@ deployment:
 
 **`ansible/playbooks/deploy-app.yml`** is the entry point:
 - Loads infrastructure secrets
-- Includes the `deploy-app` role
+- Includes the `deploy_app` role
 
 ### Ansible Role
 
-**`ansible/roles/deploy-app/tasks/`** contains:
+**`ansible/roles/deploy_app/tasks/`** contains:
 - `main.yml` — Orchestrates all steps
 - `resolve-image.yml` — Tag → digest resolution, metadata extraction
 - `decrypt-secrets.yml` — Decrypts `env.enc` if present
@@ -322,4 +322,4 @@ Shows TAG, CREATED, DESCRIPTION for all repos. Useful for global registry inspec
 
 - [Developer Guide](../../hello-world/README.md) — For application developers
 - [SSH Host Keys](SSH-host-keys.md) — Host key management
-- [Ansible Role](../ansible/roles/deploy-app/) — Deployment role implementation
+- [Ansible Role](../ansible/roles/deploy_app/) — Deployment role implementation
