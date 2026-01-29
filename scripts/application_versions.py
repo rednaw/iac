@@ -59,7 +59,7 @@ def get_current_deployed_digest(hostname: str, app_name: str, workspace: str) ->
     Return the digest of the *currently deployed* image for the workspace,
     based on the last matching entry in deploy-history.yml.
     """
-    path = f"/opt/giftfinder/{app_name}/deploy-history.yml"
+    path = f"/opt/deploy/{app_name}/deploy-history.yml"
     content = read_remote_file(hostname, path)
     if not content:
         return ""

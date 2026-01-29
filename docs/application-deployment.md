@@ -83,8 +83,8 @@ task iac:deploy -- prod abc1234
    - Records deployment metadata
 
 4. **Records deployment:**
-   - Writes `/opt/giftfinder/<app>/deploy-info.yml` (current state)
-   - Appends to `/opt/giftfinder/<app>/deploy-history.yml` (audit trail)
+   - Writes `/opt/deploy/<app>/deploy-info.yml` (current state)
+   - Appends to `/opt/deploy/<app>/deploy-history.yml` (audit trail)
 
 **Error handling:**
 - Tag doesn't exist → Clear error with crane output
@@ -115,7 +115,7 @@ task iac:versions -- prod
 
 1. **Reads deployment state:**
    - SSHs to workspace hostname (e.g., `dev.rednaw.nl`)
-   - Reads `/opt/giftfinder/<app>/deploy-info.yml`
+   - Reads `/opt/deploy/<app>/deploy-info.yml`
    - Extracts currently deployed digest
 
 2. **Lists registry tags:**
@@ -173,7 +173,7 @@ includes:
 
 ### `deploy-info.yml`
 
-**Location:** `/opt/giftfinder/<app>/deploy-info.yml`  
+**Location:** `/opt/deploy/<app>/deploy-info.yml`  
 **Purpose:** Current deployment state  
 **Format:**
 ```yaml
@@ -197,7 +197,7 @@ deployment:
 
 ### `deploy-history.yml`
 
-**Location:** `/opt/giftfinder/<app>/deploy-history.yml`  
+**Location:** `/opt/deploy/<app>/deploy-history.yml`  
 **Purpose:** Append-only audit trail  
 **Format:**
 ```yaml
