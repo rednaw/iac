@@ -4,7 +4,7 @@
     path: /etc/ssh/sshd_config
     regexp: "{{ item.regexp }}"
     line: "{{ item.line }}"
-    backup: yes
+    backup: true
   loop:
     - { regexp: '^#?PermitRootLogin', line: 'PermitRootLogin no' }
     - { regexp: '^#?PasswordAuthentication', line: 'PasswordAuthentication no' }

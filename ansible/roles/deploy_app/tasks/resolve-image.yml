@@ -16,14 +16,14 @@
 #   app_slug: Application name (from app_root)
 #   deploy_target: Target path on server
 
-- name: Construct image reference
+- name: Set image reference
   ansible.builtin.set_fact:
     image_ref: "{{ registry_name }}/{{ image_name }}:{{ sha }}"
     image_tag: "{{ sha }}"
   delegate_to: localhost
   become: false
 
-- name: Resolve image tag to digest
+- name: Get image digest
   ansible.builtin.command:
     cmd: "crane digest {{ image_ref }}"
   register: crane_digest_result
@@ -32,13 +32,13 @@
   changed_when: false
   failed_when: crane_digest_result.rc != 0 or not crane_digest_result.stdout.startswith('sha256:')
 
-- name: Set image digest fact
+- name: Set image digest
   ansible.builtin.set_fact:
     image_digest: "{{ registry_name }}/{{ image_name }}@{{ crane_digest_result.stdout }}"
   delegate_to: localhost
   become: false
 
-- name: Get image configuration for metadata
+- name: Get image metadata
   ansible.builtin.command:
     cmd: "crane config {{ image_ref }}"
   register: crane_config_result
@@ -47,7 +47,7 @@
   changed_when: false
   failed_when: false
 
-- name: Parse image metadata from labels
+- name: Parse image labels
   ansible.builtin.set_fact:
     image_description: "{{ (crane_config_result.stdout | from_json).config.Labels['org.opencontainers.image.description'] | default('') }}"
     image_built_at: "{{ (crane_config_result.stdout | from_json).config.Labels['org.opencontainers.image.created'] | default('') }}"
@@ -55,7 +55,7 @@
   become: false
   when: crane_config_result.rc == 0 and crane_config_result.stdout | length > 0
 
-- name: Set empty metadata if crane config failed
+- name: Set default metadata
   ansible.builtin.set_fact:
     image_description: ""
     image_built_at: ""
@@ -63,14 +63,14 @@
   become: false
   when: crane_config_result.rc != 0 or crane_config_result.stdout | length == 0
 
-- name: Derive deploy target from app_root
+- name: Set deploy target
   ansible.builtin.set_fact:
     app_slug: "{{ app_root | basename }}"
     deploy_target: "/opt/deploy/{{ app_root | basename }}"
   delegate_to: localhost
   become: false
 
-- name: Display deployment information
+- name: Show deployment info
   ansible.builtin.debug:
     msg: |
       Deploying application:

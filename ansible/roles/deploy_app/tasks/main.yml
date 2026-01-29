@@ -20,21 +20,21 @@
 # Phase 1: Preparation (runs on localhost)
 # =============================================================================
 
-- name: Resolve image tag to digest
-  ansible.builtin.include_tasks: resolve-image.yml
+- name: Resolve image digest
+  ansible.builtin.import_tasks: resolve-image.yml
 
-- name: Decrypt application secrets
-  ansible.builtin.include_tasks: decrypt-secrets.yml
+- name: Decrypt app secrets
+  ansible.builtin.import_tasks: decrypt-secrets.yml
 
 # =============================================================================
 # Phase 2: Deploy application (runs on target server)
 # =============================================================================
 
-- name: Prepare server for deployment
-  ansible.builtin.include_tasks: prepare-server.yml
+- name: Prepare server
+  ansible.builtin.import_tasks: prepare-server.yml
 
-- name: Run application container
-  ansible.builtin.include_tasks: run-container.yml
+- name: Start containers
+  ansible.builtin.import_tasks: run-container.yml
 
-- name: Record deployment metadata
-  ansible.builtin.include_tasks: record-deployment.yml
+- name: Record deployment
+  ansible.builtin.import_tasks: record-deployment.yml

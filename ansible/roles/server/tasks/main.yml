@@ -2,32 +2,32 @@
 # Server role: complete server configuration
 # Configures all server components in the correct order
 
-- name: Base system setup
+- name: Configure base system
   ansible.builtin.import_tasks: base.yml
 
-- name: Unattended upgrades
+- name: Configure unattended upgrades
   ansible.builtin.import_tasks: unattended-upgrades.yml
 
-- name: SSH hardening
+- name: Harden SSH
   ansible.builtin.import_tasks: ssh.yml
 
-- name: Nginx web server
+- name: Install nginx
   ansible.builtin.import_tasks: nginx.yml
 
-- name: Certbot SSL certificates
+- name: Configure SSL certificates
   ansible.builtin.import_tasks: certbot.yml
 
-- name: Nginx configuration (post-certbot)
+- name: Configure nginx sites
   ansible.builtin.import_tasks: nginx.yml
 
-- name: Fail2ban intrusion prevention
+- name: Configure fail2ban
   ansible.builtin.import_tasks: fail2ban.yml
 
-- name: Docker engine
+- name: Install Docker
   ansible.builtin.import_tasks: docker.yml
 
-- name: Deploy application user
+- name: Create deploy user
   ansible.builtin.import_tasks: deploy-user.yml
 
-- name: Docker registry
+- name: Configure registry
   ansible.builtin.import_tasks: registry.yml

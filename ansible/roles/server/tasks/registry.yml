@@ -5,7 +5,7 @@
   ansible.builtin.apt:
     name: apache2-utils
     state: present
-    update_cache: yes
+    update_cache: true
 
 - name: Create registry storage directory
   ansible.builtin.file:
@@ -56,7 +56,7 @@
     mode: '0644'
     owner: root
     group: root
-    backup: yes
+    backup: true
 
 - name: Ensure Docker config directory exists for ubuntu user
   ansible.builtin.file:

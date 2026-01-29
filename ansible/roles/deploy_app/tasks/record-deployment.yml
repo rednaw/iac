@@ -11,21 +11,21 @@
 #   image_built_at: From OCI labels
 #   workspace: Environment name
 
-- name: Extract image repo and digest from image_digest
+- name: Parse image digest
   ansible.builtin.set_fact:
     image_repo: "{{ image_digest.split('@')[0] }}"
     image_digest_only: "{{ image_digest.split('@')[1] }}"
 
-- name: Get current timestamp
+- name: Get timestamp
   ansible.builtin.command: date -u +"%Y-%m-%dT%H:%M:%SZ"
   register: deploy_timestamp
   changed_when: false
 
-- name: Get app name from deploy_target
+- name: Set app name
   ansible.builtin.set_fact:
     app_name: "{{ deploy_target.split('/')[-1] }}"
 
-- name: Write deploy-info.yml (current deployment)
+- name: Write deploy-info.yml
   ansible.builtin.copy:
     content: |
       app: {{ app_name }}
@@ -45,12 +45,12 @@
     group: deploy
     mode: '0644'
 
-- name: Check if deploy-history.yml exists
+- name: Check for deploy history
   ansible.builtin.stat:
     path: "{{ deploy_target }}/deploy-history.yml"
   register: deploy_history_file
 
-- name: Create deploy-history.yml if it doesn't exist
+- name: Create deploy history
   ansible.builtin.file:
     path: "{{ deploy_target }}/deploy-history.yml"
     state: touch
@@ -59,7 +59,7 @@
     mode: '0644'
   when: not deploy_history_file.stat.exists
 
-- name: Append to deploy-history.yml
+- name: Append to deploy history
   ansible.builtin.shell: |
     cat >> "{{ deploy_target }}/deploy-history.yml" <<EOF
     - image:
@@ -76,7 +76,7 @@
   become_user: deploy
   changed_when: true
 
-- name: Ensure deploy-history.yml has correct permissions
+- name: Set deploy history permissions
   ansible.builtin.file:
     path: "{{ deploy_target }}/deploy-history.yml"
     owner: deploy
