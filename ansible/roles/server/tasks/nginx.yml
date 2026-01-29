@@ -15,7 +15,7 @@
   ansible.builtin.set_fact:
     domains_to_configure:
       - name: "{{ app_environment }}.{{ base_domain }}"
-        template: nginx-primary.nl.j2
+        template: nginx-application.j2
       - name: "registry.{{ base_domain }}"
         template: nginx-registry.j2
 
