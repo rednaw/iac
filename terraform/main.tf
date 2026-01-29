@@ -26,7 +26,7 @@ resource "hcloud_firewall" "giftfinder" {
     description = "HTTP"
   }
 
-  # HTTPS access (port 443) - reserved for future TLS
+  # HTTPS access (port 443)
   rule {
     direction   = "in"
     source_ips  = ["0.0.0.0/0", "::/0"]
