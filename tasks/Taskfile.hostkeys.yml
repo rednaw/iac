@@ -7,24 +7,34 @@ tasks:
   hostname:
     desc: "Output hostname for workspace (use: task hostkeys:hostname -- dev|prod)"
     silent: true
+    vars:
+      WORKSPACE: "{{.CLI_ARGS}}"
+    preconditions:
+      - sh: '[ -n "{{.WORKSPACE}}" ]'
+        msg: "Workspace required. Usage: task hostkeys:hostname -- <dev|prod>"
+      - sh: '[ "{{.WORKSPACE}}" = "dev" ] || [ "{{.WORKSPACE}}" = "prod" ]'
+        msg: "Invalid workspace '{{.WORKSPACE}}'. Use: dev or prod"
     cmds:
       - |
-        WORKSPACE="{{.CLI_ARGS}}"
-        case "$WORKSPACE" in
+        case "{{.WORKSPACE}}" in
           dev)  echo "dev.rednaw.nl" ;;
           prod) echo "prod.rednaw.nl" ;;
-          *)    echo "❌ Error: Invalid workspace '$WORKSPACE'. Use: dev or prod" >&2; exit 1 ;;
         esac
 
   prepare:
     desc: "Remove host key for workspace from known_hosts (use: task hostkeys:prepare -- dev|prod)"
     silent: true
+    vars:
+      WORKSPACE: "{{.CLI_ARGS}}"
+    preconditions:
+      - sh: '[ -n "{{.WORKSPACE}}" ]'
+        msg: "Workspace required. Usage: task hostkeys:prepare -- <dev|prod>"
+      - sh: '[ "{{.WORKSPACE}}" = "dev" ] || [ "{{.WORKSPACE}}" = "prod" ]'
+        msg: "Invalid workspace '{{.WORKSPACE}}'. Use: dev or prod"
     cmds:
       - |
-        WORKSPACE="{{.CLI_ARGS}}"
-        case "$WORKSPACE" in
+        case "{{.WORKSPACE}}" in
           dev)  HOSTNAME="dev.rednaw.nl" ;;
           prod) HOSTNAME="prod.rednaw.nl" ;;
-          *)    echo "❌ Error: Invalid workspace '$WORKSPACE'. Use: dev or prod" >&2; exit 1 ;;
         esac
         ssh-keygen -R "$HOSTNAME" -f ~/.ssh/known_hosts 2>/dev/null || true

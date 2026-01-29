@@ -65,3 +65,18 @@ tasks:
         echo "  task server:list-hetzner-keys          # List Hetzner SSH keys with IDs"
         echo "  task server:setup-remote-cursor        # Add server to ~/.ssh/config for Cursor Remote-SSH"
 
+  # Internal validation tasks - used by other tasks via deps or direct calls
+  _check:sops-key:
+    internal: true
+    preconditions:
+      - sh: test -f "{{.SOPS_KEY_FILE}}"
+        msg: "SOPS key file not found. Run 'task secrets:keygen' first."
+
+  _check:workspace:
+    internal: true
+    preconditions:
+      - sh: '[ -n "{{.WORKSPACE}}" ]'
+        msg: "Workspace required. Usage: task {{.TASK_NAME}} -- <dev|prod>"
+      - sh: '[ "{{.WORKSPACE}}" = "dev" ] || [ "{{.WORKSPACE}}" = "prod" ]'
+        msg: "Invalid workspace '{{.WORKSPACE}}'. Use: dev or prod"
+
