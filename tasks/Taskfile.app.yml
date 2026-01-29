@@ -45,6 +45,7 @@ tasks:
     cmds:
       - |
         ARGS="{{.CLI_ARGS}}"
+        # shellcheck disable=SC2086
         set -- $ARGS
         if [ $# -ne 2 ]; then
           echo "Usage: task iac:deploy -- <environment> <sha>"
@@ -81,6 +82,7 @@ tasks:
     cmds:
       - |
         ARGS="{{.CLI_ARGS}}"
+        # shellcheck disable=SC2086
         set -- $ARGS
         if [ $# -ne 1 ]; then
           echo "Usage: task iac:versions -- <environment>"
