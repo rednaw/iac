@@ -71,7 +71,7 @@ This provides:
 5. Deployment selects a tag  
 6. Tag is resolved to digest  
 7. Digest is deployed  
-8. Deployment metadata is recorded (`/opt/giftfinder/<app>/deploy-info.yml`)  
+8. Deployment metadata is recorded (`/opt/deploy/<app>/deploy-info.yml`)  
 9. Tags may later be pruned; digest remains valid until explicitly removed  
 
 ---
@@ -119,7 +119,7 @@ Key points:
 ## Deployment & Rollback Behavior
 
 - By default, deployments use **tag → digest resolution**  
-- Digests are **recorded** in `/opt/giftfinder/<app>/deploy-info.yml`  
+- Digests are **recorded** in `/opt/deploy/<app>/deploy-info.yml`  
 - Rollback is a **deploy of an earlier digest**  
 - Tags are optional for rollback; description and SHA make selection easier  
 
@@ -139,7 +139,7 @@ Key points:
 |----------|--------|-------|
 | Versioning strategy | ✅ | Use short SHA for tag; description for context |
 | PR / branch tags | ✅ | Only build on main branch push |
-| Deployment recording | ✅ | File `/opt/giftfinder/<app>/deploy-info.yml` contains digest, tag, description |
+| Deployment recording | ✅ | File `/opt/deploy/<app>/deploy-info.yml` contains digest, tag, description |
 | Image retention | ⬜ | Automated cleanup rules TBD |
 | Tag vs digest display | ✅ | Tag shown for humans; digest recorded internally |
 | Multiple tags per image | ⬜ | Should we add semantic version or other descriptors? |

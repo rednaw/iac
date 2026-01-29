@@ -66,7 +66,7 @@
 - name: Derive deploy target from app_root
   ansible.builtin.set_fact:
     app_slug: "{{ app_root | basename }}"
-    deploy_target: "/opt/giftfinder/{{ app_root | basename }}"
+    deploy_target: "/opt/deploy/{{ app_root | basename }}"
   delegate_to: localhost
   become: false
 
@@ -75,7 +75,6 @@
     msg: |
       Deploying application:
         App: {{ app_slug }}
-        Image: {{ image_digest }}
         Tag: {{ image_tag }}
         Description: {{ image_description }}
         Built at: {{ image_built_at }}

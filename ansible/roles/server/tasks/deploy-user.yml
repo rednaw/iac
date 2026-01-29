@@ -1,34 +1,34 @@
 ---
-# Configure giftfinder user for running Docker applications
+# Configure deploy user for running Docker applications
 # This user is intended for running Docker apps, not administrative tasks
 
-- name: Ensure giftfinder user exists
+- name: Ensure deploy user exists
   ansible.builtin.user:
-    name: giftfinder
-    home: /opt/giftfinder
+    name: deploy
+    home: /opt/deploy
     shell: /bin/bash
     groups: docker,sudo
     append: yes
     create_home: yes
     system: no
 
-- name: Ensure giftfinder home directory exists
+- name: Ensure deploy home directory exists
   ansible.builtin.file:
-    path: /opt/giftfinder
+    path: /opt/deploy
     state: directory
-    owner: giftfinder
-    group: giftfinder
+    owner: deploy
+    group: deploy
     mode: '0755'
 
-- name: Ensure giftfinder .docker directory exists
+- name: Ensure deploy .docker directory exists
   ansible.builtin.file:
-    path: /opt/giftfinder/.docker
+    path: /opt/deploy/.docker
     state: directory
-    owner: giftfinder
-    group: giftfinder
+    owner: deploy
+    group: deploy
     mode: '0700'
 
-- name: Configure Docker registry auth for giftfinder user
+- name: Configure Docker registry auth for deploy user
   ansible.builtin.copy:
     content: |
       {
@@ -38,8 +38,8 @@
           }
         }
       }
-    dest: /opt/giftfinder/.docker/config.json
+    dest: /opt/deploy/.docker/config.json
     mode: '0600'
-    owner: giftfinder
-    group: giftfinder
+    owner: deploy
+    group: deploy
   no_log: true

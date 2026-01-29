@@ -41,8 +41,8 @@
       deployment:
         deployed_at: {{ deploy_timestamp.stdout }}
     dest: "{{ deploy_target }}/deploy-info.yml"
-    owner: giftfinder
-    group: giftfinder
+    owner: deploy
+    group: deploy
     mode: '0644'
 
 - name: Check if deploy-history.yml exists
@@ -54,8 +54,8 @@
   ansible.builtin.file:
     path: "{{ deploy_target }}/deploy-history.yml"
     state: touch
-    owner: giftfinder
-    group: giftfinder
+    owner: deploy
+    group: deploy
     mode: '0644'
   when: not deploy_history_file.stat.exists
 
@@ -73,12 +73,12 @@
         workspace: {{ workspace }}
     EOF
   become: true
-  become_user: giftfinder
+  become_user: deploy
   changed_when: true
 
 - name: Ensure deploy-history.yml has correct permissions
   ansible.builtin.file:
     path: "{{ deploy_target }}/deploy-history.yml"
-    owner: giftfinder
-    group: giftfinder
+    owner: deploy
+    group: deploy
     mode: '0644'

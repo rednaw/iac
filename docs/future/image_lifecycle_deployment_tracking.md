@@ -97,7 +97,7 @@ Two files are used.
 
 **Path:**
 ```
-/opt/giftfinder/<app>/deploy-info.yml
+/opt/deploy/<app>/deploy-info.yml
 ```
 
 **Characteristics:**
@@ -132,7 +132,7 @@ deployment:
 
 **Path:**
 ```
-/opt/giftfinder/<app>/deploy-history.yml
+/opt/deploy/<app>/deploy-history.yml
 ```
 
 **Characteristics:**
