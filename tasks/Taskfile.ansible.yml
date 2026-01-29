@@ -21,7 +21,7 @@ tasks:
         echo "🔑 Preparing known_hosts..."
         task hostkeys:prepare -- "$WORKSPACE"
         echo "⚙️  Running full Ansible playbook for workspace: $WORKSPACE..."
-        ansible-playbook -i "$INVENTORY_FILE" site.yml
+        ansible-playbook -i "$INVENTORY_FILE" playbooks/site.yml
 
   bootstrap:
     desc: "One-time bootstrap as root (use: task ansible:bootstrap -- dev or -- prod)"
@@ -34,7 +34,7 @@ tasks:
         HOSTNAME=$(task hostkeys:hostname -- "$WORKSPACE")
         echo "🔑 Preparing known_hosts..."
         task hostkeys:prepare -- "$WORKSPACE"
-        ansible-playbook -i "${HOSTNAME}," bootstrap.yml
+        ansible-playbook -i "${HOSTNAME}," playbooks/bootstrap.yml
 
   run:
     desc: "Configure server (use: task ansible:run -- dev or -- prod)"
@@ -47,4 +47,4 @@ tasks:
         echo "🔑 Preparing known_hosts..."
         task hostkeys:prepare -- "$WORKSPACE"
         echo "⚙️  Running full Ansible playbook for workspace: $WORKSPACE..."
-        ansible-playbook -i "$INVENTORY_FILE" site.yml
+        ansible-playbook -i "$INVENTORY_FILE" playbooks/site.yml

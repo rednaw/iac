@@ -1,0 +1,17 @@
+---
+# Site playbook: complete server configuration
+# Runs as ubuntu user (after bootstrap) and configures all server components
+
+- name: Configure Server
+  hosts: all
+  become: true
+
+  pre_tasks:
+    - name: Decrypt and load infrastructure secrets
+      ansible.builtin.import_tasks: ../tasks/secrets.yml
+
+    - name: Manage SSH authorized keys
+      ansible.builtin.import_tasks: ../tasks/authorized-keys.yml
+
+  roles:
+    - server

@@ -12,8 +12,8 @@ This guide explains how to **deploy and inspect applications** from the infrastr
 flowchart LR
     subgraph LOCAL["Developer"]
         A["Merge pull request"]
-        B["task application:overview"]
-        C["task application:deploy"]
+        B["task iac:versions"]
+        C["task iac:deploy"]
     end
 
     subgraph GITHUB["GitHub workflow"]
@@ -35,59 +35,52 @@ flowchart LR
     F -->|pulls| E
 ```
 
+The deployment system provides two commands (run from your app directory):
 
+- `task iac:deploy -- <env> <sha>` — Deploy an application version
+- `task iac:versions -- <env>` — List available versions
 
-The deployment system provides two main commands:
-
-- `task application:deploy` — Deploy an application version
-- `task application:overview` — Inspect deployment status
-
-Both commands are implemented as Python scripts (`scripts/application_deploy.py` and `scripts/application_overview.py`) that handle tag→digest resolution, metadata extraction, and delegation to Ansible.
+The `versions` command is implemented as a Python script (`scripts/application_versions.py`). The `deploy` command runs an Ansible playbook that orchestrates the entire deployment.
 
 ---
 
 ## Commands
 
-### `task application:deploy`
+### `task iac:deploy`
 
-Deploy an application version to a workspace:
+Deploy an application version (run from app directory):
 
 ```bash
-task application:deploy -- <WORKSPACE> <APP_ROOT> <SHA>
+task iac:deploy -- <environment> <sha>
 ```
 
 **Arguments:**
-- `<WORKSPACE>`: `dev` or `prod`
-- `<APP_ROOT>`: Absolute or relative path to the application root directory
-- `<SHA>`: Short commit SHA (7 characters) of the image tag to deploy
+- `<environment>`: `dev` or `prod`
+- `<sha>`: Short commit SHA (7 characters) of the image tag to deploy
 
 **Examples:**
 ```bash
-task application:deploy -- dev ../hello-world 706c88c
-task application:deploy -- prod /path/to/app abc1234
+task iac:deploy -- dev 706c88c
+task iac:deploy -- prod abc1234
 ```
 
 **What happens internally:**
 
 1. **Validates inputs:**
-   - Checks `APP_ROOT/deploy.yml` exists
-   - Extracts `registry_name` and `image_name` from `deploy.yml`
+   - Validates environment is `dev` or `prod`
+   - Reads `REGISTRY_NAME` and `IMAGE_NAME` from app's Taskfile.yml
 
-2. **Resolves image identity:**
-   - Constructs image reference: `registry.rednaw.nl/rednaw/app:SHA`
-   - Resolves tag → digest using `crane digest`
-   - Extracts metadata using `crane config`:
-     - `org.opencontainers.image.description`
-     - `org.opencontainers.image.created`
-
-3. **Deploys via Ansible:**
+2. **Prepares and runs Ansible:**
    - Prepares SSH host keys (`task hostkeys:prepare`)
-   - Runs `deploy.yml` playbook with variables:
-     - `image_digest`: Digest-pinned reference (`registry/app@sha256:...`)
-     - `image_tag`: Original SHA tag
-     - `image_description`: From image labels
-     - `image_built_at`: From image labels
-     - `workspace`: Environment name
+   - Runs the IAC `deploy-app.yml` playbook
+
+3. **The `deploy-app` role:**
+   - Resolves tag → digest using `crane digest`
+   - Extracts metadata using `crane config` (description, build time)
+   - Decrypts app secrets if `env.enc` exists
+   - Copies files, configures Docker auth
+   - Deploys the application with Docker Compose
+   - Records deployment metadata
 
 4. **Records deployment:**
    - Writes `/opt/giftfinder/<app>/deploy-info.yml` (current state)
@@ -96,27 +89,26 @@ task application:deploy -- prod /path/to/app abc1234
 **Error handling:**
 - Tag doesn't exist → Clear error with crane output
 - Image not found → Suggests `docker login`
-- Invalid workspace → Validation error
-- Missing `deploy.yml` → File not found error
+- Invalid environment → Validation error
+- Missing required vars → Error with message
 
 ---
 
-### `task application:overview`
+### `task iac:versions`
 
-Show deployment status for an image repository:
+List available versions (run from app directory):
 
 ```bash
-task application:overview -- <WORKSPACE> <IMAGE_REPO>
+task iac:versions -- <environment>
 ```
 
 **Arguments:**
-- `<WORKSPACE>`: `dev` or `prod`
-- `<IMAGE_REPO>`: Image repository name (e.g., `rednaw/hello-world`)
+- `<environment>`: `dev` or `prod`
 
 **Examples:**
 ```bash
-task application:overview -- dev rednaw/hello-world
-task application:overview -- prod rednaw/my-app
+task iac:versions -- dev
+task iac:versions -- prod
 ```
 
 **What happens internally:**
@@ -150,6 +142,33 @@ IMAGE: rednaw/hello-world
 
 ---
 
+## Application Configuration
+
+Applications configure deployment in their `Taskfile.yml`:
+
+```yaml
+version: '3'
+
+vars:
+  REGISTRY_NAME: registry.rednaw.nl
+  IMAGE_NAME: rednaw/hello-world
+
+includes:
+  iac:
+    taskfile: ../iac/tasks/Taskfile.app.yml
+```
+
+**Required vars:**
+- `REGISTRY_NAME`: Docker registry hostname
+- `IMAGE_NAME`: Image name in the registry
+
+**Required files in app directory:**
+- `Taskfile.yml`: Configuration and commands (as above)
+- `docker-compose.yml`: Service definition with `image: ${IMAGE}`
+- `env.enc`: (optional) Encrypted environment variables
+
+---
+
 ## Deployment Records
 
 ### `deploy-info.yml`
@@ -170,7 +189,6 @@ image:
 
 deployment:
   deployed_at: "2026-01-25T01:10:00Z"
-  deployed_by: "alice"
 ```
 
 **Lifecycle:** Overwritten on each successful deployment
@@ -205,34 +223,40 @@ deployment:
 
 ## Implementation Details
 
+### Taskfile
+
+**`tasks/Taskfile.app.yml`**: Included by apps, provides `iac:deploy` and `iac:versions`. Runs Ansible and Python directly.
+
 ### Scripts
 
-- **`scripts/application_deploy.py`**: Handles deployment orchestration
-  - Tag→digest resolution
-  - Metadata extraction
-  - Ansible playbook invocation
-  - Error handling and user feedback
-
-- **`scripts/application_overview.py`**: Handles deployment inspection
+- **`scripts/application_versions.py`**: Lists available versions
   - SSH to read `deploy-info.yml`
   - Registry tag listing
   - Digest resolution and comparison
   - Formatted output
 
+### Ansible Playbook
+
+**`ansible/playbooks/deploy-app.yml`** is the entry point:
+- Loads infrastructure secrets
+- Includes the `deploy-app` role
+
 ### Ansible Role
 
-**`ansible/roles/deploy-app/tasks/main.yml`** handles:
-- Decrypting app secrets (`env.enc` → `.env`)
-- Copying `docker-compose.yml` to server
-- Configuring Docker registry authentication
-- Running Docker Compose with digest-pinned image
-- Writing deployment records
+**`ansible/roles/deploy-app/tasks/`** contains:
+- `main.yml` — Orchestrates all steps
+- `resolve-image.yml` — Tag → digest resolution, metadata extraction
+- `decrypt-secrets.yml` — Decrypts `env.enc` if present
+- `prepare-server.yml` — Copies files, configures Docker auth
+- `run-container.yml` — Runs Docker Compose
+- `record-deployment.yml` — Writes deployment records
 
-**Key variables:**
-- `image_digest`: Digest-pinned image reference (e.g., `registry/app@sha256:...`)
-- `image_tag`: Original tag for reference
-- `workspace`: Environment name
-- `deployed_by`: Attribution string
+**Required variables:**
+- `registry_name`: Registry hostname
+- `image_name`: Image name
+- `app_root`: Path to the application directory
+- `workspace`: Environment name (`dev` or `prod`)
+- `sha`: Commit SHA tag to deploy
 
 ---
 
@@ -245,9 +269,8 @@ deployment:
 - Verify registry auth: `docker login registry.rednaw.nl`
 - Check tag format (7 hex characters)
 
-**"deploy.yml not found"**
-- Verify `APP_ROOT` path is correct
-- Check application has `deploy.yml` in root
+**"missing required vars"**
+- Ensure `REGISTRY_NAME` and `IMAGE_NAME` are set in app's Taskfile.yml
 
 **"Host key verification failed"**
 - Run `task hostkeys:prepare -- <WORKSPACE>` manually
@@ -288,16 +311,15 @@ Shows TAG, CREATED, DESCRIPTION for all repos. Useful for global registry inspec
 
 ## Design Principles
 
+- **Minimal app configuration** — Just `REGISTRY_NAME` and `IMAGE_NAME` in Taskfile
 - **Humans deploy by tag** — Short SHAs are readable
 - **Machines run by digest** — Immutable digests ensure safety
-- **Delegation over duplication** — App-side tasks delegate to IAC
-- **Convention over configuration** — Image names follow `rednaw/<app-slug>`
 - **History is never lost** — Append-only audit trail
 
 ---
 
 ## See Also
 
-- [Developer Guide](application-deployment-dev.md) — For application developers
+- [Developer Guide](../../hello-world/README.md) — For application developers
 - [SSH Host Keys](SSH-host-keys.md) — Host key management
-- [Ansible Roles](../ansible/roles/deploy-app/) — Deployment role implementation
+- [Ansible Role](../ansible/roles/deploy-app/) — Deployment role implementation

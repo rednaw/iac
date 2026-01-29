@@ -1,0 +1,27 @@
+---
+# Run the application container with Docker Compose
+#
+# Inputs:
+#   deploy_target: Target path on server (contains docker-compose.yml)
+#
+# Outputs:
+#   deploy_result: Docker Compose deployment result
+
+- name: Stop and remove existing containers (if any)
+  community.docker.docker_compose_v2:
+    project_src: "{{ deploy_target }}"
+    state: absent
+  become: true
+  become_user: giftfinder
+  ignore_errors: true
+
+- name: Deploy application with Docker Compose
+  community.docker.docker_compose_v2:
+    project_src: "{{ deploy_target }}"
+    state: present
+    pull: missing
+    recreate: always
+    remove_orphans: true
+  become: true
+  become_user: giftfinder
+  register: deploy_result
