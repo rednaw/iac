@@ -121,7 +121,7 @@ docker-compose exec redis redis-cli BGSAVE
 
 # Or copy dump file
 docker run --rm \
-  -v giftfinder_redis_data:/data:ro \
+  -v hello_redis_data:/data:ro \
   -v $(pwd)/backups:/backup \
   alpine \
   cp /data/dump.rdb /backup/redis_$(date +%Y%m%d).rdb
@@ -215,14 +215,14 @@ docker run --rm \
 # Taskfile.backup.yml (future implementation)
 backup:postgres:
   desc: Backup PostgreSQL database
-  dir: /opt/giftfinder
+  dir: /opt/deploy
   cmds:
     - docker-compose exec -T postgres pg_dump -U ${{.POSTGRES_USER}} ${{.POSTGRES_DB}} \
         | gzip > backups/postgres_$(date +%Y%m%d_%H%M%S).sql.gz
 
 backup:opensearch:
   desc: Backup OpenSearch indices
-  dir: /opt/giftfinder
+  dir: /opt/deploy
   cmds:
     - curl -X PUT "http://localhost:9200/_snapshot/backup_repo/snapshot_$(date +%Y%m%d)?wait_for_completion=true"
 
@@ -244,7 +244,7 @@ restore:postgres:
 # ansible/tasks/backup.yml (future implementation)
 - name: Backup PostgreSQL database
   docker_compose:
-    project_src: /opt/giftfinder
+    project_src: /opt/deploy
     command: exec
     services: postgres
     exec_command: pg_dump -U {{ postgres_user }} {{ postgres_db }} > /backup/backup.sql
@@ -258,7 +258,7 @@ restore:postgres:
 ### Automated Scheduling (Future)
 
 **Option 1: Cron Jobs**
-- System cron (`/etc/cron.daily/giftfinder-backup`)
+- System cron (`/etc/cron.daily/app-backup`)
 - Simple, traditional approach
 - Runs backup scripts
 

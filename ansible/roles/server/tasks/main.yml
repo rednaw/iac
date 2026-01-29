@@ -26,8 +26,8 @@
 - name: Docker engine
   ansible.builtin.import_tasks: docker.yml
 
-- name: Giftfinder application user
-  ansible.builtin.import_tasks: giftfinder-user.yml
+- name: Deploy application user
+  ansible.builtin.import_tasks: deploy-user.yml
 
 - name: Docker registry
   ansible.builtin.import_tasks: registry.yml
