@@ -1,0 +1,26 @@
+---
+# Deploy application playbook
+#
+# Deploys a containerized application using the deploy-app role.
+#
+# Required variables (passed via -e):
+#   registry_name: Docker registry hostname
+#   image_name: Image name in registry
+#   app_root: Absolute path to the application directory
+#   workspace: Environment name (dev or prod)
+#   sha: Image tag / commit SHA to deploy
+#
+# Expected files in app_root:
+#   docker-compose.yml: Docker Compose service definition
+#   env.enc:            (optional) Encrypted environment variables
+
+- name: Deploy Application
+  hosts: all
+  become: yes
+
+  pre_tasks:
+    - name: Load infrastructure secrets
+      ansible.builtin.import_tasks: ../tasks/secrets.yml
+
+  roles:
+    - deploy-app

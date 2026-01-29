@@ -1,0 +1,84 @@
+---
+# Record deployment metadata
+#
+# Writes deploy-info.yml (current state) and appends to deploy-history.yml (audit trail)
+#
+# Inputs:
+#   deploy_target: Target path on server
+#   image_digest: Full image reference with digest
+#   image_tag: The SHA tag
+#   image_description: From OCI labels
+#   image_built_at: From OCI labels
+#   workspace: Environment name
+
+- name: Extract image repo and digest from image_digest
+  ansible.builtin.set_fact:
+    image_repo: "{{ image_digest.split('@')[0] }}"
+    image_digest_only: "{{ image_digest.split('@')[1] }}"
+
+- name: Get current timestamp
+  ansible.builtin.command: date -u +"%Y-%m-%dT%H:%M:%SZ"
+  register: deploy_timestamp
+  changed_when: false
+
+- name: Get app name from deploy_target
+  ansible.builtin.set_fact:
+    app_name: "{{ deploy_target.split('/')[-1] }}"
+
+- name: Write deploy-info.yml (current deployment)
+  ansible.builtin.copy:
+    content: |
+      app: {{ app_name }}
+      workspace: {{ workspace }}
+
+      image:
+        repo: {{ image_repo }}
+        tag: {{ image_tag }}
+        digest: {{ image_digest_only }}
+        description: {{ image_description | default('') | quote }}
+        built_at: {{ image_built_at | default('') | quote }}
+
+      deployment:
+        deployed_at: {{ deploy_timestamp.stdout }}
+    dest: "{{ deploy_target }}/deploy-info.yml"
+    owner: giftfinder
+    group: giftfinder
+    mode: '0644'
+
+- name: Check if deploy-history.yml exists
+  ansible.builtin.stat:
+    path: "{{ deploy_target }}/deploy-history.yml"
+  register: deploy_history_file
+
+- name: Create deploy-history.yml if it doesn't exist
+  ansible.builtin.file:
+    path: "{{ deploy_target }}/deploy-history.yml"
+    state: touch
+    owner: giftfinder
+    group: giftfinder
+    mode: '0644'
+  when: not deploy_history_file.stat.exists
+
+- name: Append to deploy-history.yml
+  ansible.builtin.shell: |
+    cat >> "{{ deploy_target }}/deploy-history.yml" <<EOF
+    - image:
+        tag: {{ image_tag }}
+        digest: {{ image_digest_only }}
+        description: {{ image_description | default('') | quote }}
+        built_at: {{ image_built_at | default('') | quote }}
+
+      deployment:
+        deployed_at: {{ deploy_timestamp.stdout }}
+        workspace: {{ workspace }}
+    EOF
+  become: true
+  become_user: giftfinder
+  changed_when: true
+
+- name: Ensure deploy-history.yml has correct permissions
+  ansible.builtin.file:
+    path: "{{ deploy_target }}/deploy-history.yml"
+    owner: giftfinder
+    group: giftfinder
+    mode: '0644'

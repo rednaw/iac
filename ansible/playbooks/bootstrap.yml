@@ -1,0 +1,21 @@
+---
+# Bootstrap playbook: prepare ubuntu user
+# Runs as root (via Hetzner SSH key) and sets up the ubuntu user for subsequent runs
+
+- name: Bootstrap ubuntu user and SSH access
+  hosts: all
+  remote_user: root
+  become: yes
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+
+  pre_tasks:
+    - name: Decrypt and load infrastructure secrets
+      ansible.builtin.import_tasks: ../tasks/secrets.yml
+
+  roles:
+    - bootstrap
+
+  post_tasks:
+    - name: Manage SSH authorized keys
+      ansible.builtin.import_tasks: ../tasks/authorized-keys.yml

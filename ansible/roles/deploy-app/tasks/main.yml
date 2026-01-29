@@ -1,186 +1,40 @@
 ---
 # Deploy application role
-# This role handles the deployment of containerized applications
+#
+# This role handles the deployment of containerized applications.
 #
 # Required variables:
+#   registry_name: Registry hostname (e.g. registry.rednaw.nl)
+#   image_name: Image name (e.g. rednaw/hello-world)
 #   app_root: Absolute path to the app root directory (on localhost)
-#   deploy_target: Path on the server where the app will be deployed (e.g. /opt/giftfinder/app-name)
-#   image_digest: Full image reference with digest (e.g. registry.rednaw.nl/rednaw/hello-world@sha256:...)
-#   image_tag: Tag used to resolve digest (e.g. abc1234)
-#   service_name: Name of the service in docker-compose.yml
 #   workspace: Workspace name (dev or prod)
+#   sha: Image tag / commit SHA to deploy (e.g. abc1234)
 #
-# Optional variables:
-#   image_description: Description from image labels
-#   image_built_at: Build timestamp from image labels
+# Expected files in app_root:
+#   docker-compose.yml: Docker Compose service definition
+#   env.enc:            (optional) Encrypted environment variables
 #
-# Requires infrastructure_secrets to be loaded (registry credentials)
+# Requires infrastructure_secrets to be loaded by the calling playbook
 
-- name: Check if app secrets file exists
-  ansible.builtin.stat:
-    path: "{{ app_root }}/env.enc"
-  register: app_secrets_file
-  delegate_to: localhost
-  become: false
+# =============================================================================
+# Phase 1: Preparation (runs on localhost)
+# =============================================================================
 
-- name: Decrypt app secrets to temporary file
-  ansible.builtin.shell: |
-    SOPS_AGE_KEY_FILE={{ lookup('env', 'HOME') }}/.config/sops/age/keys-{{ lookup('env', 'USER') }}.txt \
-    sops -d --input-type yaml --output-type yaml {{ app_root }}/env.enc
-  register: decrypted_app_secrets
-  changed_when: false
-  delegate_to: localhost
-  become: false
-  when: app_secrets_file.stat.exists
-  no_log: true
+- name: Resolve image tag to digest
+  ansible.builtin.include_tasks: resolve-image.yml
 
-- name: Ensure deploy target directory exists
-  ansible.builtin.file:
-    path: "{{ deploy_target }}"
-    state: directory
-    owner: giftfinder
-    group: giftfinder
-    mode: '0755'
+- name: Decrypt application secrets
+  ansible.builtin.include_tasks: decrypt-secrets.yml
 
-- name: Write decrypted app secrets to .env file on server
-  ansible.builtin.copy:
-    content: "{{ decrypted_app_secrets.stdout }}"
-    dest: "{{ deploy_target }}/.env"
-    owner: giftfinder
-    group: giftfinder
-    mode: '0600'
-  when: app_secrets_file.stat.exists
-  no_log: true
+# =============================================================================
+# Phase 2: Deploy application (runs on target server)
+# =============================================================================
 
-- name: Ensure IMAGE variable is set in .env file (digest-only)
-  ansible.builtin.lineinfile:
-    path: "{{ deploy_target }}/.env"
-    line: "IMAGE={{ image_digest }}"
-    regexp: '^IMAGE='
-    owner: giftfinder
-    group: giftfinder
-    mode: '0600'
-    create: true
+- name: Prepare server for deployment
+  ansible.builtin.include_tasks: prepare-server.yml
 
-- name: Copy docker-compose.yml to server
-  ansible.builtin.copy:
-    src: "{{ app_root }}/docker-compose.yml"
-    dest: "{{ deploy_target }}/docker-compose.yml"
-    owner: giftfinder
-    group: giftfinder
-    mode: '0644'
+- name: Run application container
+  ansible.builtin.include_tasks: run-container.yml
 
-- name: Ensure giftfinder user .docker directory exists
-  ansible.builtin.file:
-    path: /opt/giftfinder/.docker
-    state: directory
-    owner: giftfinder
-    group: giftfinder
-    mode: '0700'
-
-- name: Configure Docker registry auth for giftfinder user
-  ansible.builtin.copy:
-    content: |
-      {
-        "auths": {
-          "{{ infrastructure_secrets.registry_domain }}": {
-            "auth": "{{ (infrastructure_secrets.registry_username + ':' + infrastructure_secrets.registry_password) | b64encode }}"
-          }
-        }
-      }
-    dest: /opt/giftfinder/.docker/config.json
-    mode: '0600'
-    owner: giftfinder
-    group: giftfinder
-  no_log: true
-
-- name: Stop and remove existing containers (if any)
-  community.docker.docker_compose_v2:
-    project_src: "{{ deploy_target }}"
-    state: absent
-  become: true
-  become_user: giftfinder
-  ignore_errors: true
-
-- name: Deploy application with Docker Compose
-  community.docker.docker_compose_v2:
-    project_src: "{{ deploy_target }}"
-    state: present
-    pull: missing
-    recreate: always
-    remove_orphans: true
-  become: true
-  become_user: giftfinder
-  register: deploy_result
-
-- name: Extract image repo and digest from image_digest
-  ansible.builtin.set_fact:
-    image_repo: "{{ image_digest.split('@')[0] }}"
-    image_digest_only: "{{ image_digest.split('@')[1] }}"
-
-- name: Get current timestamp
-  ansible.builtin.command: date -u +"%Y-%m-%dT%H:%M:%SZ"
-  register: deploy_timestamp
-  changed_when: false
-
-- name: Get app name from deploy_target
-  ansible.builtin.set_fact:
-    app_name: "{{ deploy_target.split('/')[-1] }}"
-
-- name: Write deploy-info.yml (current deployment)
-  ansible.builtin.copy:
-    content: |
-      app: {{ app_name }}
-      workspace: {{ workspace }}
-
-      image:
-        repo: {{ image_repo }}
-        tag: {{ image_tag }}
-        digest: {{ image_digest_only }}
-        description: {{ image_description | default('') | quote }}
-        built_at: {{ image_built_at | default('') | quote }}
-
-      deployment:
-        deployed_at: {{ deploy_timestamp.stdout }}
-    dest: "{{ deploy_target }}/deploy-info.yml"
-    owner: giftfinder
-    group: giftfinder
-    mode: '0644'
-
-- name: Check if deploy-history.yml exists
-  ansible.builtin.stat:
-    path: "{{ deploy_target }}/deploy-history.yml"
-  register: deploy_history_file
-
-- name: Create deploy-history.yml if it doesn't exist
-  ansible.builtin.file:
-    path: "{{ deploy_target }}/deploy-history.yml"
-    state: touch
-    owner: giftfinder
-    group: giftfinder
-    mode: '0644'
-  when: not deploy_history_file.stat.exists
-
-- name: Append to deploy-history.yml
-  ansible.builtin.shell: |
-    cat >> "{{ deploy_target }}/deploy-history.yml" <<EOF
-    - image:
-        tag: {{ image_tag }}
-        digest: {{ image_digest_only }}
-        description: {{ image_description | default('') | quote }}
-        built_at: {{ image_built_at | default('') | quote }}
-
-      deployment:
-        deployed_at: {{ deploy_timestamp.stdout }}
-        workspace: {{ workspace }}
-    EOF
-  become: true
-  become_user: giftfinder
-  changed_when: true
-
-- name: Ensure deploy-history.yml has correct permissions
-  ansible.builtin.file:
-    path: "{{ deploy_target }}/deploy-history.yml"
-    owner: giftfinder
-    group: giftfinder
-    mode: '0644'
+- name: Record deployment metadata
+  ansible.builtin.include_tasks: record-deployment.yml
