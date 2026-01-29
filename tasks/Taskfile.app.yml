@@ -42,35 +42,29 @@ tasks:
     silent: true
     requires:
       vars: [REGISTRY_NAME, IMAGE_NAME]
+    vars:
+      WORKSPACE:
+        sh: echo "{{.CLI_ARGS}}" | awk '{print $1}'
+      SHA:
+        sh: echo "{{.CLI_ARGS}}" | awk '{print $2}'
+    preconditions:
+      - sh: '[ $(echo "{{.CLI_ARGS}}" | wc -w | tr -d " ") -eq 2 ]'
+        msg: "Usage: task iac:deploy -- <environment> <sha>\nExample: task iac:deploy -- dev 706c88c"
+      - sh: '[ "{{.WORKSPACE}}" = "dev" ] || [ "{{.WORKSPACE}}" = "prod" ]'
+        msg: "Invalid environment '{{.WORKSPACE}}'. Use: dev or prod"
     cmds:
       - |
-        ARGS="{{.CLI_ARGS}}"
-        # shellcheck disable=SC2086
-        set -- $ARGS
-        if [ $# -ne 2 ]; then
-          echo "Usage: task iac:deploy -- <environment> <sha>"
-          echo "Example: task iac:deploy -- dev 706c88c"
-          exit 1
-        fi
-        WORKSPACE="$1"
-        SHA="$2"
-        
-        if [ "$WORKSPACE" != "dev" ] && [ "$WORKSPACE" != "prod" ]; then
-          echo "Invalid environment '$WORKSPACE'. Use: dev or prod"
-          exit 1
-        fi
-        
         # Prepare SSH host keys
-        cd "{{.IAC_ROOT}}" && task hostkeys:prepare -- "$WORKSPACE"
+        cd "{{.IAC_ROOT}}" && task hostkeys:prepare -- "{{.WORKSPACE}}"
         
         # Run Ansible deployment
         ANSIBLE_CONFIG="{{.IAC_ROOT}}/ansible/ansible.cfg" \
         ansible-playbook \
-          -i "{{.IAC_ROOT}}/ansible/inventory/${WORKSPACE}.ini" \
+          -i "{{.IAC_ROOT}}/ansible/inventory/{{.WORKSPACE}}.ini" \
           "{{.IAC_ROOT}}/ansible/playbooks/deploy-app.yml" \
           -e "app_root={{.APP_ROOT}}" \
-          -e "workspace=${WORKSPACE}" \
-          -e "sha=${SHA}" \
+          -e "workspace={{.WORKSPACE}}" \
+          -e "sha={{.SHA}}" \
           -e "registry_name={{.REGISTRY_NAME}}" \
           -e "image_name={{.IMAGE_NAME}}"
 
@@ -79,14 +73,12 @@ tasks:
     silent: true
     requires:
       vars: [IMAGE_NAME]
+    vars:
+      WORKSPACE: "{{.CLI_ARGS}}"
+    preconditions:
+      - sh: '[ $(echo "{{.CLI_ARGS}}" | wc -w | tr -d " ") -eq 1 ]'
+        msg: "Usage: task iac:versions -- <environment>\nExample: task iac:versions -- dev"
+      - sh: '[ "{{.WORKSPACE}}" = "dev" ] || [ "{{.WORKSPACE}}" = "prod" ]'
+        msg: "Invalid environment '{{.WORKSPACE}}'. Use: dev or prod"
     cmds:
-      - |
-        ARGS="{{.CLI_ARGS}}"
-        # shellcheck disable=SC2086
-        set -- $ARGS
-        if [ $# -ne 1 ]; then
-          echo "Usage: task iac:versions -- <environment>"
-          echo "Example: task iac:versions -- dev"
-          exit 1
-        fi
-        cd "{{.IAC_ROOT}}" && python3 scripts/application_versions.py "$1" "{{.IMAGE_NAME}}"
+      - cd "{{.IAC_ROOT}}" && python3 scripts/application_versions.py "{{.WORKSPACE}}" "{{.IMAGE_NAME}}"

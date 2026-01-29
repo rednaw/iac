@@ -62,13 +62,12 @@ tasks:
     desc: Validate Terraform configuration
     silent: true
     dir: terraform
+    preconditions:
+      - sh: test -f "{{.SOPS_KEY_FILE}}"
+        msg: "SOPS key file not found. Run 'task secrets:keygen' first."
     cmds:
       - |
         echo "🔍 Validating Terraform configuration..."
-        if [ ! -f "{{.SOPS_KEY_FILE}}" ]; then
-          echo "❌ SOPS key file \"{{.SOPS_KEY_FILE}}\" not found. Run 'task secrets:keygen' first."
-          exit 1
-        fi
         if ! SOPS_AGE_KEY_FILE="{{.SOPS_KEY_FILE}}" terraform init -backend=false >/dev/null 2>&1; then
           echo "❌ Terraform initialization failed"
           exit 1
