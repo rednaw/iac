@@ -1,0 +1,33 @@
+---
+# Server role: complete server configuration
+# Configures all server components in the correct order
+
+- name: Base system setup
+  ansible.builtin.import_tasks: base.yml
+
+- name: Unattended upgrades
+  ansible.builtin.import_tasks: unattended-upgrades.yml
+
+- name: SSH hardening
+  ansible.builtin.import_tasks: ssh.yml
+
+- name: Nginx web server
+  ansible.builtin.import_tasks: nginx.yml
+
+- name: Certbot SSL certificates
+  ansible.builtin.import_tasks: certbot.yml
+
+- name: Nginx configuration (post-certbot)
+  ansible.builtin.import_tasks: nginx.yml
+
+- name: Fail2ban intrusion prevention
+  ansible.builtin.import_tasks: fail2ban.yml
+
+- name: Docker engine
+  ansible.builtin.import_tasks: docker.yml
+
+- name: Giftfinder application user
+  ansible.builtin.import_tasks: giftfinder-user.yml
+
+- name: Docker registry
+  ansible.builtin.import_tasks: registry.yml
