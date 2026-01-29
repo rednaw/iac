@@ -11,6 +11,7 @@
     abuseipdb_api_key: "{{ infrastructure_secrets.abuseipdb_api_key | default('') }}"
   when: infrastructure_secrets is defined
   failed_when: false
+  no_log: true
 
 - name: Configure fail2ban
   ansible.builtin.template:
@@ -22,5 +23,5 @@
 - name: Ensure fail2ban is running
   ansible.builtin.systemd:
     name: fail2ban
-    enabled: yes
+    enabled: true
     state: started

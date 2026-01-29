@@ -11,6 +11,10 @@ ansible/.ansible/
 secrets/infrastructure-secrets.yml
 .sops.yaml
 
-# Documnents scratchpad
+# Python
+__pycache__/
+*.pyc
+
+# Documents scratchpad
 docs/attic
 

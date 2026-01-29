@@ -47,14 +47,14 @@ Secrets Management (SOPS):
   task secrets:decrypt                  # Decrypt secrets for editing
   task secrets:encrypt                  # Encrypt secrets
 
-Application Deployment:
-  task application:deploy -- <WORKSPACE> <APP_ROOT> <SHA>
+Application Deployment (run from app directory):
+  task iac:deploy -- <WORKSPACE> <SHA>
 
 Registry:
   task registry:overview                # List tags (TAG, CREATED, DESCRIPTION) for all repos
 
-Images:
-  task application:overview -- <WORKSPACE> <IMAGE_REPO>  # Show image overview with deployment status
+Images (run from app directory):
+  task iac:versions -- <WORKSPACE>  # Show available versions with deployment status
 
 Utilities:
   task server:check-status              # Check if servers are up (checks both dev and prod)

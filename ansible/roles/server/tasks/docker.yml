@@ -21,7 +21,7 @@
   ansible.builtin.apt_repository:
     repo: "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu {{ ansible_facts['distribution_release'] }} stable"
     state: present
-    update_cache: yes
+    update_cache: true
 
 - name: Install Docker
   ansible.builtin.apt:
@@ -37,11 +37,11 @@
   ansible.builtin.user:
     name: ubuntu
     groups: docker
-    append: yes
+    append: true
 
 - name: Start and enable Docker
   ansible.builtin.systemd:
     name: docker
-    enabled: yes
+    enabled: true
     state: started
 
