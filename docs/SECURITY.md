@@ -10,7 +10,7 @@ The following files are created outside the repository during setup. These are p
 | `~/.ssh/known_hosts` | Stores SSH host keys for servers you've connected to | SSH client (automatically) |
 | `~/.ssh/config` | SSH client configuration for server aliases and connection settings | `task server:setup-remote-cursor` (optional) |
 | `~/.config/hcloud/cli.toml` | Hetzner Cloud CLI configuration and API token | `hcloud context create` |
-| `~/.config/sops/age/keys-{username}.txt` | SOPS private key for decrypting secrets | `task secrets:keygen` |
+| `~/.config/sops/age/keys.txt` | SOPS private key for decrypting secrets | `task secrets:keygen` |
 | `~/.terraform.d/credentials.tfrc.json` | Terraform Cloud authentication token | `task terraform:login` |
 
 ### Details
@@ -36,10 +36,10 @@ The following files are created outside the repository during setup. These are p
 - **Setup:** Created when running `hcloud context create default`
 - **Used by:** `hcloud` CLI, `task server:list-hetzner-keys`
 
-**`~/.config/sops/age/keys-{username}.txt`**
+**`~/.config/sops/age/keys.txt`**
 - **Relevance:** Your private SOPS key for decrypting infrastructure secrets
 - **Setup:** Created by `task secrets:keygen` (stored outside repo for security)
-- **Used by:** `task secrets:decrypt`, `task secrets:encrypt`, Terraform (via SOPS provider), Ansible (via SOPS lookup)
+- **Used by:** VS Code SOPS extension, Terraform (via SOPS provider), Ansible (via shell)
 
 **`~/.terraform.d/credentials.tfrc.json`**
 - **Relevance:** Terraform Cloud authentication token for accessing shared state

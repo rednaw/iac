@@ -128,8 +128,8 @@ runs:
         SOPS_AGE_KEY: ${{ inputs.sops_age_key }}
       run: |
         mkdir -p ~/.config/sops/age
-        echo "$SOPS_AGE_KEY" > ~/.config/sops/age/keys-$(whoami).txt
-        chmod 600 ~/.config/sops/age/keys-$(whoami).txt
+        echo "$SOPS_AGE_KEY" > ~/.config/sops/age/keys.txt
+        chmod 600 ~/.config/sops/age/keys.txt
 
     - name: Set up Python
       if: inputs.install_python == 'true'

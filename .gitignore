@@ -1,3 +1,6 @@
+# SOPS VS Code extension temp files
+.decrypted~*
+
 # Terraform
 terraform/*.tfstate
 terraform/*.tfstate.*
@@ -6,10 +9,6 @@ terraform/crash.log
 
 # Ansible
 ansible/.ansible/
-
-# SOPS (Secrets OPerationS)
-secrets/infrastructure-secrets.yml
-.sops.yaml
 
 # Python
 __pycache__/

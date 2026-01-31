@@ -1,6 +1,6 @@
 # Read encrypted infrastructure secrets (YAML format)
 data "sops_file" "infrastructure_secrets" {
-  source_file = "${path.module}/../secrets/infrastructure-secrets.yml.enc"
+  source_file = "${path.module}/../secrets/infrastructure-secrets.yml"
   input_type  = "yaml"
 }
 
@@ -11,13 +11,13 @@ locals {
   # Validate and extract hcloud_token
   hcloud_token = try(
     local.secrets["hcloud_token"],
-    error("hcloud_token is required in infrastructure-secrets.yml.enc but was not found")
+    error("hcloud_token is required in infrastructure-secrets.yml but was not found")
   )
 
   # Validate and extract ssh_keys (must be a list)
   ssh_keys_raw = try(
     local.secrets["ssh_keys"],
-    error("ssh_keys is required in infrastructure-secrets.yml.enc but was not found")
+    error("ssh_keys is required in infrastructure-secrets.yml but was not found")
   )
 
   # Ensure ssh_keys is a list and convert to list of strings
@@ -36,7 +36,7 @@ locals {
   # Validate and extract allowed_ssh_ips (must be a list)
   allowed_ssh_ips_raw = try(
     local.secrets["allowed_ssh_ips"],
-    error("allowed_ssh_ips is required in infrastructure-secrets.yml.enc but was not found")
+    error("allowed_ssh_ips is required in infrastructure-secrets.yml but was not found")
   )
 
   # Ensure allowed_ssh_ips is a list and convert to list of strings

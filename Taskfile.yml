@@ -7,7 +7,7 @@ vars:
   HOME:
     sh: echo $HOME
   SOPS_CONFIG_DIR: '{{.HOME}}/.config/sops/age'
-  SOPS_KEY_FILE: '{{.SOPS_CONFIG_DIR}}/keys-{{.USERNAME}}.txt'
+  SOPS_KEY_FILE: '{{.SOPS_CONFIG_DIR}}/keys.txt'
   SOPS_KEY_PUB: 'secrets/sops-key-{{.USERNAME}}.pub'
 
 includes:
@@ -50,8 +50,8 @@ tasks:
         echo ""
         echo "Secrets Management (SOPS):"
         echo "  task secrets:keygen                    # Generate age key pair"
-        echo "  task secrets:decrypt                   # Decrypt secrets for editing"
-        echo "  task secrets:encrypt                   # Encrypt secrets"
+        echo "  task secrets:generate-sops-config      # Generate .sops.yaml"
+        echo "  Edit secrets in VS Code (SOPS extension handles encryption)"
         echo ""
         echo "Application Deployment:"
         echo "  Run from app directory: task iac:deploy -- <env> <sha>"
