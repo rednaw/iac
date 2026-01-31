@@ -1,0 +1,15 @@
+# SOPS configuration for transparent encryption
+# Used by VS Code SOPS extension and CLI
+#
+# Files matched by these rules are encrypted at rest.
+# With VS Code extension: open → decrypt, save → encrypt (transparent)
+# With CLI: sops <file> opens decrypted in editor
+
+creation_rules:
+  # Infrastructure secrets (YAML format)
+  - path_regex: secrets/infrastructure-secrets\.yml$
+    age: age16hthywte685jmwww0y694f7cy9pzded7aagly7f287s9444zhsms6tpq9x,age15x5qlkc4ucef4rga7u2s2du4pxrnn4q6pcmpdf4ahupxjc85x3tqhxl2up
+
+  # Application secrets (dotenv format)
+  - path_regex: \.env$
+    age: age16hthywte685jmwww0y694f7cy9pzded7aagly7f287s9444zhsms6tpq9x,age15x5qlkc4ucef4rga7u2s2du4pxrnn4q6pcmpdf4ahupxjc85x3tqhxl2up

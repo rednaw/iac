@@ -97,7 +97,7 @@ tasks:
       - |
         echo ""
         echo "🔍 Linting Ansible playbooks..."
-        ansible-lint playbooks/site.yml playbooks/bootstrap.yml || (echo "❌ Ansible linting found issues" && exit 1)
+        ansible-lint || (echo "❌ Ansible linting found issues" && exit 1)
       - echo "✅ Ansible linting passed"
 
   ansible:syntax:
@@ -108,8 +108,9 @@ tasks:
       - |
         echo ""
         echo "🔍 Validating Ansible playbook syntax..."
-        ansible-playbook --syntax-check playbooks/site.yml -i localhost, 2>/dev/null || (echo "❌ site.yml syntax check failed" && exit 1)
-        ansible-playbook --syntax-check playbooks/bootstrap.yml -i localhost, 2>/dev/null || (echo "❌ bootstrap.yml syntax check failed" && exit 1)
+        for playbook in playbooks/*.yml; do
+          ansible-playbook --syntax-check "$playbook" -i localhost, 2>/dev/null || (echo "❌ $playbook syntax check failed" && exit 1)
+        done
       - echo "✅ Ansible syntax validation passed"
 
   taskfiles:

@@ -4,8 +4,8 @@
 <tr>
 <td valign="top">
 
-- [Geting started](INSTALL.md)
-- [Run Curson on the server](CURSOR.md)
+- [Getting started](INSTALL.md)
+- [Secrets management](secrets.md)
 - [Application deployment](application-deployment.md)
 
 </td>
@@ -14,8 +14,9 @@
 
 - [Testing](TESTING.md)
 - [Tools and technologies used](TOOLS.md)
-- [Secrets and lies](SECURITY.md)
+- [Security](SECURITY.md)
 - [Troubleshooting](TROUBLESHOOTING.md)
+- [Run Cursor on the server](CURSOR.md)
 
 
 
@@ -44,8 +45,8 @@ Testing:
 
 Secrets Management (SOPS):
   task secrets:keygen                   # Generate age key pair
-  task secrets:decrypt                  # Decrypt secrets for editing
-  task secrets:encrypt                  # Encrypt secrets
+  task secrets:generate-sops-config     # Generate .sops.yaml
+  Edit secrets in VS Code (SOPS extension handles encryption)
 
 Application Deployment (run from app directory):
   task iac:deploy -- <WORKSPACE> <SHA>
