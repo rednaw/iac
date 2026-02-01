@@ -1,6 +1,6 @@
 ---
 # Manage SSH authorized keys for ubuntu user
-# Reads SSH key IDs from secrets/infrastructure-secrets.yml.enc and fetches public keys from Hetzner Cloud
+# Reads SSH key IDs from secrets/infrastructure-secrets.yml and fetches public keys from Hetzner Cloud
 
 - name: Ensure .ssh directory
   ansible.builtin.file:

@@ -1,6 +1,6 @@
 # Registry and containers cheat sheet
 
-Quick reference for **Crane** and **Docker** commands used to inspect the private registry and deployed containers. Auth: use `docker login <registry>` (or `crane auth login`) with credentials from `secrets/infrastructure-secrets.yml.enc` before running read/write commands.
+Quick reference for **Crane** and **Docker** commands used to inspect the private registry and deployed containers. Auth: use `docker login <registry>` (or `crane auth login`) with credentials from `secrets/infrastructure-secrets.yml` before running read/write commands.
 
 ---
 

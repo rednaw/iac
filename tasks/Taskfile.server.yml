@@ -30,7 +30,7 @@ tasks:
         echo ""
         hcloud ssh-key list -o columns=name,id
         echo ""
-        echo "💡 Use the 'ID' column for infrastructure-secrets.yml (ssh_keys: [\"ID\", ...])"
+        echo "💡 Use the 'ID' column for secrets/infrastructure-secrets.yml (ssh_keys: [\"ID\", ...])"
 
   setup-remote-cursor:
     desc: Add dev and prod servers to ~/.ssh/config for Cursor Remote-SSH

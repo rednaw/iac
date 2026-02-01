@@ -2,8 +2,8 @@
 
 ## Troubleshooting
 
-**"secrets/infrastructure-secrets.yml.enc not found"**
-- Create `secrets/infrastructure-secrets.yml` and run `task secrets:encrypt`
+**"secrets/infrastructure-secrets.yml not found"**
+- Create the file and encrypt it. See [secrets.md](secrets.md) for setup instructions.
 
 **"Error: authentication required" (Terraform)**
 - Run `task terraform:login` (from `iac` directory)
