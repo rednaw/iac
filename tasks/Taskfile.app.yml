@@ -96,7 +96,7 @@ tasks:
         RECIPIENTS=""
         for pub in "{{.IAC_ROOT}}/secrets"/sops-key-*.pub; do
           if [ -f "$pub" ]; then
-            KEY=$(cat "$pub" | tr -d '\n')
+            KEY=$(tr -d '\n' < "$pub")
             if [ -z "$RECIPIENTS" ]; then
               RECIPIENTS="$KEY"
             else
