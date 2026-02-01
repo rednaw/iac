@@ -25,7 +25,7 @@ With the extension installed and configured, encrypted files open transparently 
 | Type | File | Format |
 |------|------|--------|
 | Infrastructure | `iac/secrets/infrastructure-secrets.yml` | YAML |
-| Application | `<app>/.env` | dotenv |
+| Application | `<app>/secrets.yml` | YAML |
 
 Both are encrypted at rest, committed to Git.
 
@@ -80,7 +80,7 @@ Open `secrets/infrastructure-secrets.yml` in VS Code — if it decrypts, you're 
 Just open the file. The SOPS extension decrypts it automatically. Save to re-encrypt.
 
 - `iac/secrets/infrastructure-secrets.yml` — Infrastructure secrets
-- `hello-world/.env` — Application secrets
+- `hello-world/secrets.yml` — Application secrets
 
 ### From command line
 
@@ -93,12 +93,18 @@ SOPS_AGE_KEY_FILE=~/.config/sops/age/keys.txt sops <file>
 
 ## Creating New App Secrets
 
-1. Create `.env` in your app directory (VS Code)
-2. Add your variables
+1. Create `secrets.yml` in your app directory (VS Code)
+2. Add your variables in YAML format:
+   ```yaml
+   DATABASE_URL: "postgres://..."
+   API_KEY: "sk-..."
+   ```
 3. Save — the SOPS extension encrypts automatically
 4. Commit
 
-That's it. The `.sops.yaml` rules match any `.env` file.
+That's it. The `.sops.yaml` rules match any `secrets.yml` file.
+
+**Note:** The deploy process converts YAML to dotenv format for docker-compose.
 
 ---
 
@@ -118,7 +124,7 @@ iac/
 └── ...
 
 hello-world/
-└── .env                                # Encrypted dotenv (committed)
+└── secrets.yml                         # Encrypted YAML (committed)
 ```
 
 **Private keys** are stored outside the repo:

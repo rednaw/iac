@@ -13,7 +13,7 @@
 # Then run: task iac:deploy -- dev abc123
 #           task iac:versions -- dev
 #
-# Secrets: Edit .env directly in VS Code (SOPS extension decrypts transparently)
+# Secrets: Edit secrets.yml directly in VS Code (SOPS extension decrypts transparently)
 
 version: '3'
 
@@ -36,8 +36,8 @@ tasks:
         echo "  task iac:versions -- <env>         List available versions"
         echo ""
         echo "Secrets:"
-        echo "  Edit .env directly in VS Code (SOPS extension handles encryption)"
-        echo "  See: iac/docs/secrets.md"
+        echo "  task iac:secrets:init              Initialize .sops.yaml and secrets.yml (one-time)"
+        echo "  Then edit secrets.yml in VS Code (SOPS extension handles encryption)"
 
   deploy:
     desc: "Deploy application (use: task iac:deploy -- <environment> <sha>)"
@@ -84,3 +84,57 @@ tasks:
         msg: "Invalid environment '{{.WORKSPACE}}'. Use: dev or prod"
     cmds:
       - cd "{{.IAC_ROOT}}" && python3 scripts/application_versions.py "{{.WORKSPACE}}" "{{.IMAGE_NAME}}"
+
+  secrets:init:
+    desc: "Initialize secrets for this app (one-time setup)"
+    silent: true
+    cmds:
+      - |
+        cd "{{.APP_ROOT}}" || exit 1
+        
+        # Collect recipients from IAC public keys
+        RECIPIENTS=""
+        for pub in "{{.IAC_ROOT}}/secrets"/sops-key-*.pub; do
+          if [ -f "$pub" ]; then
+            KEY=$(cat "$pub" | tr -d '\n')
+            if [ -z "$RECIPIENTS" ]; then
+              RECIPIENTS="$KEY"
+            else
+              RECIPIENTS="$RECIPIENTS,$KEY"
+            fi
+          fi
+        done
+        
+        if [ -z "$RECIPIENTS" ]; then
+          echo "❌ No public keys found in {{.IAC_ROOT}}/secrets/"
+          echo "   Run: cd {{.IAC_ROOT}} && task secrets:keygen"
+          exit 1
+        fi
+        
+        # Generate .sops.yaml if missing
+        if [ ! -f .sops.yaml ]; then
+          echo "🔧 Creating .sops.yaml..."
+          cat > .sops.yaml << EOF
+        creation_rules:
+          - path_regex: secrets\.yml$
+            age: $RECIPIENTS
+        EOF
+          echo "✅ Created .sops.yaml"
+        else
+          echo "✓ .sops.yaml already exists"
+        fi
+        
+        # Create secrets.yml if missing
+        if [ ! -f secrets.yml ]; then
+          echo "📝 Creating secrets.yml..."
+          printf '%s\n' "# Application secrets (YAML format)" "# Example:" "# DATABASE_URL: postgres://user:pass@host/db" > secrets.yml
+          sops --encrypt --in-place secrets.yml
+          echo "✅ Created encrypted secrets.yml"
+        else
+          echo "✓ secrets.yml already exists"
+        fi
+        
+        echo ""
+        echo "📋 Next steps:"
+        echo "   1. Edit secrets.yml in VS Code (install SOPS extension)"
+        echo "   2. git add .sops.yaml secrets.yml && git commit -m 'Add secrets'"

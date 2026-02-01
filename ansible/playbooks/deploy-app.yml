@@ -12,7 +12,7 @@
 #
 # Expected files in app_root:
 #   docker-compose.yml: Docker Compose service definition
-#   .env:               (optional) SOPS-encrypted environment variables
+#   secrets.yml:        (optional) SOPS-encrypted environment variables (YAML format)
 
 - name: Deploy Application
   hosts: all

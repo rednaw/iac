@@ -17,3 +17,4 @@ __pycache__/
 # Documents scratchpad
 docs/attic
 
+.DS_Store
