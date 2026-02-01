@@ -77,7 +77,7 @@ task iac:deploy -- prod abc1234
 3. **The `deploy_app` role:**
    - Resolves tag → digest using `crane digest`
    - Extracts metadata using `crane config` (description, build time)
-   - Decrypts app secrets if `env.enc` exists
+   - Decrypts app secrets if `secrets.yml` exists (SOPS-encrypted YAML)
    - Copies files, configures Docker auth
    - Deploys the application with Docker Compose
    - Records deployment metadata
@@ -165,7 +165,7 @@ includes:
 **Required files in app directory:**
 - `Taskfile.yml`: Configuration and commands (as above)
 - `docker-compose.yml`: Service definition with `image: ${IMAGE}`
-- `env.enc`: (optional) Encrypted environment variables
+- `secrets.yml`: (optional) SOPS-encrypted environment variables (YAML format)
 
 ---
 
@@ -246,7 +246,7 @@ deployment:
 **`ansible/roles/deploy_app/tasks/`** contains:
 - `main.yml` — Orchestrates all steps
 - `resolve-image.yml` — Tag → digest resolution, metadata extraction
-- `decrypt-secrets.yml` — Decrypts `env.enc` if present
+- `decrypt-secrets.yml` — Decrypts `secrets.yml` if present (converts YAML to dotenv)
 - `prepare-server.yml` — Copies files, configures Docker auth
 - `run-container.yml` — Runs Docker Compose
 - `record-deployment.yml` — Writes deployment records

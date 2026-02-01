@@ -7,7 +7,7 @@
 #   deploy_target: Target path on server
 #   app_root: Path to app directory (for docker-compose.yml)
 #   image_digest: Full image reference with digest
-#   app_secrets_file: Stat result for env.enc
+#   app_secrets_file: Stat result for secrets.yml
 #   decrypted_app_secrets: Decrypted secrets content
 
 - name: Ensure deploy directory exists

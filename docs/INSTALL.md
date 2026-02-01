@@ -5,7 +5,7 @@ Follow the steps below from top to bottom and you will be able to manage your in
 ## Install Tools
 ```bash
 # For managing infrastructure and deploying apps
-brew install terraform ansible sops age hcloud go-task/tap/go-task crane jq
+brew install terraform ansible sops age hcloud go-task/tap/go-task crane jq yq
 pip install PyYAML
 
 # For running the test
@@ -20,49 +20,9 @@ brew install tfsec ansible-lint shellcheck
   hcloud context use default
   ```
 
-## Secrets Operations (SOPS)
+## Secrets (SOPS)
 
-Securely store secrets in Git
-
-### How It Works
-
-**Multi-key encryption:** Each team member has their own key pair. Secrets are encrypted with all public keys, so anyone can decrypt with their private key.
-
-**File structure:**
-```
-secrets/infrastructure-secrets.yml.enc              # Encrypted secrets (in Git)
-secrets/sops-key-{username}.pub                     # Your public key (in Git)
-~/.config/sops/age/keys-{username}.txt            # Your private key (outside repo, secure location)
-.sops.yaml                                        # Auto-generated configuration file (NOT in Git)
-```
-
-### Initial Setup
-Encrypted secrets file (`secrets/infrastructure-secrets.yml.enc`) created and committed, it contains:
-- 'Main' Hetzner Cloud API token used by terraform 
-- Hetzner SSH key IDs for all team members, needed for running ansible and SSH access
-- Allowed SSH IP addresses for firewall source IP filtering (restricts SSH access to specific IPs)
-
-### Generate a SOPS key pair:
-   ```bash
-   task secrets:keygen
-   git add secrets/sops-key-*.pub
-   git commit -m "Add SOPS public key"
-   ```
-
-### Your SOPS private key is stored securely:
-   - Private key is stored in `~/.config/sops/age/keys-{username}.txt` (outside the repo)
-   - For backup, consider storing in a password manager like ProtonPass, 1Password, etc.
-
-### Add your SOPS key to the list of keys that can decrypt
-  - Ask an existing team member to:
-     ```bash
-     git pull
-     task secrets:decrypt
-     task secrets:encrypt  # Re-encrypts with all public keys (including yours)
-     git add secrets/infrastructure-secrets.yml.enc && git commit
-     ```
-  - Pull the updated secrets file: `git pull`
-  - Now you can also encrypt/decrypt secrets, currently only the infrastructure secrets, in the future also application secrets (database password etc.)
+Follow the setup in [secrets.md](secrets.md) to generate your key pair and get added to the encrypted secrets.
 
 ## Configure SSH
 
@@ -77,15 +37,16 @@ Login to the server for maintenance and troubleshooting
    
    - Get your Hetzner key ID: `task server:list-hetzner-keys` (requires hcloud CLI to be initialized, see above)
    - Find your current IP address: Visit [https://whatismyipaddress.com/](https://whatismyipaddress.com/)
-   - Decrypt, edit, and re-encrypt:
+   - Edit secrets (in VS Code with SOPS extension, or CLI):
      ```bash
-     task secrets:decrypt                   # Decrypt for editing
-     # Edit secrets/infrastructure-secrets.yml:
-     #   - Add your Hetzner key ID to the ssh_keys list
-     #   - Add your IP address to the allowed_ssh_ips list (use /32 for single IP, e.g., "101.56.48.148/32")
-     task secrets:encrypt                   # Re-encrypt
-     rm secrets/infrastructure-secrets.yml     # Remove unencrypted file
-     git add secrets/infrastructure-secrets.yml.enc && git commit
+     # Open secrets/infrastructure-secrets.yml in VS Code
+     # Or use CLI: SOPS_AGE_KEY_FILE=~/.config/sops/age/keys.txt sops secrets/infrastructure-secrets.yml
+     
+     # Add your Hetzner key ID to the ssh_keys list
+     # Add your IP address to allowed_ssh_ips (use /32 for single IP, e.g., "101.56.48.148/32")
+     
+     # Save and commit
+     git add secrets/infrastructure-secrets.yml && git commit -m "Add SSH key and IP for <username>"
      ```
    - Apply the firewall changes: `task terraform:apply -- dev` (or `terraform:apply -- prod` for production)
    - **Note:** `task terraform:apply -- <workspace>` requires Terraform Cloud to be initialized first, see below. If you haven't initialized yet, complete the Terraform Cloud setup first, then come back to apply the firewall changes.
@@ -94,7 +55,7 @@ Login to the server for maintenance and troubleshooting
 
 ## Terraform Cloud
 
-Team support for Terraform, see [StateManagement.md](docs/StateManagement.md) for rationale and details.
+Team support for Terraform, see [StateManagement.md](past/StateManagement.md) for rationale and details.
 
 ### Initial Setup
 
