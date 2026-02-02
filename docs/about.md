@@ -45,7 +45,7 @@ Everything is code. Everything is versioned. Nothing is magic.
 
 **Single server, done well.** Most projects don't need a cluster. They need one reliable server, properly configured.
 
-**Developer experience matters.** Edit encrypted secrets in VS Code. Run commands through Taskfile. No context-switching to web consoles.
+**Developer experience matters.** Open the repo in a Dev Container and get a consistent environment; edit encrypted secrets in VS Code; run commands through Taskfile. No context-switching to web consoles.
 
 ## What You Get
 
@@ -68,7 +68,7 @@ One `task deploy` from your app directory, and it's live.
 
 ## Getting Started
 
-See [INSTALL.md](iac/docs/INSTALL.md).
+See [INSTALL.md](INSTALL.md).
 
 ## License
 
