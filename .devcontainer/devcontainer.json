@@ -7,7 +7,7 @@
 
   "mounts": [
     "source=${localEnv:HOME}/.config/sops,target=/home/vscode/.config/sops,type=bind",
-    "source=${localEnv:HOME}/.ssh,target=/home/vscode/.ssh,type=bind,readonly",
+    "source=${localEnv:HOME}/.ssh,target=/home/vscode/.ssh,type=bind",
     "source=${localEnv:HOME}/.config/hcloud,target=/home/vscode/.config/hcloud,type=bind",
     "source=${localEnv:HOME}/.terraform.d,target=/home/vscode/.terraform.d,type=bind"
   ],

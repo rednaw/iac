@@ -17,6 +17,8 @@ tasks:
             echo "  ⚠️  Root access available, run 'task ansible:bootstrap -- $WORKSPACE' to set up ubuntu user"
           else
             echo "  ❌ Server is not reachable ($HOSTNAME)"
+            ERR=$(ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new -o BatchMode=yes "ubuntu@$HOSTNAME" "echo" 2>&1) || true
+            echo "$ERR" | sed 's/^/  │ /'
           fi
           echo ""
         done
