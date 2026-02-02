@@ -2,8 +2,10 @@ FROM mcr.microsoft.com/devcontainers/base:ubuntu-24.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install base dependencies
-RUN apt-get update && apt-get install -y \
+# Install base dependencies (BuildKit cache mounts for faster repeat builds)
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && apt-get install -y \
     curl \
     unzip \
     jq \
@@ -23,12 +25,14 @@ ENV PATH="${AQUA_ROOT_DIR}/bin:$PATH"
 
 COPY aqua.yaml ${AQUA_ROOT_DIR}/aqua.yaml
 ENV AQUA_GLOBAL_CONFIG=${AQUA_ROOT_DIR}/aqua.yaml
-RUN aqua install --all
+RUN --mount=type=cache,target=/root/.cache/aqua,sharing=locked \
+    aqua install --all
 
 # Ansible via pipx (isolated from system Python)
 ENV PIPX_HOME=/opt/pipx
 ENV PIPX_BIN_DIR=/usr/local/bin
-RUN pipx install ansible --include-deps \
+RUN --mount=type=cache,target=/root/.cache/pip,sharing=locked \
+    pipx install ansible --include-deps \
     && pipx install ansible-lint
 
 # Task completions for bash

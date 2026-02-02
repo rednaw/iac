@@ -10,6 +10,7 @@ permissions:
 
 env:
   IMAGE: ghcr.io/${{ github.repository }}/iac-dev:${{ github.sha }}
+  DOCKER_BUILDKIT: 1
 
 jobs:
   build:
@@ -36,9 +37,13 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push
-        run: |
-          docker build -t $IMAGE .
-          docker push $IMAGE
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ env.IMAGE }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
   test:
     name: Run all checks

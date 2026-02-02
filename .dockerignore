@@ -1,0 +1,17 @@
+# Exclude everything not needed for the image build.
+# Dockerfile only COPYs aqua.yaml; keep Dockerfile and aqua.yaml in context.
+
+.git
+.github
+.devcontainer
+docs
+ansible
+terraform
+scripts
+tasks
+secrets
+*.md
+LICENSE
+.gitignore
+.sops.yaml
+Taskfile.yml
