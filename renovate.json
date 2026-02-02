@@ -5,7 +5,6 @@
     "github-actions",
     "dockerfile",
     "terraform",
-    "aqua",
     "ansible-galaxy"
   ],
   "schedule": ["at 6am on Monday"],
