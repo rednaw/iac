@@ -23,7 +23,7 @@
 
 - name: Build SAN domain list
   ansible.builtin.set_fact:
-    all_domains: "{{ [cert_domain, 'registry.rednaw.nl', 'www.rednaw.nl'] }}"
+    all_domains: "{{ [cert_domain, 'registry.rednaw.nl', 'www.rednaw.nl', 'rednaw.nl'] }}"
 
 # Obtain or expand SAN certificate
 - name: Obtain/expand SAN certificate for all domains
