@@ -34,6 +34,5 @@ jobs:
         env:
           RENOVATE_REPOSITORIES: ${{ github.repository }}
           RENOVATE_GITHUB_COM_TOKEN: ${{ secrets.RENOVATE_TOKEN }}
-          LOG_LEVEL: info
-          # Manual run with "Ignore schedule" checked: run as "at any time" so PRs are created immediately
-          RENOVATE_SCHEDULE: ${{ github.event_name == 'workflow_dispatch' && inputs.ignore_schedule == true && '["at any time"]' || '["at 6am on Monday"]' }}
+          LOG_LEVEL: debug
+          RENOVATE_SCHEDULE: ${{ github.event_name == 'workflow_dispatch' && '["at any time"]' || '["at 6am on Monday"]' }}
