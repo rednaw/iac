@@ -18,6 +18,10 @@
         template: nginx-application.j2
       - name: "registry.{{ base_domain }}"
         template: nginx-registry.j2
+      - name: "www.{{ base_domain }}"
+        template: nginx-redirect-to-app.j2
+      - name: "{{ base_domain }}"
+        template: nginx-redirect-to-app.j2
 
 - name: Check if SAN certificate exists
   ansible.builtin.stat:
@@ -84,6 +88,7 @@
     domain_name: "{{ item.name }}"
     cert_domain: "{{ cert_domain }}"
     ssl_certs_exist: "{{ ssl_certs_exist }}"
+    redirect_target: "{{ cert_domain }}"
   notify: Restart nginx
 
 - name: Ensure all newly configured configs are enabled

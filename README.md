@@ -6,7 +6,7 @@ Bring me to the [documentation](docs/README.md)
 
 ![Architecture Diagram](docs/architecture.svg)
 
-## Automate everything
+## Automate everything 
 ```mermaid
 graph TB
     subgraph "Laptop"
