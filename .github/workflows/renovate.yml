@@ -6,15 +6,8 @@ name: Renovate
 
 on:
   schedule:
-    # 5am UTC Monday = 6am Amsterdam (matches renovate.json "at 6am on Monday")
     - cron: "0 5 * * 1"
   workflow_dispatch:
-    inputs:
-      ignore_schedule:
-        description: "Run now and create/update PRs (ignore weekly schedule)"
-        required: false
-        default: true
-        type: boolean
 
 permissions:
   contents: write
@@ -34,5 +27,4 @@ jobs:
         env:
           RENOVATE_REPOSITORIES: ${{ github.repository }}
           RENOVATE_GITHUB_COM_TOKEN: ${{ secrets.RENOVATE_TOKEN }}
-          LOG_LEVEL: debug
-          RENOVATE_SCHEDULE: ${{ github.event_name == 'workflow_dispatch' && '["at any time"]' || '["at 6am on Monday"]' }}
+          LOG_LEVEL: info
