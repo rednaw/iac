@@ -1,0 +1,35 @@
+{
+  "name": "IaC Development",
+  "build": {
+    "context": "..",
+    "dockerfile": "../Dockerfile"
+  },
+
+  "mounts": [
+    "source=${localEnv:HOME}/.config/sops,target=/home/vscode/.config/sops,type=bind",
+    "source=${localEnv:HOME}/.ssh,target=/home/vscode/.ssh,type=bind,readonly",
+    "source=${localEnv:HOME}/.config/hcloud,target=/home/vscode/.config/hcloud,type=bind",
+    "source=${localEnv:HOME}/.terraform.d,target=/home/vscode/.terraform.d,type=bind"
+  ],
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "signageos.signageos-vscode-sops",
+        "redhat.vscode-yaml",
+        "redhat.ansible"
+      ],
+      "settings": {
+        "sops.defaults.ageKeyFile": "/home/vscode/.config/sops/age/keys.txt"
+      }
+    }
+  },
+
+  "remoteUser": "vscode",
+  
+  "postCreateCommand": "echo '✅ Dev container ready' && task --version && sops --version && terraform --version",
+  
+  "features": {
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
+  }
+}
