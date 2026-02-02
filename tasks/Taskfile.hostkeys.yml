@@ -37,4 +37,9 @@ tasks:
           dev)  HOSTNAME="dev.rednaw.nl" ;;
           prod) HOSTNAME="prod.rednaw.nl" ;;
         esac
-        ssh-keygen -R "$HOSTNAME" -f ~/.ssh/known_hosts 2>/dev/null || true
+        KEYFILE="${HOME}/.ssh/known_hosts"
+        echo "Removing $HOSTNAME from $KEYFILE"
+        for name in "$HOSTNAME" "[${HOSTNAME}]:22"; do
+          ssh-keygen -R "$name" -f "$KEYFILE" || true
+        done
+        echo "Done"

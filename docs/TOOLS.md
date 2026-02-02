@@ -1,7 +1,8 @@
 [**<---**](README.md)
 
 ## Tools used
-The IAC setup uses the following tools:
+
+The IAC setup uses the following tools. Versions are pinned in `aqua.yaml` (CLI tools) and the root `Dockerfile` (Dev Container and CI); both use the same image.
 
 #### production
 - [Terraform](https://developer.hashicorp.com/terraform) - Infrastructure as Code tool for provisioning cloud resources
