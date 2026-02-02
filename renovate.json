@@ -7,7 +7,7 @@
     "terraform",
     "ansible-galaxy"
   ],
-  "schedule": ["at 6am on Monday"],
+  "schedule": ["at any time"],
   "timezone": "Europe/Amsterdam",
   "dependencyDashboard": true,
   "labels": ["dependencies"],
