@@ -1,0 +1,17 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "enabledManagers": [
+    "github-actions",
+    "dockerfile",
+    "terraform",
+    "aqua",
+    "ansible-galaxy"
+  ],
+  "schedule": ["at 6am on Monday"],
+  "timezone": "Europe/Amsterdam",
+  "dependencyDashboard": true,
+  "labels": ["dependencies"],
+  "prConcurrentLimit": 5,
+  "branchConcurrentLimit": 3
+}
