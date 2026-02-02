@@ -14,12 +14,5 @@
   "labels": ["dependencies"],
   "prConcurrentLimit": 10,
   "branchConcurrentLimit": 10,
-  "prHourlyLimit": 10,
-  "packageRules": [
-    {
-      "matchPackageNames": ["actions/checkout"],
-      "groupName": "actions-checkout",
-      "minimumReleaseAge": null
-    }
-  ]
+  "prHourlyLimit": 10
 }
