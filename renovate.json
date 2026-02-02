@@ -13,5 +13,12 @@
   "dependencyDashboard": true,
   "labels": ["dependencies"],
   "prConcurrentLimit": 10,
-  "branchConcurrentLimit": 10
+  "branchConcurrentLimit": 10,
+  "packageRules": [
+    {
+      "matchPackageNames": ["actions/checkout"],
+      "groupName": "actions-checkout",
+      "minimumReleaseAge": null
+    }
+  ]
 }
