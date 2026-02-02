@@ -6,11 +6,11 @@ Follow the steps below from top to bottom and you will be able to manage your in
 
 Open the repo in VS Code and use the Dev Container so all tools and versions are pre-installed:
 
-1. Install [Docker](https://docs.docker.com/get-docker/) and [VS Code](https://code.visualstudio.com/) (or [Cursor](https://cursor.com/))
+1. Install [Docker](https://docs.docker.com/get-docker/) and [VS Code](https://code.visualstudio.com/) (or [Cursor](https://cursor.com/)).
 2. Install the [Dev Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) extension.
-2. Clone the repo and open the `iac` folder in VS Code.
-3. When prompted, choose **Reopen in Container** (or Command Palette → “Dev Containers: Reopen in Container”).
-4. Wait for the image to build (first time only). After that you have Terraform, Ansible, SOPS, Task, and the rest available in the terminal.
+3. Clone the repo and open the `iac` folder in VS Code.
+4. When prompted, choose **Reopen in Container** (or Command Palette → “Dev Containers: Reopen in Container”).
+5. Wait for the image to build (first time only). After that you have Terraform, Ansible, SOPS, Task, and the rest available in the terminal.
 
 Tool versions are defined in `aqua.yaml` and `Dockerfile`; CI uses the same image. Next step is setting up credentials (SOPS key, SSH, hcloud, Terraform Cloud) as outlined below; the Dev Container mounts them from your host.
 

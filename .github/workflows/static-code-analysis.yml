@@ -97,21 +97,13 @@ jobs:
             $IMAGE \
             task test:ansible:lint
 
-      - name: Ansible collections
+      - name: Ansible collections and syntax
         run: |
           docker run --rm \
             -v ${{ github.workspace }}:/workspace \
             -w /workspace \
             $IMAGE \
-            ansible-galaxy collection install -r ansible/requirements.yml
-
-      - name: Ansible syntax
-        run: |
-          docker run --rm \
-            -v ${{ github.workspace }}:/workspace \
-            -w /workspace \
-            $IMAGE \
-            task test:ansible:syntax
+            sh -c "ansible-galaxy collection install -r ansible/requirements.yml && task test:ansible:syntax"
 
       - name: Taskfile validation
         run: |

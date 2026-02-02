@@ -68,7 +68,7 @@ One `task deploy` from your app directory, and it's live.
 
 ## Getting Started
 
-See [INSTALL.md](iac/docs/INSTALL.md).
+See [INSTALL.md](INSTALL.md).
 
 ## License
 
