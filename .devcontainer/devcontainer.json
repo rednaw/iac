@@ -27,7 +27,7 @@
 
   "remoteUser": "vscode",
   
-  "postCreateCommand": "echo '✅ Dev container ready' && task --version && sops --version && terraform --version",
+  "postCreateCommand": "echo '✅ Dev container ready' && task --version && sops --version && terraform --version && cursor-agent --version",
   
   "features": {
     "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}

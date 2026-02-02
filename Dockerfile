@@ -34,3 +34,10 @@ RUN pipx install ansible --include-deps \
 # Task completions for bash
 RUN mkdir -p /etc/bash_completion.d \
     && task --completion bash > /etc/bash_completion.d/task
+
+# Cursor CLI (agent) for terminal-based agent runs inside the devcontainer
+USER vscode
+RUN curl -fsSL https://cursor.com/install | bash
+USER root
+# Ensure agent is on PATH for vscode (install script typically uses ~/.local/bin)
+ENV PATH="/home/vscode/.local/bin:${PATH}"
