@@ -27,7 +27,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Run Renovate
-        uses: renovatebot/github-action@v46
+        # Use full tag; action version (v44.x) is separate from Renovate core version
+        uses: renovatebot/github-action@v44.2.5
         with:
           token: ${{ secrets.RENOVATE_TOKEN }}
         env:
