@@ -12,6 +12,6 @@
   "timezone": "Europe/Amsterdam",
   "dependencyDashboard": true,
   "labels": ["dependencies"],
-  "prConcurrentLimit": 5,
-  "branchConcurrentLimit": 3
+  "prConcurrentLimit": 10,
+  "branchConcurrentLimit": 10
 }
