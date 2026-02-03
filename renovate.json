@@ -8,7 +8,42 @@
     "terraform",
     "ansible-galaxy",
     "pip_requirements",
-    "mise"
+    "mise",
+    "custom.regex"
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "mise.toml: age (FiloSottile/age)",
+      "managerFilePatterns": ["^mise\\.toml$"],
+      "matchStrings": ["age\\s*=\\s*\"(?<currentValue>[^\"]+)\""],
+      "datasourceTemplate": "github-releases",
+      "packageNameTemplate": "FiloSottile/age"
+    },
+    {
+      "customType": "regex",
+      "description": "mise.toml: task (go-task/task)",
+      "managerFilePatterns": ["^mise\\.toml$"],
+      "matchStrings": ["task\\s*=\\s*\"(?<currentValue>[^\"]+)\""],
+      "datasourceTemplate": "github-releases",
+      "packageNameTemplate": "go-task/task"
+    },
+    {
+      "customType": "regex",
+      "description": "mise.toml: crane (google/go-containerregistry)",
+      "managerFilePatterns": ["^mise\\.toml$"],
+      "matchStrings": ["crane\\s*=\\s*\"(?<currentValue>[^\"]+)\""],
+      "datasourceTemplate": "github-releases",
+      "packageNameTemplate": "google/go-containerregistry"
+    },
+    {
+      "customType": "regex",
+      "description": "mise.toml: hcloud (hetznercloud/cli)",
+      "managerFilePatterns": ["^mise\\.toml$"],
+      "matchStrings": ["hcloud\\s*=\\s*\"(?<currentValue>[^\"]+)\""],
+      "datasourceTemplate": "github-releases",
+      "packageNameTemplate": "hetznercloud/cli"
+    }
   ],
   "schedule": ["at any time"],
   "timezone": "Europe/Amsterdam",
