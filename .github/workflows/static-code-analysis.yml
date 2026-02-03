@@ -83,9 +83,9 @@ jobs:
         run: |
           docker run --rm \
             -v ${{ github.workspace }}:/workspace \
-            -v ~/.config/sops:/root/.config/sops:ro \
+            -v ~/.config/sops:/home/vscode/.config/sops:ro \
             -w /workspace \
-            -e SOPS_AGE_KEY_FILE=/root/.config/sops/age/keys.txt \
+            -e SOPS_AGE_KEY_FILE=/home/vscode/.config/sops/age/keys.txt \
             $IMAGE \
             sh -c "mise trust -a && task test:terraform:validate"
 
