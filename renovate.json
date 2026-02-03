@@ -6,7 +6,8 @@
     "github-actions",
     "dockerfile",
     "terraform",
-    "ansible-galaxy"
+    "ansible-galaxy",
+    "pip_requirements"
   ],
   "schedule": ["at any time"],
   "timezone": "Europe/Amsterdam",

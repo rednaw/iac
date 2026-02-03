@@ -13,9 +13,6 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     python3 \
     python3-pip \
     python3-venv \
-    python3-yaml \
-    pipx \
-    bc \
     && rm -rf /var/lib/apt/lists/*
 
 # Install aqua (manages terraform, sops, age, yq, task, crane, hcloud, etc.)
@@ -28,12 +25,13 @@ ENV AQUA_GLOBAL_CONFIG=${AQUA_ROOT_DIR}/aqua.yaml
 RUN --mount=type=cache,target=/root/.cache/aqua,sharing=locked \
     aqua install --all
 
-# Ansible via pipx (isolated from system Python)
-ENV PIPX_HOME=/opt/pipx
-ENV PIPX_BIN_DIR=/usr/local/bin
+# Ansible + ansible-lint from declarative requirements (venv, no pipx)
+COPY requirements.txt /tmp/requirements.txt
 RUN --mount=type=cache,target=/root/.cache/pip,sharing=locked \
-    pipx install ansible --include-deps \
-    && pipx install ansible-lint
+    python3 -m venv /opt/ansible-venv \
+    && /opt/ansible-venv/bin/pip install --upgrade pip \
+    && /opt/ansible-venv/bin/pip install -r /tmp/requirements.txt
+ENV PATH="/opt/ansible-venv/bin:${PATH}"
 
 # Task completions for bash
 RUN mkdir -p /etc/bash_completion.d \
