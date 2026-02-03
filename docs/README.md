@@ -7,6 +7,7 @@
 - [Getting started](INSTALL.md)
 - [Secrets management](secrets.md)
 - [Application deployment](application-deployment.md)
+- [Upgrading dependencies](upgrading.md)
 
 </td>
 <td width="80"></td>

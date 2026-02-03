@@ -18,23 +18,5 @@ The IAC setup uses the following tools. Versions are pinned in `mise.toml` (CLI 
 - [ShellCheck](https://www.shellcheck.net/) - Finds bugs in shell scripts.
 
 #### dependency updates
-- [Renovate](https://docs.renovatebot.com/) – Automated dependency update PRs (GitHub Actions, Docker, Terraform, Ansible, etc.). See below.
-
----
-
-### Renovate (run in CI)
-
-Renovate runs **in your CI** (no separate server, no Mend app): the workflow runs on a schedule and Renovate opens PRs to update dependencies.
-
-**What gets updated**
-
-- GitHub Actions (workflow files)
-- Dockerfile base image
-- Terraform providers and lock file
-- Ansible Galaxy collections in `ansible/requirements.yml`
-- CLI tools in `mise.toml` (terraform, sops, yq, tfsec, shellcheck; others are manual)
-
-**How it runs**
-
-Workflow [`.github/workflows/renovate.yml`](../.github/workflows/renovate.yml) runs weekly (Monday before 6am). Add repository secret `RENOVATE_TOKEN` (PAT with `repo` and `workflow` scope). Config: [`renovate.json`](../renovate.json).
+- [Renovate](https://docs.renovatebot.com/) – Automated dependency update PRs. What is upgraded and what is manual is documented in [Upgrading dependencies](upgrading.md). Workflow [`.github/workflows/renovate.yml`](../.github/workflows/renovate.yml) runs weekly (Monday 05:00 Amsterdam); requires repository secret `RENOVATE_TOKEN` (PAT with `repo` and `workflow` scope).
 
