@@ -8,42 +8,7 @@
     "terraform",
     "ansible-galaxy",
     "pip_requirements",
-    "mise",
-    "custom.regex"
-  ],
-  "customManagers": [
-    {
-      "customType": "regex",
-      "description": "mise.toml: age (FiloSottile/age)",
-      "managerFilePatterns": ["^mise\\.toml$"],
-      "matchStrings": ["age\\s*=\\s*\"(?<currentValue>[^\"]+)\""],
-      "datasourceTemplate": "github-releases",
-      "packageNameTemplate": "FiloSottile/age"
-    },
-    {
-      "customType": "regex",
-      "description": "mise.toml: task (go-task/task)",
-      "managerFilePatterns": ["^mise\\.toml$"],
-      "matchStrings": ["task\\s*=\\s*\"(?<currentValue>[^\"]+)\""],
-      "datasourceTemplate": "github-releases",
-      "packageNameTemplate": "go-task/task"
-    },
-    {
-      "customType": "regex",
-      "description": "mise.toml: crane (google/go-containerregistry)",
-      "managerFilePatterns": ["^mise\\.toml$"],
-      "matchStrings": ["crane\\s*=\\s*\"(?<currentValue>[^\"]+)\""],
-      "datasourceTemplate": "github-releases",
-      "packageNameTemplate": "google/go-containerregistry"
-    },
-    {
-      "customType": "regex",
-      "description": "mise.toml: hcloud (hetznercloud/cli)",
-      "managerFilePatterns": ["^mise\\.toml$"],
-      "matchStrings": ["hcloud\\s*=\\s*\"(?<currentValue>[^\"]+)\""],
-      "datasourceTemplate": "github-releases",
-      "packageNameTemplate": "hetznercloud/cli"
-    }
+    "mise"
   ],
   "schedule": ["at any time"],
   "timezone": "Europe/Amsterdam",
@@ -55,6 +20,34 @@
   "automergeType": "pr",
   "ignoreTests": false,
   "packageRules": [
+    {
+      "description": "mise: age (FiloSottile/age)",
+      "matchDepNames": ["age"],
+      "matchManagers": ["mise"],
+      "datasource": "github-releases",
+      "packageName": "FiloSottile/age"
+    },
+    {
+      "description": "mise: task (go-task/task)",
+      "matchDepNames": ["task"],
+      "matchManagers": ["mise"],
+      "datasource": "github-releases",
+      "packageName": "go-task/task"
+    },
+    {
+      "description": "mise: crane (google/go-containerregistry)",
+      "matchDepNames": ["crane"],
+      "matchManagers": ["mise"],
+      "datasource": "github-releases",
+      "packageName": "google/go-containerregistry"
+    },
+    {
+      "description": "mise: hcloud (hetznercloud/cli)",
+      "matchDepNames": ["hcloud"],
+      "matchManagers": ["mise"],
+      "datasource": "github-releases",
+      "packageName": "hetznercloud/cli"
+    },
     {
       "description": "Automerge testing tools if they have successfully ran the tests",
       "groupName": "testing tools",
