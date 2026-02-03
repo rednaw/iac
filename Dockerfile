@@ -15,15 +15,14 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     python3-venv \
     && rm -rf /var/lib/apt/lists/*
 
-# Install aqua (manages terraform, sops, age, yq, task, crane, hcloud, etc.)
-ENV AQUA_ROOT_DIR=/opt/aqua
-RUN curl -sSfL https://raw.githubusercontent.com/aquaproj/aqua-installer/v3.0.1/aqua-installer | bash -s -- -v v2.28.0
-ENV PATH="${AQUA_ROOT_DIR}/bin:$PATH"
-
-COPY aqua.yaml ${AQUA_ROOT_DIR}/aqua.yaml
-ENV AQUA_GLOBAL_CONFIG=${AQUA_ROOT_DIR}/aqua.yaml
-RUN --mount=type=cache,target=/root/.cache/aqua,sharing=locked \
-    aqua install --all
+# Install mise (manages terraform, sops, age, yq, task, crane, hcloud, tfsec, shellcheck)
+RUN curl -sSfL https://mise.run | MISE_INSTALL_PATH=/usr/local/bin sh -s --
+ENV MISE_DATA_DIR=/opt/mise
+ENV MISE_GLOBAL_CONFIG_FILE=/opt/mise/mise.toml
+COPY mise.toml /opt/mise/mise.toml
+RUN --mount=type=cache,target=/root/.cache/mise,sharing=locked \
+    mise install
+ENV PATH="/opt/mise/shims:${PATH}"
 
 # Ansible + ansible-lint from declarative requirements (venv, no pipx)
 COPY requirements.txt /tmp/requirements.txt

@@ -2,7 +2,7 @@
 
 ## Tools used
 
-The IAC setup uses the following tools. Versions are pinned in `aqua.yaml` (CLI tools) and the root `Dockerfile` (Dev Container and CI); both use the same image.
+The IAC setup uses the following tools. Versions are pinned in `mise.toml` (CLI tools) and the root `Dockerfile` (Ansible venv); Dev Container and CI use the same image.
 
 #### production
 - [Terraform](https://developer.hashicorp.com/terraform) - Infrastructure as Code tool for provisioning cloud resources
@@ -18,7 +18,7 @@ The IAC setup uses the following tools. Versions are pinned in `aqua.yaml` (CLI 
 - [ShellCheck](https://www.shellcheck.net/) - Finds bugs in shell scripts.
 
 #### dependency updates
-- [Renovate](https://docs.renovatebot.com/) – Automated dependency update PRs (GitHub Actions, Docker, Terraform, aqua, Ansible, etc.). See below.
+- [Renovate](https://docs.renovatebot.com/) – Automated dependency update PRs (GitHub Actions, Docker, Terraform, Ansible, etc.). See below.
 
 ---
 
@@ -31,8 +31,8 @@ Renovate runs **in your CI** (no separate server, no Mend app): the workflow run
 - GitHub Actions (workflow files)
 - Dockerfile base image
 - Terraform providers and lock file
-- aqua (aquaproj) tools in `aqua.yaml`
 - Ansible Galaxy collections in `ansible/requirements.yml`
+- CLI tools in `mise.toml` (terraform, sops, yq, tfsec, shellcheck; others are manual)
 
 **How it runs**
 

@@ -1,5 +1,5 @@
 # Exclude everything not needed for the image build.
-# Dockerfile only COPYs aqua.yaml; keep Dockerfile and aqua.yaml in context.
+# Dockerfile COPYs mise.toml and requirements.txt; keep Dockerfile and those in context.
 
 .git
 .github

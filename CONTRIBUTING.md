@@ -1,6 +1,5 @@
 # Contributing
 
-Thanks for your interest in contributing
 All kinds of contributions are welcome: code, docs, ideas, bug reports, or
 just thoughtful feedback.
 
@@ -42,16 +41,6 @@ Small PRs are easier to review and merge.
 
 ---
 
-## Reporting Issues
-
-When opening an issue, it helps to include:
-
-* What you expected to happen
-* What actually happened
-* How to reproduce it (if possible)
-* Relevant logs or snippets
-
----
 
 ## Community Expectations
 
@@ -62,4 +51,4 @@ If something feels off, please speak up.
 
 ---
 
-Thanks for helping make this project better!ß
+Thanks for helping make this project better!
