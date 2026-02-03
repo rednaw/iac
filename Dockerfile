@@ -1,3 +1,7 @@
+# Official Docker approach: copy mise binary from official image then run mise install
+# https://mise.jdx.dev/installing-mise.html#docker
+FROM jdxcode/mise:latest AS mise
+
 FROM mcr.microsoft.com/devcontainers/base:ubuntu-24.04
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -15,13 +19,13 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     python3-venv \
     && rm -rf /var/lib/apt/lists/*
 
-# Install mise (manages terraform, sops, age, yq, task, crane, hcloud, tfsec, shellcheck)
-RUN curl -sSfL https://mise.run | MISE_INSTALL_PATH=/usr/local/bin sh -s --
+# Mise: copy binary from official image, then install tools from mise.toml
+COPY --from=mise /usr/local/bin/mise /usr/local/bin/mise
 ENV MISE_DATA_DIR=/opt/mise
 ENV MISE_GLOBAL_CONFIG_FILE=/opt/mise/mise.toml
 COPY mise.toml /opt/mise/mise.toml
 RUN --mount=type=cache,target=/root/.cache/mise,sharing=locked \
-    /usr/local/bin/mise install
+    mise trust -a && mise install
 ENV PATH="/opt/mise/shims:${PATH}"
 
 # Ansible + ansible-lint from declarative requirements (venv, no pipx)
