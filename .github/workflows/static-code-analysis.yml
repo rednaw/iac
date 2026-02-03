@@ -77,17 +77,18 @@ jobs:
             -v ${{ github.workspace }}:/workspace \
             -w /workspace \
             $IMAGE \
-            task test:terraform:security
+            sh -c "mise trust -a && task test:terraform:security"
 
       - name: Terraform validation
         run: |
           docker run --rm \
             -v ${{ github.workspace }}:/workspace \
-            -v ~/.config/sops:/root/.config/sops:ro \
+            -v ~/.config/sops:/home/vscode/.config/sops:ro \
             -w /workspace \
-            -e SOPS_AGE_KEY_FILE=/root/.config/sops/age/keys.txt \
+            -e SOPS_AGE_KEY_FILE=/home/vscode/.config/sops/age/keys.txt \
+            -e TF_DATA_DIR=/tmp/terraform-validate \
             $IMAGE \
-            task test:terraform:validate
+            sh -c "mise trust -a && task test:terraform:validate"
 
       - name: Ansible lint
         run: |
@@ -95,7 +96,7 @@ jobs:
             -v ${{ github.workspace }}:/workspace \
             -w /workspace \
             $IMAGE \
-            task test:ansible:lint
+            sh -c "mise trust -a && task test:ansible:lint"
 
       - name: Ansible collections and syntax
         run: |
@@ -103,7 +104,7 @@ jobs:
             -v ${{ github.workspace }}:/workspace \
             -w /workspace \
             $IMAGE \
-            sh -c "ansible-galaxy collection install -r ansible/requirements.yml && task test:ansible:syntax"
+            sh -c "mise trust -a && ansible-galaxy collection install -r ansible/requirements.yml && task test:ansible:syntax"
 
       - name: Taskfile validation
         run: |
@@ -111,4 +112,4 @@ jobs:
             -v ${{ github.workspace }}:/workspace \
             -w /workspace \
             $IMAGE \
-            task test:taskfiles
+            sh -c "mise trust -a && task test:taskfiles"

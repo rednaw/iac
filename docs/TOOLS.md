@@ -2,7 +2,7 @@
 
 ## Tools used
 
-The IAC setup uses the following tools. Versions are pinned in `aqua.yaml` (CLI tools) and the root `Dockerfile` (Dev Container and CI); both use the same image.
+The IAC setup uses the following tools. Versions are pinned in `mise.toml` (CLI tools) and the root `Dockerfile` (Ansible venv); Dev Container and CI use the same image.
 
 #### production
 - [Terraform](https://developer.hashicorp.com/terraform) - Infrastructure as Code tool for provisioning cloud resources
@@ -18,23 +18,5 @@ The IAC setup uses the following tools. Versions are pinned in `aqua.yaml` (CLI 
 - [ShellCheck](https://www.shellcheck.net/) - Finds bugs in shell scripts.
 
 #### dependency updates
-- [Renovate](https://docs.renovatebot.com/) – Automated dependency update PRs (GitHub Actions, Docker, Terraform, aqua, Ansible, etc.). See below.
-
----
-
-### Renovate (run in CI)
-
-Renovate runs **in your CI** (no separate server, no Mend app): the workflow runs on a schedule and Renovate opens PRs to update dependencies.
-
-**What gets updated**
-
-- GitHub Actions (workflow files)
-- Dockerfile base image
-- Terraform providers and lock file
-- aqua (aquaproj) tools in `aqua.yaml`
-- Ansible Galaxy collections in `ansible/requirements.yml`
-
-**How it runs**
-
-Workflow [`.github/workflows/renovate.yml`](../.github/workflows/renovate.yml) runs weekly (Monday before 6am). Add repository secret `RENOVATE_TOKEN` (PAT with `repo` and `workflow` scope). Config: [`renovate.json`](../renovate.json).
+- [Renovate](https://docs.renovatebot.com/) – Automated dependency update PRs. What is upgraded and what is manual is documented in [Upgrading dependencies](upgrading.md). Workflow [`.github/workflows/renovate.yml`](../.github/workflows/renovate.yml) runs weekly (Monday 05:00 Amsterdam); requires repository secret `RENOVATE_TOKEN` (PAT with `repo` and `workflow` scope).
 

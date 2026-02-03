@@ -12,7 +12,7 @@ Open the repo in VS Code and use the Dev Container so all tools and versions are
 4. When prompted, choose **Reopen in Container** (or Command Palette → “Dev Containers: Reopen in Container”).
 5. Wait for the image to build (first time only). After that you have Terraform, Ansible, SOPS, Task, and the rest available in the terminal.
 
-Tool versions are defined in `aqua.yaml` and `Dockerfile`; CI uses the same image. Next step is setting up credentials (SOPS key, SSH, hcloud, Terraform Cloud) as outlined below; the Dev Container mounts them from your host.
+Tool versions are defined in `mise.toml` (CLI tools) and `Dockerfile` (Ansible venv); CI uses the same image. Next step is setting up credentials (SOPS key, SSH, hcloud, Terraform Cloud) as outlined below; the Dev Container mounts them from your host.
 
 ## Initialize hcloud CLI:
 - Create API token (Hetzner console → Security → API tokens)
