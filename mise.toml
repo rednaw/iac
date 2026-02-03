@@ -3,7 +3,7 @@
 
 [tools]
 terraform  = "1.14.0"
-sops       = "3.8.1"
+sops       = "3.11.0"
 age        = "1.1.1"
 yq         = "4.40.5"
 task       = "3.40.0"
