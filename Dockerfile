@@ -21,7 +21,7 @@ ENV MISE_DATA_DIR=/opt/mise
 ENV MISE_GLOBAL_CONFIG_FILE=/opt/mise/mise.toml
 COPY mise.toml /opt/mise/mise.toml
 RUN --mount=type=cache,target=/root/.cache/mise,sharing=locked \
-    mise install
+    /usr/local/bin/mise install
 ENV PATH="/opt/mise/shims:${PATH}"
 
 # Ansible + ansible-lint from declarative requirements (venv, no pipx)
