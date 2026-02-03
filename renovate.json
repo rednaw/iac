@@ -16,5 +16,21 @@
   "labels": ["dependencies"],
   "prConcurrentLimit": 10,
   "branchConcurrentLimit": 10,
-  "prHourlyLimit": 10
+  "prHourlyLimit": 10,
+  "automergeType": "pr",
+  "ignoreTests": false,
+  "packageRules": [
+    {
+      "description": "Automerge testing tools if they have successfully ran the tests",
+      "groupName": "testing tools",
+      "matchPackageNames": ["tfsec", "shellcheck", "ansible-lint", "PyYAML"],
+      "automerge": true
+    },
+    {
+      "description": "Automerge GitHub workflows when workflows pass",
+      "groupName": "GitHub workflows",
+      "matchManagers": ["github-actions"],
+      "automerge": true
+    }
+  ]
 }
