@@ -56,34 +56,6 @@
   "ignoreTests": false,
   "packageRules": [
     {
-      "description": "mise: age (FiloSottile/age)",
-      "matchDepNames": ["age"],
-      "matchManagers": ["mise"],
-      "datasource": "github-releases",
-      "packageName": "FiloSottile/age"
-    },
-    {
-      "description": "mise: task (go-task/task)",
-      "matchDepNames": ["task"],
-      "matchManagers": ["mise"],
-      "datasource": "github-releases",
-      "packageName": "go-task/task"
-    },
-    {
-      "description": "mise: crane (google/go-containerregistry)",
-      "matchDepNames": ["crane"],
-      "matchManagers": ["mise"],
-      "datasource": "github-releases",
-      "packageName": "google/go-containerregistry"
-    },
-    {
-      "description": "mise: hcloud (hetznercloud/cli)",
-      "matchDepNames": ["hcloud"],
-      "matchManagers": ["mise"],
-      "datasource": "github-releases",
-      "packageName": "hetznercloud/cli"
-    },
-    {
       "description": "Automerge testing tools if they have successfully ran the tests",
       "groupName": "testing tools",
       "matchPackageNames": ["tfsec", "shellcheck", "ansible-lint", "PyYAML"],
