@@ -8,80 +8,17 @@
     "terraform",
     "ansible-galaxy",
     "pip_requirements",
-    "custom.regex"
+    "custom.regex",
+    "mise"
   ],
   "customManagers": [
     {
       "customType": "regex",
-      "description": "mise.toml: terraform (hashicorp/terraform)",
+      "description": "mise.toml: tools not in Renovate's built-in mise short-name list (read package from # owner/repo comment)",
       "managerFilePatterns": ["mise.toml"],
-      "matchStrings": ["terraform\\s*=\\s*\"(?<currentValue>[^\"]+)\""],
+      "matchStrings": ["(?<depName>\\w+)\\s*=\\s*\"(?<currentValue>[^\"]+)\"\\s*#\\s*(?<packageName>[^\\s\\n]+)"],
       "datasourceTemplate": "github-releases",
-      "packageNameTemplate": "hashicorp/terraform"
-    },
-    {
-      "customType": "regex",
-      "description": "mise.toml: sops (getsops/sops)",
-      "managerFilePatterns": ["mise.toml"],
-      "matchStrings": ["sops\\s*=\\s*\"(?<currentValue>[^\"]+)\""],
-      "datasourceTemplate": "github-releases",
-      "packageNameTemplate": "getsops/sops"
-    },
-    {
-      "customType": "regex",
-      "description": "mise.toml: age (FiloSottile/age)",
-      "managerFilePatterns": ["mise.toml"],
-      "matchStrings": ["age\\s*=\\s*\"(?<currentValue>[^\"]+)\""],
-      "datasourceTemplate": "github-releases",
-      "packageNameTemplate": "FiloSottile/age"
-    },
-    {
-      "customType": "regex",
-      "description": "mise.toml: yq (mikefarah/yq)",
-      "managerFilePatterns": ["mise.toml"],
-      "matchStrings": ["yq\\s*=\\s*\"(?<currentValue>[^\"]+)\""],
-      "datasourceTemplate": "github-releases",
-      "packageNameTemplate": "mikefarah/yq"
-    },
-    {
-      "customType": "regex",
-      "description": "mise.toml: task (go-task/task)",
-      "managerFilePatterns": ["mise.toml"],
-      "matchStrings": ["task\\s*=\\s*\"(?<currentValue>[^\"]+)\""],
-      "datasourceTemplate": "github-releases",
-      "packageNameTemplate": "go-task/task"
-    },
-    {
-      "customType": "regex",
-      "description": "mise.toml: crane (google/go-containerregistry)",
-      "managerFilePatterns": ["mise.toml"],
-      "matchStrings": ["crane\\s*=\\s*\"(?<currentValue>[^\"]+)\""],
-      "datasourceTemplate": "github-releases",
-      "packageNameTemplate": "google/go-containerregistry"
-    },
-    {
-      "customType": "regex",
-      "description": "mise.toml: hcloud (hetznercloud/cli)",
-      "managerFilePatterns": ["mise.toml"],
-      "matchStrings": ["hcloud\\s*=\\s*\"(?<currentValue>[^\"]+)\""],
-      "datasourceTemplate": "github-releases",
-      "packageNameTemplate": "hetznercloud/cli"
-    },
-    {
-      "customType": "regex",
-      "description": "mise.toml: tfsec (aquasecurity/tfsec)",
-      "managerFilePatterns": ["mise.toml"],
-      "matchStrings": ["tfsec\\s*=\\s*\"(?<currentValue>[^\"]+)\""],
-      "datasourceTemplate": "github-releases",
-      "packageNameTemplate": "aquasecurity/tfsec"
-    },
-    {
-      "customType": "regex",
-      "description": "mise.toml: shellcheck (koalaman/shellcheck)",
-      "managerFilePatterns": ["mise.toml"],
-      "matchStrings": ["shellcheck\\s*=\\s*\"(?<currentValue>[^\"]+)\""],
-      "datasourceTemplate": "github-releases",
-      "packageNameTemplate": "koalaman/shellcheck"
+      "autoReplaceStringTemplate": "{{{depName}}} = \"{{{newValue}}}\"  # {{{packageName}}}"
     }
   ],
   "schedule": ["at any time"],
@@ -97,7 +34,7 @@
     {
       "description": "Automerge testing tools if they have successfully ran the tests",
       "groupName": "testing tools",
-      "matchPackageNames": ["tfsec", "shellcheck", "ansible-lint", "PyYAML", "aquasecurity/tfsec", "koalaman/shellcheck"],
+      "matchPackageNames": ["tfsec", "shellcheck", "ansible-lint", "PyYAML"],
       "automerge": true
     },
     {
