@@ -1,8 +1,9 @@
 # Ansible Collection Requirements
 # Install with: task ansible:install
+# Versions are pinned for reproducibility. Renovate will create PRs for updates.
 
 collections:
   - name: ansible.posix
-    version: ">=2.0.0"
+    version: "2.1.0"
   - name: community.docker
-    version: ">=5.0.0"
+    version: "5.0.5"
