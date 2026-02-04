@@ -1,0 +1,120 @@
+# On push to main: promote tested image (by SHA) to latest, or build from main, test, and push if no image exists.
+
+name: Promote image to latest
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  REGISTRY: registry.rednaw.nl
+  IMAGE_REPO: iac/iac-dev
+  DOCKER_BUILDKIT: 1
+
+jobs:
+  promote:
+    name: Promote or build latest
+    runs-on: ubuntu-latest
+    env:
+      SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Login to private registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      # If image for this commit exists (e.g. from merged Renovate PR), re-tag as latest
+      - name: Promote existing image to latest
+        id: promote
+        run: |
+          if docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_REPO }}:${{ github.sha }} 2>/dev/null; then
+            docker tag ${{ env.REGISTRY }}/${{ env.IMAGE_REPO }}:${{ github.sha }} ${{ env.REGISTRY }}/${{ env.IMAGE_REPO }}:latest
+            docker push ${{ env.REGISTRY }}/${{ env.IMAGE_REPO }}:latest
+            echo "promoted=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "promoted=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up Docker Buildx
+        if: steps.promote.outputs.promoted != 'true'
+        uses: docker/setup-buildx-action@v3
+
+      # Build locally first; we push only after tests pass
+      - name: Build image (no existing image)
+        if: steps.promote.outputs.promoted != 'true'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_REPO }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Setup SOPS key
+        if: steps.promote.outputs.promoted != 'true'
+        run: |
+          mkdir -p ~/.config/sops/age
+          echo "$SOPS_AGE_KEY" > ~/.config/sops/age/keys.txt
+          chmod 600 ~/.config/sops/age/keys.txt
+
+      - name: Terraform security (tfsec)
+        if: steps.promote.outputs.promoted != 'true'
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}:/workspace \
+            -w /workspace \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_REPO }}:latest \
+            sh -c "mise trust -a && task test:terraform:security"
+
+      - name: Terraform validation
+        if: steps.promote.outputs.promoted != 'true'
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}:/workspace \
+            -v ~/.config/sops:/home/vscode/.config/sops:ro \
+            -w /workspace \
+            -e SOPS_AGE_KEY_FILE=/home/vscode/.config/sops/age/keys.txt \
+            -e TF_DATA_DIR=/tmp/terraform-validate \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_REPO }}:latest \
+            sh -c "mise trust -a && task test:terraform:validate"
+
+      - name: Ansible lint
+        if: steps.promote.outputs.promoted != 'true'
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}:/workspace \
+            -w /workspace \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_REPO }}:latest \
+            sh -c "mise trust -a && task test:ansible:lint"
+
+      - name: Ansible collections and syntax
+        if: steps.promote.outputs.promoted != 'true'
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}:/workspace \
+            -w /workspace \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_REPO }}:latest \
+            sh -c "mise trust -a && ansible-galaxy collection install -r ansible/requirements.yml && task test:ansible:syntax"
+
+      - name: Taskfile validation
+        if: steps.promote.outputs.promoted != 'true'
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}:/workspace \
+            -w /workspace \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_REPO }}:latest \
+            sh -c "mise trust -a && task test:taskfiles"
+
+      - name: Push image to registry (no existing image)
+        if: steps.promote.outputs.promoted != 'true'
+        run: docker push ${{ env.REGISTRY }}/${{ env.IMAGE_REPO }}:latest
