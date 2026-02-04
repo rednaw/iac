@@ -165,11 +165,9 @@ The file is encrypted. Install the VS Code SOPS extension to view it.
 
 ## CI/CD
 
-GitHub Actions uses its own key pair:
-- Public key: `iac/secrets/sops-key-github-ci.pub` (committed)
-- Private key: Stored as GitHub secret `SOPS_AGE_KEY`
-
-The CI workflow decrypts secrets during deployment using this key.
+GitHub Actions uses:
+- **SOPS:** Public key `iac/secrets/sops-key-github-ci.pub` (committed); private key in secret `SOPS_AGE_KEY` (used for Terraform validation and deployment).
+- **Private registry:** `REGISTRY_USERNAME` and `REGISTRY_PASSWORD` for `registry.rednaw.nl` (used by static-code-analysis and promote-image workflows). Use the same credentials as in `infrastructure-secrets.yml` (`registry_username` / `registry_password`).
 
 ---
 
