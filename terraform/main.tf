@@ -1,12 +1,12 @@
 # Firewall - allow SSH from specific IPs, HTTP(S) from anywhere
-resource "hcloud_firewall" "giftfinder" {
+resource "hcloud_firewall" "platform" {
   lifecycle {
     precondition {
       condition     = length(local.ssh_ips_invalid) == 0
       error_message = "Invalid CIDR blocks found. All IP addresses must be valid CIDR format (e.g., 1.2.3.4/32 or 1.2.3.4/24). Please check your infrastructure-secrets.yml file."
     }
   }
-  name = "giftfinder-firewall-${local.environment}"
+  name = "platform-firewall-${local.environment}"
 
   # SSH access
   rule {
@@ -37,7 +37,7 @@ resource "hcloud_firewall" "giftfinder" {
 }
 
 # VPS Server
-resource "hcloud_server" "giftfinder" {
+resource "hcloud_server" "platform" {
   lifecycle {
     precondition {
       condition     = length(local.ssh_keys_invalid) == 0
@@ -53,7 +53,7 @@ resource "hcloud_server" "giftfinder" {
   server_type  = var.server_type
   location     = var.server_location
   ssh_keys     = local.ssh_keys
-  firewall_ids = [hcloud_firewall.giftfinder.id]
+  firewall_ids = [hcloud_firewall.platform.id]
 
   labels = {
     environment = local.environment
