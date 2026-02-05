@@ -25,15 +25,15 @@ tasks:
         msg: "SOPS key file not found. Run 'task secrets:keygen' first."
     cmds:
       - |
-        echo "🚀 Initializing Terraform for workspace: giftfinder-{{.WORKSPACE}}..."
+        echo "🚀 Initializing Terraform for workspace: platform-{{.WORKSPACE}}..."
         SOPS_AGE_KEY_FILE="{{.SOPS_KEY_FILE}}" terraform init -reconfigure
         if ! terraform workspace select "{{.WORKSPACE}}" 2>/dev/null; then
           echo ""
-          echo "Workspace 'giftfinder-{{.WORKSPACE}}' not found in Terraform Cloud"
+          echo "Workspace 'platform-{{.WORKSPACE}}' not found in Terraform Cloud"
           echo ""
           echo "Create the workspace first in Terraform Cloud:"
-          echo "  1. Go to Terraform Cloud → Organization 'milledoni'"
-          echo "  2. Create workspace: 'giftfinder-{{.WORKSPACE}}'"
+          echo "  1. Go to Terraform Cloud → Organization 'rednaw'"
+          echo "  2. Create workspace: 'platform-{{.WORKSPACE}}'"
           echo ""
           echo "See README.md for detailed setup instructions."
           exit 1
@@ -54,7 +54,7 @@ tasks:
         msg: "SOPS key file not found. Run 'task secrets:keygen' first."
     cmds:
       - |
-        echo "📋 Planning Terraform changes for workspace: giftfinder-{{.WORKSPACE}}..."
+        echo "📋 Planning Terraform changes for workspace: platform-{{.WORKSPACE}}..."
         terraform workspace select "{{.WORKSPACE}}"
         SOPS_AGE_KEY_FILE="{{.SOPS_KEY_FILE}}" terraform plan
 
@@ -73,7 +73,7 @@ tasks:
         msg: "SOPS key file not found. Run 'task secrets:keygen' first."
     cmds:
       - |
-        echo "✨ Applying Terraform changes to workspace: giftfinder-{{.WORKSPACE}}"
+        echo "✨ Applying Terraform changes to workspace: platform-{{.WORKSPACE}}"
         terraform workspace select "{{.WORKSPACE}}"
         echo "🔑 Removing old host key for workspace from known_hosts..."
         task hostkeys:prepare -- "{{.WORKSPACE}}"
@@ -97,7 +97,7 @@ tasks:
         msg: "SOPS key file not found. Run 'task secrets:keygen' first."
     cmds:
       - |
-        echo "⚠️  WARNING: This will DESTROY all resources in workspace: giftfinder-{{.WORKSPACE}}"
+        echo "⚠️  WARNING: This will DESTROY all resources in workspace: platform-{{.WORKSPACE}}"
         echo "Terraform will ask for confirmation..."
         echo ""
         terraform workspace select "{{.WORKSPACE}}"
@@ -119,5 +119,5 @@ tasks:
     cmds:
       - |
         terraform workspace select "{{.WORKSPACE}}"
-        echo "📤 Getting Terraform outputs for workspace: giftfinder-{{.WORKSPACE}}..."
+        echo "📤 Getting Terraform outputs for workspace: platform-{{.WORKSPACE}}..."
         terraform output

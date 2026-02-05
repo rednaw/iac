@@ -2,12 +2,12 @@ terraform {
   required_version = "~> 1.14.0"
 
   backend "remote" {
-    organization = "milledoni"
+    organization = "rednaw"
     workspaces {
       # Workspaces are selected via terraform workspace select command
-      # Expected workspaces: giftfinder-dev, giftfinder-prod
-      # Use prefix to match all giftfinder workspaces
-      prefix = "giftfinder-"
+      # Expected workspaces: platform-dev, platform-prod
+      # Use prefix to match all platform workspaces
+      prefix = "platform-"
     }
   }
 

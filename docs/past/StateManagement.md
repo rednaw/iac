@@ -58,9 +58,9 @@ Terraform Cloud solves all the fundamental problems of state management:
 - **Vendor dependence**: Relies on HashiCorp's uptime and policies
 
 **Setup**
-- Organization: `milledoni`
-- Workspaces: `giftfinder-dev`, `giftfinder-prod` (separate workspaces per environment)
-- Backend prefix: `giftfinder-` (matches all workspaces with this prefix)
+- Organization: `rednaw`
+- Workspaces: `platform-dev`, `platform-prod` (separate workspaces per environment)
+- Backend prefix: `platform-` (matches all workspaces with this prefix)
 - Authentication: Via `terraform login` or manual token in `~/.terraform.d/credentials.tfrc.json`
 
 **When this is a good fit**
@@ -184,9 +184,9 @@ Terraform Cloud solves all the fundamental problems of state management:
 ### Current Implementation
 
 **Active**: Terraform Cloud backend
-- **Organization**: `milledoni`
-- **Workspaces**: `giftfinder-dev`, `giftfinder-prod` (separate state per environment)
-- **Backend configuration**: Uses prefix `giftfinder-` to match all workspaces
+- **Organization**: `rednaw`
+- **Workspaces**: `platform-dev`, `platform-prod` (separate state per environment)
+- **Backend configuration**: Uses prefix `platform-` to match all workspaces
 - **State location**: Terraform Cloud (remote, separate state per workspace)
 - **Locking**: Automatic (prevents concurrent applies)
 - **Team access**: All team members with Terraform Cloud accounts can access
@@ -200,9 +200,9 @@ Terraform Cloud solves all the fundamental problems of state management:
 
 **For team members**:
 1. Create Terraform Cloud account
-2. Get added to `milledoni` organization
+2. Get added to `rednaw` organization
 3. Run `terraform login` to authenticate
-4. Create workspaces in Terraform Cloud: `giftfinder-dev` and `giftfinder-prod` (one-time setup)
+4. Create workspaces in Terraform Cloud: `platform-dev` and `platform-prod` (one-time setup)
 5. Run `task terraform:init -- dev` or `task terraform:init -- prod` (will connect to remote backend automatically)
 
 ---

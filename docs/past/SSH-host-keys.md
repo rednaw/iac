@@ -233,7 +233,7 @@ Decisions below. **Err on simplicity; no backwards compatibility.**
 
 | # | Decision | Options | Recommendation |
 |---|----------|---------|----------------|
-| 1 | **Exact hostnames** | `dev.rednaw.nl` / `prod.rednaw.nl` vs `giftfinder-dev.rednaw.nl` / `giftfinder-prod.rednaw.nl` | **`dev.rednaw.nl` / `prod.rednaw.nl`** — shorter, doc already uses them. Use consistently everywhere. |
+| 1 | **Exact hostnames** | `dev.rednaw.nl` / `prod.rednaw.nl` vs `platform-dev.rednaw.nl` / `platform-prod.rednaw.nl` | **`dev.rednaw.nl` / `prod.rednaw.nl`** — shorter, doc already uses them. Use consistently everywhere. |
 | 2 | **Where to keep workspace→hostname mapping** | Taskfile `vars` vs `scripts/hostname-for-workspace.sh` | **Taskfile vars only** — one place, no extra script. |
 | 3 | **`ssh-keygen -R "[hostname]"` (bracketed form)** | Do it or skip | **Skip** — bracketed form is for `[ip]:port`. Hostnames don’t need it. |
 | 4 | **site.yml pre_task** (`ssh-keygen -R` delegated to localhost) | Remove vs keep as “best-effort” | **Remove** — it runs after Ansible connects, so it never fixes verification. Redundant once we do pre-connection cleanup. |
@@ -249,7 +249,7 @@ Decisions below. **Err on simplicity; no backwards compatibility.**
 - No `StrictHostKeyChecking=no` or `ANSIBLE_HOST_KEY_CHECKING=False`. `accept-new` only.
 - Remove Terraform inventory generation. Hardcoded `ansible/inventory/dev.ini`, `prod.ini`.
 - Remove `ansible/inventory/*.ini` from `.gitignore` — we commit them.
-- Terraform `server_name` (e.g. `giftfinder-dev`) stays for **Hetzner server name** only. SSH/Ansible use **hostname** only.
+- Terraform `server_name` (e.g. `platform-dev`) stays for **Hetzner server name** only. SSH/Ansible use **hostname** only.
 
 ---
 
