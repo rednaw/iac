@@ -61,24 +61,24 @@ Team support for Terraform, see [StateManagement.md](past/StateManagement.md) fo
 
 ### Initial Setup
 
-- Terraform Cloud account and organization (`milledoni`) created
+- Terraform Cloud account and organization (`rednaw`) created
 - Execution mode set to `Local` at organization level
 - Backend configured in `terraform/versions.tf`:
-  - Organization: `milledoni`
-  - Workspaces: `giftfinder-dev`, `giftfinder-prod` (separate environments)
+  - Organization: `rednaw`
+  - Workspaces: `platform-dev`, `platform-prod` (separate environments)
 
 ### Workspace Setup
 
 **Create workspaces in Terraform Cloud (one-time setup):**
 
-1. Go to Terraform Cloud → Organization `milledoni`
-2. Create workspace: `giftfinder-dev`
-   - **Workspace name:** `giftfinder-dev`
-3. Create workspace: `giftfinder-prod`
-   - **Workspace name:** `giftfinder-prod`
+1. Go to Terraform Cloud → Organization `rednaw`
+2. Create workspace: `platform-dev`
+   - **Workspace name:** `platform-dev`
+3. Create workspace: `platform-prod`
+   - **Workspace name:** `platform-prod`
 
 **Notes:** 
-- The environment is automatically derived from the workspace name (e.g., `giftfinder-dev` → `dev`)
+- The environment is automatically derived from the workspace name (e.g., `platform-dev` → `dev`)
 - Other variables (server_type, server_location, etc.) can be set via `-var` flags or `.tfvars` files if you want different configurations per environment
 - Workspaces must be created in Terraform Cloud before running `task terraform:init -- dev` or `terraform:init -- prod`
 - **Important:** Use `--` separator when passing workspace arguments (e.g., `task terraform:init -- dev`)
@@ -87,7 +87,7 @@ Team support for Terraform, see [StateManagement.md](past/StateManagement.md) fo
 
 #### Get added to organization:
 
-Ask an existing team member to add you to the `milledoni` organization in Terraform Cloud
+Ask an existing team member to add you to the `rednaw` organization in Terraform Cloud
 
 #### Authenticate:
 ```bash
