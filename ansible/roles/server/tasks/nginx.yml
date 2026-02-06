@@ -18,6 +18,8 @@
         template: nginx-application.j2
       - name: "registry.{{ base_domain }}"
         template: nginx-registry.j2
+      - name: "monitoring.{{ base_domain }}"
+        template: nginx-openobserve.j2
       - name: "www.{{ base_domain }}"
         template: nginx-redirect-to-app.j2
       - name: "{{ base_domain }}"

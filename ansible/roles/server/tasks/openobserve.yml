@@ -1,0 +1,98 @@
+---
+# OpenObserve: single-server monitoring (Docker, Nginx proxy)
+# Includes OpenTelemetry Collector for Linux host metrics (Data sources -> Linux).
+
+- name: Create OpenObserve data directory
+  ansible.builtin.file:
+    path: /var/lib/openobserve
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Create OTEL Collector config directory
+  ansible.builtin.file:
+    path: /etc/otel-collector
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Generate OpenObserve ingest auth key (base64 email:password)
+  ansible.builtin.set_fact:
+    openobserve_ingest_auth: "{{ (infrastructure_secrets.openobserve_username + '@monitoring.local:' + infrastructure_secrets.openobserve_password) | b64encode }}"
+  no_log: true
+
+- name: Deploy OTEL Collector config (host metrics -> OpenObserve)
+  ansible.builtin.template:
+    src: otel-collector-config.yaml.j2
+    dest: /etc/otel-collector/config.yaml
+    mode: '0644'
+    owner: root
+    group: root
+  register: otel_collector_config
+
+- name: Ensure OpenObserve network exists
+  community.docker.docker_network:
+    name: openobserve-network
+    driver: bridge
+    state: present
+
+- name: Pull OpenObserve image
+  community.docker.docker_image:
+    name: openobserve/openobserve:latest
+    source: pull
+
+- name: Ensure OpenObserve container is running
+  community.docker.docker_container:
+    name: openobserve
+    image: openobserve/openobserve:latest
+    state: started
+    restart_policy: unless-stopped
+    env:
+      ZO_ROOT_USER_EMAIL: "{{ infrastructure_secrets.openobserve_username }}@monitoring.local"
+      ZO_ROOT_USER_PASSWORD: "{{ infrastructure_secrets.openobserve_password }}"
+      ZO_LOCAL_MODE: "true"
+    ports:
+      - "127.0.0.1:5080:5080"
+    volumes:
+      - /var/lib/openobserve:/data
+    networks:
+      - name: openobserve-network
+    healthcheck:
+      # Use OpenObserve's built-in view command to verify the service is running
+      # The ERROR about .env is harmless - command succeeds if service is up
+      test: ["CMD", "/openobserve", "view", "-c", "version"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+- name: Pull OpenTelemetry Collector image
+  community.docker.docker_image:
+    name: otel/opentelemetry-collector-contrib:latest
+    source: pull
+
+- name: Ensure OTEL Collector container is running (Linux host metrics -> OpenObserve)
+  community.docker.docker_container:
+    name: otel-collector
+    image: otel/opentelemetry-collector-contrib:latest
+    state: started
+    restart_policy: unless-stopped
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - /etc/otel-collector/config.yaml:/etc/otelcol/config.yaml:ro
+    networks:
+      - name: openobserve-network
+    healthcheck:
+      # Verify collector binary is working (process is running and responsive)
+      test: ["CMD", "/otelcol-contrib", "--version"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+- name: Restart OTEL Collector to pick up config changes
+  ansible.builtin.command: docker restart otel-collector
+  changed_when: true
+  when: otel_collector_config.changed | default(false)

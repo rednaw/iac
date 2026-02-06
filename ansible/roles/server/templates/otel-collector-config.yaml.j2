@@ -1,0 +1,27 @@
+# OpenTelemetry Collector: host metrics (+ optional logs) -> OpenObserve
+# Matches OpenObserve UI "Data sources -> Linux" (openobserve/agents install.sh).
+# Endpoint = base URL only; auth = Basic with key from UI.
+
+receivers:
+  hostmetrics:
+    collection_interval: 30s
+    scrapers:
+      cpu: {}
+      disk: {}
+      load: {}
+      memory: {}
+      network: {}
+
+exporters:
+  otlphttp:
+    endpoint: http://openobserve:5080/api/default/
+    tls:
+      insecure: true
+    headers:
+      Authorization: "Basic {{ openobserve_ingest_auth }}"
+
+service:
+  pipelines:
+    metrics:
+      receivers: [hostmetrics]
+      exporters: [otlphttp]
