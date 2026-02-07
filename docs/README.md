@@ -8,6 +8,7 @@
 - [Secrets management](secrets.md)
 - [Application deployment](application-deployment.md)
 - [Upgrading dependencies](upgrading.md)
+- [Monitoring](monitoring.md)
 
 </td>
 <td width="80"></td>

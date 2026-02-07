@@ -19,3 +19,7 @@
 - name: Reload systemd
   ansible.builtin.systemd:
     daemon_reload: true
+
+- name: Restart OTEL Collector
+  ansible.builtin.command: docker restart otel-collector
+  changed_when: true

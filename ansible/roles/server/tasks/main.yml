@@ -31,3 +31,6 @@
 
 - name: Configure registry
   ansible.builtin.import_tasks: registry.yml
+
+- name: Configure OpenObserve
+  ansible.builtin.import_tasks: openobserve.yml
