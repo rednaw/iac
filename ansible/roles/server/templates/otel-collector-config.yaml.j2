@@ -1,4 +1,4 @@
-# OpenTelemetry Collector: host metrics (+ optional logs) -> OpenObserve
+# OpenTelemetry Collector: host metrics + Docker container metrics -> OpenObserve
 # Matches OpenObserve UI "Data sources -> Linux" (openobserve/agents install.sh).
 # Endpoint = base URL only; auth = Basic with key from UI.
 
@@ -8,9 +8,24 @@ receivers:
     scrapers:
       cpu: {}
       disk: {}
+      filesystem:
+        include_mount_points:
+          mount_points:
+            - /var/lib/openobserve
+            - /var/lib/docker-registry
+        include_fs_types:
+          - ext4
+          - xfs
+          - btrfs
       load: {}
       memory: {}
       network: {}
+  
+  # Docker container metrics (CPU, memory, network, health status)
+  docker_stats:
+    endpoint: "unix:///var/run/docker.sock"
+    collection_interval: 30s
+    timeout: 5s
 
 exporters:
   otlphttp:
@@ -23,5 +38,5 @@ exporters:
 service:
   pipelines:
     metrics:
-      receivers: [hostmetrics]
+      receivers: [hostmetrics, docker_stats]
       exporters: [otlphttp]

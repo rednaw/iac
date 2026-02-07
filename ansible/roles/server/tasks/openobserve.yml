@@ -53,6 +53,7 @@
       ZO_ROOT_USER_EMAIL: "{{ infrastructure_secrets.openobserve_username }}@monitoring.local"
       ZO_ROOT_USER_PASSWORD: "{{ infrastructure_secrets.openobserve_password }}"
       ZO_LOCAL_MODE: "true"
+      ZO_RETENTION_DAYS: "7"
     ports:
       - "127.0.0.1:5080:5080"
     volumes:
@@ -60,8 +61,6 @@
     networks:
       - name: openobserve-network
     healthcheck:
-      # Use OpenObserve's built-in view command to verify the service is running
-      # The ERROR about .env is harmless - command succeeds if service is up
       test: ["CMD", "/openobserve", "view", "-c", "version"]
       interval: 30s
       timeout: 5s
@@ -73,19 +72,20 @@
     name: otel/opentelemetry-collector-contrib:latest
     source: pull
 
-- name: Ensure OTEL Collector container is running (Linux host metrics -> OpenObserve)
+- name: Ensure OTEL Collector container is running (Linux host metrics + Docker -> OpenObserve)
   community.docker.docker_container:
     name: otel-collector
     image: otel/opentelemetry-collector-contrib:latest
     state: started
     restart_policy: unless-stopped
+    user: "0"
     command: ["--config=/etc/otelcol/config.yaml"]
     volumes:
       - /etc/otel-collector/config.yaml:/etc/otelcol/config.yaml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - name: openobserve-network
     healthcheck:
-      # Verify collector binary is working (process is running and responsive)
       test: ["CMD", "/otelcol-contrib", "--version"]
       interval: 30s
       timeout: 5s
@@ -96,3 +96,49 @@
   ansible.builtin.command: docker restart otel-collector
   changed_when: true
   when: otel_collector_config.changed | default(false)
+
+- name: Wait for OpenObserve API to be ready
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:5080/api/health"
+    method: GET
+    status_code: [200, 401]
+  register: openobserve_health
+  until: openobserve_health.status in [200, 401]
+  retries: 10
+  delay: 5
+  ignore_errors: true
+
+- name: Get existing dashboards
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:5080/api/default/dashboards"
+    method: GET
+    headers:
+      Authorization: "Basic {{ openobserve_ingest_auth }}"
+    status_code: [200, 401, 404]
+  register: openobserve_dashboards_list
+  when: openobserve_health.status in [200, 401]
+  failed_when: false
+
+- name: Import Host Metrics dashboard from file
+  block:
+    - name: Read dashboard JSON
+      ansible.builtin.set_fact:
+        openobserve_dashboard_body: "{{ lookup('file', role_path + '/files/openobserve-host-metrics.json') | from_json }}"
+
+    - name: Set dashboard title for idempotency check
+      ansible.builtin.set_fact:
+        openobserve_dashboard_title: "{{ openobserve_dashboard_body.title | default(openobserve_dashboard_body.v8.title) | default('Host Metrics') }}"
+
+    - name: Import dashboard (skip if already exists)
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:5080/api/default/dashboards"
+        method: POST
+        headers:
+          Authorization: "Basic {{ openobserve_ingest_auth }}"
+          Content-Type: "application/json"
+        body_format: json
+        body: "{{ openobserve_dashboard_body }}"
+        status_code: [200, 201, 409]
+      when: (openobserve_dashboards_list.json.dashboards | default([]) | selectattr('v8.title', 'equalto', openobserve_dashboard_title) | list | length) == 0
+      failed_when: false
+  when: openobserve_health.status in [200, 401]

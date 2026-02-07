@@ -52,7 +52,6 @@ This section documents known security risks that have been reviewed and accepted
 
 | Risk | Severity | Status | Mitigations | Notes |
 |------|----------|--------|-------------|-------|
-| No monitoring/alerting | MEDIUM | Accepted | Infrastructure-as-code for recovery | Will be added before production traffic |
 | No backup | MEDIUM | Accepted | Infrastructure can be recreated via Terraform | Will be added before production data |
 | No Terraform state backup | LOW | Accepted | State stored in Terraform Cloud, can be restored via `terraform import` if lost | Infrastructure is reproducible from code |
 | No automated secret rotation | LOW | Accepted | Manual rotation process | Pragmatic tradeoff |
