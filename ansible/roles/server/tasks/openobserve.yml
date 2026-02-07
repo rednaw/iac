@@ -1,6 +1,5 @@
 ---
-# OpenObserve: single-server monitoring (Docker, Nginx proxy)
-# Includes OpenTelemetry Collector for Linux host metrics (Data sources -> Linux).
+# OpenObserve + OTEL Collector (host and Docker metrics). Dashboard import from role files.
 
 - name: Create OpenObserve data directory
   ansible.builtin.file:
@@ -139,6 +138,8 @@
         body_format: json
         body: "{{ openobserve_dashboard_body }}"
         status_code: [200, 201, 409]
-      when: (openobserve_dashboards_list.json.dashboards | default([]) | selectattr('v8.title', 'equalto', openobserve_dashboard_title) | list | length) == 0
+      when: (openobserve_dashboards_list.json.dashboards | default(openobserve_dashboards_list.json.list) | default([]) | selectattr('v8.title', 'equalto', openobserve_dashboard_title) | list | length) == 0
       failed_when: false
-  when: openobserve_health.status in [200, 401]
+  when:
+    - openobserve_health.status in [200, 401]
+    - openobserve_dashboards_list.status == 200

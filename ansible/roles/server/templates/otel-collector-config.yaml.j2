@@ -1,6 +1,4 @@
-# OpenTelemetry Collector: host metrics + Docker container metrics -> OpenObserve
-# Matches OpenObserve UI "Data sources -> Linux" (openobserve/agents install.sh).
-# Endpoint = base URL only; auth = Basic with key from UI.
+# OTEL Collector: host + Docker metrics -> OpenObserve. Auth = Basic (email:password from secrets).
 
 receivers:
   hostmetrics:
