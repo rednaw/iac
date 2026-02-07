@@ -11,10 +11,13 @@ receivers:
           mount_points:
             - /var/lib/openobserve
             - /var/lib/docker-registry
+          match_type: strict
         include_fs_types:
-          - ext4
-          - xfs
-          - btrfs
+          fs_types:
+            - ext4
+            - xfs
+            - btrfs
+          match_type: strict
       load: {}
       memory: {}
       network: {}
@@ -26,7 +29,7 @@ receivers:
     timeout: 5s
 
 exporters:
-  otlphttp:
+  otlp_http:
     endpoint: http://openobserve:5080/api/default/
     tls:
       insecure: true
@@ -37,4 +40,4 @@ service:
   pipelines:
     metrics:
       receivers: [hostmetrics, docker_stats]
-      exporters: [otlphttp]
+      exporters: [otlp_http]
