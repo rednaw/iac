@@ -1,0 +1,43 @@
+# OTEL Collector: host + Docker metrics -> OpenObserve. Auth = Basic (email:password from secrets).
+
+receivers:
+  hostmetrics:
+    collection_interval: 30s
+    scrapers:
+      cpu: {}
+      disk: {}
+      filesystem:
+        include_mount_points:
+          mount_points:
+            - /var/lib/openobserve
+            - /var/lib/docker-registry
+          match_type: strict
+        include_fs_types:
+          fs_types:
+            - ext4
+            - xfs
+            - btrfs
+          match_type: strict
+      load: {}
+      memory: {}
+      network: {}
+  
+  # Docker container metrics (CPU, memory, network, health status)
+  docker_stats:
+    endpoint: "unix:///var/run/docker.sock"
+    collection_interval: 30s
+    timeout: 5s
+
+exporters:
+  otlp_http:
+    endpoint: http://openobserve:5080/api/default/
+    tls:
+      insecure: true
+    headers:
+      Authorization: "Basic {{ openobserve_ingest_auth }}"
+
+service:
+  pipelines:
+    metrics:
+      receivers: [hostmetrics, docker_stats]
+      exporters: [otlp_http]

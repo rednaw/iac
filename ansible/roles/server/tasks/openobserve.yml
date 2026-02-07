@@ -1,0 +1,140 @@
+---
+# OpenObserve + OTEL Collector (host and Docker metrics). Dashboard import from role files.
+
+- name: Create OpenObserve data directory
+  ansible.builtin.file:
+    path: /var/lib/openobserve
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Create OTEL Collector config directory
+  ansible.builtin.file:
+    path: /etc/otel-collector
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Generate OpenObserve ingest auth key (base64 email:password)
+  ansible.builtin.set_fact:
+    openobserve_ingest_auth: "{{ (infrastructure_secrets.openobserve_username + '@monitoring.local:' + infrastructure_secrets.openobserve_password) | b64encode }}"
+  no_log: true
+
+- name: Deploy OTEL Collector config (host metrics -> OpenObserve)
+  ansible.builtin.template:
+    src: otel-collector-config.yaml.j2
+    dest: /etc/otel-collector/config.yaml
+    mode: '0644'
+    owner: root
+    group: root
+  notify: Restart OTEL Collector
+
+- name: Ensure OpenObserve network exists
+  community.docker.docker_network:
+    name: openobserve-network
+    driver: bridge
+    state: present
+
+- name: Pull OpenObserve image
+  community.docker.docker_image:
+    name: openobserve/openobserve:latest
+    source: pull
+
+- name: Ensure OpenObserve container is running
+  community.docker.docker_container:
+    name: openobserve
+    image: openobserve/openobserve:latest
+    state: started
+    restart_policy: unless-stopped
+    env:
+      ZO_ROOT_USER_EMAIL: "{{ infrastructure_secrets.openobserve_username }}@monitoring.local"
+      ZO_ROOT_USER_PASSWORD: "{{ infrastructure_secrets.openobserve_password }}"
+      ZO_LOCAL_MODE: "true"
+      ZO_RETENTION_DAYS: "7"
+    ports:
+      - "127.0.0.1:5080:5080"
+    volumes:
+      - /var/lib/openobserve:/data
+    networks:
+      - name: openobserve-network
+    healthcheck:
+      test: ["CMD", "/openobserve", "view", "-c", "version"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+- name: Pull OpenTelemetry Collector image
+  community.docker.docker_image:
+    name: otel/opentelemetry-collector-contrib:latest
+    source: pull
+
+- name: Ensure OTEL Collector container is running (Linux host metrics + Docker -> OpenObserve)
+  community.docker.docker_container:
+    name: otel-collector
+    image: otel/opentelemetry-collector-contrib:latest
+    state: started
+    restart_policy: unless-stopped
+    user: "0"
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - /etc/otel-collector/config.yaml:/etc/otelcol/config.yaml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - name: openobserve-network
+    healthcheck:
+      test: ["CMD", "/otelcol-contrib", "--version"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+- name: Wait for OpenObserve API to be ready
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:5080/api/health"
+    method: GET
+    status_code: [200, 401]
+  register: openobserve_health
+  until: openobserve_health.status in [200, 401]
+  retries: 10
+  delay: 5
+  ignore_errors: true
+
+- name: Get existing dashboards
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:5080/api/default/dashboards"
+    method: GET
+    headers:
+      Authorization: "Basic {{ openobserve_ingest_auth }}"
+    status_code: [200, 401, 404]
+  register: openobserve_dashboards_list
+  when: openobserve_health.status in [200, 401]
+  failed_when: false
+
+- name: Import Host Metrics dashboard from file
+  when:
+    - openobserve_health.status in [200, 401]
+    - openobserve_dashboards_list.status == 200
+  block:
+    - name: Read dashboard JSON
+      ansible.builtin.set_fact:
+        openobserve_dashboard_body: "{{ lookup('file', role_path + '/files/openobserve-host-metrics.json') | from_json }}"
+
+    - name: Set list of existing dashboard titles (safe when v8 is null)
+      ansible.builtin.set_fact:
+        openobserve_existing_titles: "{{ (openobserve_dashboards_list.json.dashboards | default(openobserve_dashboards_list.json.list) | default([]) | rejectattr('v8', 'none') | map(attribute='v8') | map(attribute='title', default='') | list) }}"
+
+    - name: Import dashboard (skip if Host Metrics already exists)
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:5080/api/default/dashboards"
+        method: POST
+        headers:
+          Authorization: "Basic {{ openobserve_ingest_auth }}"
+          Content-Type: "application/json"
+        body_format: json
+        body: "{{ openobserve_dashboard_body }}"
+        status_code: [200, 201, 409]
+      when: "'Host Metrics' not in (openobserve_existing_titles | default([]))"
+      failed_when: false
