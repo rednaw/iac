@@ -114,6 +114,9 @@
   failed_when: false
 
 - name: Import Host Metrics dashboard from file
+  when:
+    - openobserve_health.status in [200, 401]
+    - openobserve_dashboards_list.status == 200
   block:
     - name: Read dashboard JSON
       ansible.builtin.set_fact:
@@ -135,6 +138,3 @@
         status_code: [200, 201, 409]
       when: "'Host Metrics' not in (openobserve_existing_titles | default([]))"
       failed_when: false
-  when:
-    - openobserve_health.status in [200, 401]
-    - openobserve_dashboards_list.status == 200
