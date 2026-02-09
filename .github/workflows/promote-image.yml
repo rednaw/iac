@@ -88,6 +88,8 @@ jobs:
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_REPO }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          build-args: |
+            GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
 
 
       - name: Terraform security (tfsec)
