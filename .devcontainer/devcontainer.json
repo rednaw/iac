@@ -5,6 +5,7 @@
     "dockerfile": "../Dockerfile"
   },
 
+
   "mounts": [
     "source=${localEnv:HOME}/.config/sops,target=/home/vscode/.config/sops,type=bind",
     "source=${localEnv:HOME}/.ssh,target=/home/vscode/.ssh,type=bind",
@@ -27,8 +28,10 @@
 
   "remoteUser": "vscode",
   
-  "postCreateCommand": "echo '✅ Dev container ready' && task --version && sops --version && terraform --version && cursor-agent --version",
-  
+  "postCreateCommand": "mise trust -a && echo '✅ Dev container ready' && task --version && sops --version && terraform --version && cursor-agent --version",
+
+  "postStartCommand": "bash scripts/devcontainer-registry-login.sh",
+
   "features": {
     "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
   }

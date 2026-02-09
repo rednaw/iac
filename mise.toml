@@ -14,4 +14,5 @@ task       = "3.48.0"   # go-task/task
 crane      = "0.20.7"   # google/go-containerregistry
 hcloud     = "1.61.0"   # hetznercloud/cli
 tfsec      = "1.28.14"
+trivy      = "0.69.1"
 shellcheck = "0.11.0"

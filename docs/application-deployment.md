@@ -88,7 +88,7 @@ task iac:deploy -- prod abc1234
 
 **Error handling:**
 - Tag doesn't exist → Clear error with crane output
-- Image not found → Suggests `docker login`
+- Image not found → See [Registry](registry.md#authentication-how-to-log-in)
 - Invalid environment → Validation error
 - Missing required vars → Error with message
 
@@ -265,8 +265,7 @@ deployment:
 ### Deployment Failures
 
 **"Could not resolve digest"**
-- Check image exists: `crane ls registry.rednaw.nl/rednaw/app`
-- Verify registry auth: `docker login registry.rednaw.nl`
+- Check image exists and registry auth: see [Registry](registry.md#troubleshooting)
 - Check tag format (7 hex characters)
 
 **"missing required vars"**
@@ -289,23 +288,11 @@ deployment:
 - Verify app name matches directory name
 
 **"No tags found"**
-- Image repository may not exist
-- Check registry access: `docker login registry.rednaw.nl`
-- Verify image name is correct
+- Image repository may not exist; check registry access: see [Registry](registry.md#troubleshooting)
 
 ---
 
-## Registry Tools
-
-### `task registry:overview`
-
-List all repositories and tags in the registry:
-
-```bash
-task registry:overview
-```
-
-Shows TAG, CREATED, DESCRIPTION for all repos. Useful for global registry inspection.
+[Registry](registry.md) documents overview, commands, and troubleshooting.
 
 ---
 
@@ -320,6 +307,7 @@ Shows TAG, CREATED, DESCRIPTION for all repos. Useful for global registry inspec
 
 ## See Also
 
+- [Registry](registry.md) — Private registry auth, commands, troubleshooting
 - [Developer Guide](../../hello-world/README.md) — For application developers
 - [SSH Host Keys](SSH-host-keys.md) — Host key management
 - [Ansible Role](../ansible/roles/deploy_app/) — Deployment role implementation

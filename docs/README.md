@@ -9,22 +9,24 @@
 - [Application deployment](application-deployment.md)
 - [Upgrading dependencies](upgrading.md)
 - [Monitoring](monitoring.md)
+- [Testing](TESTING.md)
 
 </td>
 <td width="80"></td>
 <td valign="top">
 
-- [Testing](TESTING.md)
 - [Tools and technologies used](TOOLS.md)
 - [Security](SECURITY.md)
 - [Troubleshooting](TROUBLESHOOTING.md)
 - [Run Cursor on the server](CURSOR.md)
-
+- [Container Registry](registry.md)
 
 
 </td>
 </tr>
 </table>
+
+For the self-hosted registry (auth, crane, tasks): [Registry](registry.md).
 
 ```
 Infrastructure as Code

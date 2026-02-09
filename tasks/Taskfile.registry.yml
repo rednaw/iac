@@ -13,6 +13,7 @@ tasks:
         REPOS=$(crane catalog "$REGISTRY" 2>/dev/null || true)
         if [ -z "$REPOS" ]; then
           echo "⚠️  No repositories found (or access denied)"
+          echo "   Use the devcontainer to interact with the registry (auth is configured automatically)."
           exit 0
         fi
 

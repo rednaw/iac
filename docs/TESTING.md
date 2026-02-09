@@ -27,5 +27,5 @@ The test suite runs in GitHub Actions.
 | PR from you | Use `latest` → run checks |
 | Merge to main | Tested image becomes `latest` |
 
-**Secrets:** `SOPS_AGE_KEY`, `REGISTRY_USERNAME`, `REGISTRY_PASSWORD` (see [secrets.md](secrets.md)). 
+**Secrets:** `SOPS_AGE_KEY` (see [secrets.md](secrets.md)). Registry auth: see [Registry](registry.md). 
 

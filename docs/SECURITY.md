@@ -4,14 +4,15 @@
 
 The following files are created outside the repository during setup. These are personal configuration files that should **never** be committed to Git.
 
-| File Path | Purpose | Created By |
-|-----------|---------|------------|
-| `~/.ssh/id_rsa ` | SSH private key for authenticating with servers | `ssh-keygen` (if not already exists) |
-| `~/.ssh/known_hosts` | Stores SSH host keys for servers you've connected to | SSH client (automatically) |
+| File path | Purpose | Created by |
+|-----------|---------|-------------|
+| `~/.ssh/id_rsa` | SSH private key for authenticating with servers | `ssh-keygen` (if not already exists) |
+| `~/.ssh/known_hosts` | SSH host keys for servers you've connected to | SSH client (automatically) |
 | `~/.ssh/config` | SSH client configuration for server aliases and connection settings | `task server:setup-remote-cursor` (optional) |
 | `~/.config/hcloud/cli.toml` | Hetzner Cloud CLI configuration and API token | `hcloud context create` |
 | `~/.config/sops/age/keys.txt` | SOPS private key for decrypting secrets | `task secrets:keygen` |
 | `~/.terraform.d/credentials.tfrc.json` | Terraform Cloud authentication token | `task terraform:login` |
+| `~/.docker/config.json` | Docker/crane/Trivy auth for private registry (devcontainer only; script writes inside container) | Devcontainer at start — see [Registry](registry.md#authentication-how-to-log-in) |
 
 ### Details
 
@@ -45,6 +46,10 @@ The following files are created outside the repository during setup. These are p
 - **Relevance:** Terraform Cloud authentication token for accessing shared state
 - **Setup:** Created when running `task terraform:login`
 - **Used by:** Terraform CLI to authenticate with Terraform Cloud backend
+
+**`~/.docker/config.json`**
+- **Relevance:** Docker/crane/Trivy auth for the private registry (overview, app deploys).
+- **Details:** See [Registry](registry.md#authentication-how-to-log-in).
 
 ## Known Security Risks
 
