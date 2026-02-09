@@ -118,3 +118,13 @@ tasks:
     silent: true
     cmds:
       - python3 scripts/validate-taskfiles.py
+
+  trivy:image:
+    desc: Run Trivy vulnerability scan on the dev/CI image (MEDIUM+ fail). Override with IMAGE=.... Run from devcontainer (registry auth is automatic).
+    silent: true
+    cmds:
+      - |
+        IMAGE="${IMAGE:-registry.rednaw.nl/iac/iac-dev:latest}"
+        echo "🔒 Running Trivy image scan (severity >= MEDIUM): $IMAGE"
+        trivy image --scanners vuln --ignore-unfixed --severity CRITICAL,HIGH,MEDIUM --exit-code 1 "$IMAGE"
+      - echo "✅ Trivy image scan passed"

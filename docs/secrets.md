@@ -166,8 +166,8 @@ The file is encrypted. Install the VS Code SOPS extension to view it.
 ## CI/CD
 
 GitHub Actions uses:
-- **SOPS:** Public key `iac/secrets/sops-key-github-ci.pub` (committed); private key in secret `SOPS_AGE_KEY` (used for Terraform validation and deployment).
-- **Private registry:** `REGISTRY_USERNAME` and `REGISTRY_PASSWORD` for `registry.rednaw.nl` (used by static-code-analysis and promote-image workflows). Use the same credentials as in `infrastructure-secrets.yml` (`registry_username` / `registry_password`).
+- **SOPS:** Public key `iac/secrets/sops-key-github-ci.pub` (committed); private key in secret `SOPS_AGE_KEY` (used for Terraform validation, deployment, and registry authentication).
+- **Private registry:** Credentials come from SOPS-decrypted `infrastructure-secrets.yml`; see [Registry](registry.md).
 - **OpenObserve:** `openobserve_username` and `openobserve_password` in `infrastructure-secrets.yml` (root login; the OTEL Collector auto-generates the ingest auth key from these; see [Monitoring](monitoring.md)).
 
 ---

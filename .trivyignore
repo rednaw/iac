@@ -1,0 +1,5 @@
+# Trivy ignore file for image scan (CVE/dependency findings).
+# One CVE ID or vulnerability ID per line. Optional expiry and comment:
+#   CVE-2020-12345 expires: 2026-01-01  # reason
+# After expiry the finding will be reported again.
+# https://aquasecurity.github.io/trivy/latest/docs/configuration/filtering/
