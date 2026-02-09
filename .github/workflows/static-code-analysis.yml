@@ -74,15 +74,20 @@ jobs:
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_REPO }}:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          build-args: |
+            GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
 
       # Other PR / dispatch: use latest; bootstrap build if missing
       - name: Ensure latest image exists
         if: github.event_name != 'pull_request' || !startsWith(github.head_ref, 'renovate-bot/')
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           if ! docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_REPO }}:latest 2>/dev/null; then
             echo "No latest image found, building bootstrap..."
             docker buildx build \
               --push \
+              --build-arg GITHUB_TOKEN="$GITHUB_TOKEN" \
               -t ${{ env.REGISTRY }}/${{ env.IMAGE_REPO }}:latest \
               --cache-from type=gha --cache-to type=gha,mode=max \
               .
