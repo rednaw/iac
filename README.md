@@ -43,7 +43,7 @@ Everything is code. Everything is versioned. Nothing is magic.
 
 **Teach, don't hide.** Every decision is documented. When you outgrow this, you'll understand what you're moving to.
 
-**Opinionated defaults.** Hetzner. Ubuntu. Docker. Nginx. SOPS. You can change them, but you don't have to decide.
+**Opinionated defaults.** Hetzner. DevContainers. Docker Registry. Nginx. SOPS. OpenObserve. You can change them, but you don't have to decide.
 
 **Single server, done well.** Most projects don't need a cluster. They need one reliable server, properly configured.
 

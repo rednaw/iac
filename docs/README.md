@@ -31,7 +31,6 @@
 Infrastructure as Code
 
 Terraform commands:
-  task terraform:login                  # Authenticate with Terraform Cloud
   task terraform:init -- <workspace>    # Initialize workspace (dev or prod)
   task terraform:plan -- <workspace>    # Plan changes (dev or prod)
   task terraform:apply -- <workspace>   # Apply changes (dev or prod)

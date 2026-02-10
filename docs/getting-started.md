@@ -14,7 +14,7 @@
 
 Clone the repo, open the `iac` folder, and choose **Reopen in Container**.
 
-Follow one of these install paths.
+Set which app the devcontainer mounts: run **`./scripts/setup-app-path.sh /path/to/your/app`** on the host (macOS/Linux). See [Application deployment](application-deployment.md#app-mount).
 
 | Situation | Guide |
 |-----------|--------|

@@ -10,24 +10,6 @@ tasks:
       - echo "📦 Installing Ansible collections..."
       - ansible-galaxy collection install -r requirements.yml
 
-  deploy:
-    desc: "Deploy app (use: task ansible:deploy -- dev or -- prod)"
-    dir: ansible
-    silent: true
-    vars:
-      WORKSPACE: "{{.CLI_ARGS}}"
-    preconditions:
-      - sh: '[ -n "{{.WORKSPACE}}" ]'
-        msg: "Workspace required. Usage: task ansible:deploy -- <dev|prod>"
-      - sh: '[ "{{.WORKSPACE}}" = "dev" ] || [ "{{.WORKSPACE}}" = "prod" ]'
-        msg: "Invalid workspace '{{.WORKSPACE}}'. Use: dev or prod"
-    cmds:
-      - |
-        echo "🔑 Preparing known_hosts..."
-        task hostkeys:prepare -- "{{.WORKSPACE}}"
-        echo "⚙️  Running full Ansible playbook for workspace: {{.WORKSPACE}}..."
-        ansible-playbook -i "inventory/{{.WORKSPACE}}.ini" playbooks/server.yml
-
   bootstrap:
     desc: "One-time bootstrap as root (use: task ansible:bootstrap -- dev or -- prod)"
     dir: ansible

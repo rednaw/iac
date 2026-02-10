@@ -10,13 +10,13 @@ This guide explains how to **deploy and inspect applications** from the infrastr
 
 ```mermaid
 flowchart LR
-    subgraph LOCAL["Developer"]
-        A["Merge pull request"]
-        B["task iac:versions"]
-        C["task iac:deploy"]
+    subgraph LOCAL["IAC devcontainer"]
+        B["task app:versions"]
+        C["task app:deploy"]
     end
 
     subgraph GITHUB["GitHub workflow"]
+        A["Merge pull request"]
         D["Test, build, tag & push image"]
     end
 
@@ -35,23 +35,56 @@ flowchart LR
     F -->|pulls| E
 ```
 
-The deployment system provides two commands (run from your app directory):
+The deployment system provides two commands:
 
-- `task iac:deploy -- <env> <sha>` — Deploy an application version
-- `task iac:versions -- <env>` — List available versions
+- `task app:deploy -- <env> <sha>` — Deploy an application version
+- `task app:versions -- <env>` — List available versions
+
+The app repository must be mounted at `/workspaces/iac/app` (see [App mount](#app-mount) below).
 
 The `versions` command is implemented as a Python script (`scripts/application_versions.py`). The `deploy` command runs an Ansible playbook that orchestrates the entire deployment.
 
 ---
 
-## Commands
+## App mount
 
-### `task iac:deploy`
+The devcontainer mounts your app repository at `/workspaces/iac/app` so you can run deploy and versions from the IAC repo without installing Task or Ansible on your machine. The mount uses **`APP_HOST_PATH`** from the environment of the process that opens the folder (e.g. Cursor or VS Code). To have that variable set even when you launch the editor from the Dock or Spotlight (e.g. after a reboot), use a path file in your home directory and a small snippet in your shell profile (macOS and Linux).
 
-Deploy an application version (run from app directory):
+### Set which app you're working on
+
+**Recommended:** Run the setup script from the host (once per machine, and again whenever you switch to a different app):
 
 ```bash
-task iac:deploy -- <environment> <sha>
+./scripts/setup-app-path.sh /path/to/your/app
+```
+
+If you omit the path, the script will prompt you. The script:
+
+1. Writes the path to **`~/.config/iac-app-path`**
+2. Ensures your profile (**`~/.zprofile`** on macOS, **`~/.profile`** on Linux) loads that path into `APP_HOST_PATH` (idempotent; it won't add the snippet twice)
+3. On macOS: runs `launchctl setenv APP_HOST_PATH ...` so the current session gets it without re-login
+
+After running it, **Reopen in Container** so the devcontainer picks up the mount. To work on a different app later, run the script again with the other app's path.
+
+**Manual alternative:** Create `~/.config/iac-app-path` containing one line — the absolute path to your app repo. Then add the following to your profile:
+
+- **macOS** (`~/.zprofile`):  
+  `[ -f ~/.config/iac-app-path ] && export APP_HOST_PATH=$(cat ~/.config/iac-app-path) && launchctl setenv APP_HOST_PATH "$APP_HOST_PATH"`
+- **Linux** (`~/.profile`):  
+  `[ -f ~/.config/iac-app-path ] && export APP_HOST_PATH=$(cat ~/.config/iac-app-path)`
+
+On macOS, run `launchctl setenv APP_HOST_PATH "$(cat ~/.config/iac-app-path)"` in a terminal to update the current session without re-logging in. On Linux, log out and back in (or start Cursor from a terminal after sourcing your profile).
+
+---
+
+## Commands
+
+### `task app:deploy`
+
+Deploy an application version (run from IAC devcontainer):
+
+```bash
+task app:deploy -- <environment> <sha>
 ```
 
 **Arguments:**
@@ -60,15 +93,16 @@ task iac:deploy -- <environment> <sha>
 
 **Examples:**
 ```bash
-task iac:deploy -- dev 706c88c
-task iac:deploy -- prod abc1234
+task app:deploy -- dev 706c88c
+task app:deploy -- prod abc1234
 ```
 
 **What happens internally:**
 
 1. **Validates inputs:**
    - Validates environment is `dev` or `prod`
-   - Reads `REGISTRY_NAME` and `IMAGE_NAME` from app's Taskfile.yml
+   - Ensures the app is mounted at `/workspaces/iac/app` and contains `iac.yml`
+   - Reads `REGISTRY_NAME` and `IMAGE_NAME` from the app's `iac.yml`
 
 2. **Prepares and runs Ansible:**
    - Prepares SSH host keys (`task hostkeys:prepare`)
@@ -90,16 +124,17 @@ task iac:deploy -- prod abc1234
 - Tag doesn't exist → Clear error with crane output
 - Image not found → See [Registry](registry.md#authentication-how-to-log-in)
 - Invalid environment → Validation error
-- Missing required vars → Error with message
+- App not mounted or `iac.yml` missing → Set `APP_HOST_PATH` and ensure the app directory contains `iac.yml`
+- Missing required vars in `iac.yml` → Error with message
 
 ---
 
-### `task iac:versions`
+### `task app:versions`
 
-List available versions (run from app directory):
+List available versions (run from IAC devcontainer):
 
 ```bash
-task iac:versions -- <environment>
+task app:versions -- <environment>
 ```
 
 **Arguments:**
@@ -107,8 +142,8 @@ task iac:versions -- <environment>
 
 **Examples:**
 ```bash
-task iac:versions -- dev
-task iac:versions -- prod
+task app:versions -- dev
+task app:versions -- prod
 ```
 
 **What happens internally:**
@@ -144,26 +179,19 @@ IMAGE: rednaw/hello-world
 
 ## Application Configuration
 
-Applications configure deployment in their `Taskfile.yml`:
+Applications declare deployment settings in an **`iac.yml`** file in the app repository root:
 
 ```yaml
-version: '3'
-
-vars:
-  REGISTRY_NAME: registry.rednaw.nl
-  IMAGE_NAME: rednaw/hello-world
-
-includes:
-  iac:
-    taskfile: ../iac/tasks/Taskfile.app.yml
+REGISTRY_NAME: registry.rednaw.nl
+IMAGE_NAME: rednaw/hello-world
 ```
 
-**Required vars:**
+**Required keys:**
 - `REGISTRY_NAME`: Docker registry hostname
 - `IMAGE_NAME`: Image name in the registry
 
-**Required files in app directory:**
-- `Taskfile.yml`: Configuration and commands (as above)
+**Required files in app directory (mounted at `/workspaces/iac/app`):**
+- `iac.yml`: Registry and image name (as above)
 - `docker-compose.yml`: Service definition with `image: ${IMAGE}`
 - `secrets.yml`: (optional) SOPS-encrypted environment variables (YAML format)
 
@@ -225,7 +253,7 @@ deployment:
 
 ### Taskfile
 
-**`tasks/Taskfile.app.yml`**: Included by apps, provides `iac:deploy` and `iac:versions`. Runs Ansible and Python directly.
+**`tasks/Taskfile.app.yml`**: Included from the IAC root Taskfile, provides `app:deploy` and `app:versions`. Uses `APP_ROOT=/workspaces/iac/app`, reads `REGISTRY_NAME` and `IMAGE_NAME` from `iac.yml`, and runs the Ansible playbook and versions script.
 
 ### Scripts
 
@@ -262,14 +290,19 @@ deployment:
 
 ## Troubleshooting
 
+### App mount
+
+**App directory missing at `/workspaces/iac/app` (e.g. after reboot or when opening from Dock/Spotlight)**  
+The editor process didn't have `APP_HOST_PATH` in its environment. Run `./scripts/setup-app-path.sh /path/to/your/app` on the host to set the path file and profile snippet; on macOS it will update the current session. Then **Reopen in Container**. See [App mount](#app-mount).
+
 ### Deployment Failures
 
 **"Could not resolve digest"**
 - Check image exists and registry auth: see [Registry](registry.md#troubleshooting)
 - Check tag format (7 hex characters)
 
-**"missing required vars"**
-- Ensure `REGISTRY_NAME` and `IMAGE_NAME` are set in app's Taskfile.yml
+**"missing required vars" / "iac.yml not found"**
+- Ensure the app is mounted at `/workspaces/iac/app` and contains `iac.yml` with `REGISTRY_NAME` and `IMAGE_NAME`. Run `./scripts/setup-app-path.sh /path/to/your/app` on the host (or set the path manually); see [App mount](#app-mount).
 
 **"Host key verification failed"**
 - Run `task hostkeys:prepare -- <WORKSPACE>` manually
@@ -298,7 +331,8 @@ deployment:
 
 ## Design Principles
 
-- **Minimal app configuration** — Just `REGISTRY_NAME` and `IMAGE_NAME` in Taskfile
+- **Minimal app configuration** — Just `REGISTRY_NAME` and `IMAGE_NAME` in `iac.yml`; no Task/Ansible in the app repo
+- **Ops from IAC** — Deploy and versions run from the IAC devcontainer; app repo is mounted via `APP_HOST_PATH`
 - **Humans deploy by tag** — Short SHAs are readable
 - **Machines run by digest** — Immutable digests ensure safety
 - **History is never lost** — Append-only audit trail
@@ -308,6 +342,5 @@ deployment:
 ## See Also
 
 - [Registry](registry.md) — Private registry auth, commands, troubleshooting
-- [Developer Guide](../../hello-world/README.md) — For application developers
 - [SSH Host Keys](SSH-host-keys.md) — Host key management
 - [Ansible Role](../ansible/roles/deploy_app/) — Deployment role implementation
