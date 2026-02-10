@@ -2,7 +2,7 @@
 
 **TL;DR** Bring me to the [documentation](docs/README.md)
 
----
+![Architecture Diagram](docs/architecture.svg)
 
 You want to self-host. Maybe you left Heroku after the pricing changes. Maybe you care about data sovereignty. Maybe you just want a €4/month server instead of a $25/month platform.
 
@@ -46,9 +46,6 @@ Everything is code. Everything is versioned. Nothing is magic.
 **Single server, done well.** Most projects don't need a cluster. They need one reliable server, properly configured.
 
 **Developer experience matters.** Open the repo in a Dev Container and get a consistent environment; edit encrypted secrets in VS Code; run commands through Taskfile. No context-switching to web consoles.
-
-## Deployment view
-![Architecture Diagram](docs/architecture.svg)
 
 ## Automate everything
 
