@@ -2,6 +2,8 @@
 
 **TL;DR** Bring me to the [documentation](docs/README.md)
 
+## Introduction
+
 ![Architecture Diagram](docs/architecture.svg)
 
 You want to self-host. Maybe you left Heroku after the pricing changes. Maybe you care about data sovereignty. Maybe you just want a €4/month server instead of a $25/month platform.
