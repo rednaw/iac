@@ -4,7 +4,7 @@
 <tr>
 <td valign="top">
 
-- [Getting started](INSTALL.md)
+- [Getting started](getting-started.md)
 - [Secrets management](secrets.md)
 - [Application deployment](application-deployment.md)
 - [Upgrading dependencies](upgrading.md)
@@ -26,7 +26,6 @@
 </tr>
 </table>
 
-For the self-hosted registry (auth, crane, tasks): [Registry](registry.md).
 
 ```
 Infrastructure as Code

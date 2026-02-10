@@ -1,3 +1,4 @@
+[**<---**](README.md)
 # Self-Hosted Docker Registry
 
 This document describes the private Docker registry used to store container images for deployment. **To interact with the registry (list images, run crane, deploy), use the devcontainer** — registry auth and tools (crane, Docker, jq) are configured automatically there. It covers infrastructure, authentication in each environment, commands, and troubleshooting.
