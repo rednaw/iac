@@ -1,6 +1,6 @@
 # Self-hosted Renovate: runs the OSS Renovate bot on a schedule.
 # Requires repository secret: RENOVATE_TOKEN (GitHub PAT with repo + workflow scope).
-# See docs/TOOLS.md for setup.
+# See docs/technologies.md for setup.
 
 name: Renovate
 

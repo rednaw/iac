@@ -61,4 +61,3 @@ This section documents known security risks that have been reviewed and accepted
 | No Terraform state backup | LOW | Accepted | State stored in Terraform Cloud, can be restored via `terraform import` if lost | Infrastructure is reproducible from code |
 | No automated secret rotation | LOW | Accepted | Manual rotation process | Pragmatic tradeoff |
 | Passwordless sudo without restrictions | LOW | Accepted | IP-restricted SSH, key-based auth, fail2ban, audit logging | Pragmatic tradeoff |
-

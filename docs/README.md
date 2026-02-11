@@ -12,16 +12,16 @@ New to the project? Start with [Getting started](getting-started.md).
 - [Application deployment](application-deployment.md)
 - [Upgrading dependencies](upgrading.md)
 - [Monitoring](monitoring.md)
-- [Testing](TESTING.md)
+- [Code analysis](code-analysis.md)
 
 </td>
 <td width="80"></td>
 <td valign="top">
 
-- [Tools and technologies used](TOOLS.md)
-- [Security](SECURITY.md)
+- [Tools and technologies used](technologies.md)
+- [Private](private.md)
 - [Troubleshooting](TROUBLESHOOTING.md)
-- [Run Cursor on the server](CURSOR.md)
+- [Remote VS Code / Cursor](remote-vscode.md)
 - [Container Registry](registry.md)
 
 
