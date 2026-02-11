@@ -97,14 +97,24 @@ def parse_timestamp(ts: str) -> datetime | None:
     """Parse timestamp string to datetime object for sorting."""
     if not ts:
         return None
-    
+
     try:
         if "T" in ts:
             return datetime.fromisoformat(ts.replace("Z", "+00:00"))
-        # Try parsing as formatted timestamp
+        # Try parsing as formatted timestamp (naive)
         return datetime.strptime(ts, "%Y-%m-%d %H:%M:%S")
     except (ValueError, AttributeError):
         return None
+
+
+def _sort_key_timestamp(ts: str) -> tuple[bool, float]:
+    """Return (is_empty, comparable_float) so sort never mixes naive/aware datetimes.
+    Empty timestamps sort last (reverse=True: newest first, then empty at end)."""
+    dt = parse_timestamp(ts)
+    if dt is None:
+        return True, 0.0  # (True, 0) < (False, ts) so empty last when reverse=True
+    # Use timestamp() so newest is largest; naive and aware are comparable
+    return False, dt.timestamp()
 
 
 def get_image_metadata(full_repo: str, tag: str) -> tuple[str, str, str]:
@@ -157,10 +167,7 @@ def print_overview(full_repo: str, tags: list[str], deployed_digest: str):
         })
     
     # Sort by timestamp (newest first), images without timestamps go to end
-    images.sort(key=lambda x: (
-        x["created"] == "",  # Empty timestamps last
-        parse_timestamp(x["created"]) or datetime.min  # Parse for comparison
-    ), reverse=True)
+    images.sort(key=lambda x: _sort_key_timestamp(x["created"]), reverse=True)
     
     # print_header()
     

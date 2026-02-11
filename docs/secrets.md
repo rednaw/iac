@@ -1,3 +1,4 @@
+[**<---**](README.md)
 # Secrets Management
 
 All secrets are encrypted with [SOPS](https://github.com/getsops/sops) + [age](https://github.com/FiloSottile/age) and stored in Git.
