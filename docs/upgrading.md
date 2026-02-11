@@ -2,7 +2,7 @@
 
 ## Renovate
 
-The Rednaw IaC toolkit leverages many tools and techologies, see [Tools and technologies used](TOOLS.md). These technologies are in constant development so to keep up to date  upgrades are automated by **[Renovate](https://docs.renovatebot.com/)** as much as possible. 
+The Rednaw IaC toolkit leverages many tools and technologies, see [Tools and technologies used](technologies.md). These technologies are in constant development so to keep up to date  upgrades are automated by **[Renovate](https://docs.renovatebot.com/)** as much as possible. 
 
 Renovate runs in CI: the workflow [`.github/workflows/renovate.yml`](../.github/workflows/renovate.yml) runs on a daily schedule and can be triggered manually. It is configured by [`renovate.json`](../renovate.json) and a repository secret `RENOVATE_TOKEN` (GitHub PAT with `repo` and `workflow` scope).
 

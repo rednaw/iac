@@ -8,7 +8,7 @@
 - **[VS Code](https://code.visualstudio.com/)** or **[Cursor](https://cursor.com/)** with the following extensions:
   - **[Dev Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)** (`ms-vscode-remote.remote-containers`).
   - **[SOPS](https://marketplace.visualstudio.com/items?itemName=signageos.signageos-vscode-sops)** by SignageOS (`signageos.signageos-vscode-sops`). Configure the key path in settings; see [Secrets](secrets.md#vs-code-integration).
-  - **[Remote - SSH](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-ssh)** (`ms-vscode-remote.remote-ssh`) for [running VSCode or Cursor on the server](CURSOR.md).
+  - **[Remote - SSH](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-ssh)** (`ms-vscode-remote.remote-ssh`) for [running VS Code or Cursor on the server](remote-vscode.md).
 
 ## Summary
 

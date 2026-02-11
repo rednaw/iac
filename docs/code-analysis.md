@@ -28,4 +28,3 @@ The test suite runs in GitHub Actions.
 | Merge to main | Tested image becomes `latest` |
 
 **Secrets:** `SOPS_AGE_KEY` (see [secrets.md](secrets.md)). Registry auth: see [Registry](registry.md). 
-
