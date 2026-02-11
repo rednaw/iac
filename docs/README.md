@@ -20,7 +20,7 @@ New to the project? Start with [Getting started](getting-started.md).
 
 - [Tools and technologies used](technologies.md)
 - [Private](private.md)
-- [Troubleshooting](TROUBLESHOOTING.md)
+- [Troubleshooting](troubleshooting.md)
 - [Remote VS Code / Cursor](remote-vscode.md)
 - [Container Registry](registry.md)
 
