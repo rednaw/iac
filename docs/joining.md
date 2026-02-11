@@ -2,13 +2,14 @@
 
 # Install: joining an existing project
 
-Use this path when the repo already has `infrastructure-secrets.yml` (encrypted) and a SOPS key ring. Your only one-time setup is getting the SOPS private key. After that, the devcontainer configures registry, Terraform Cloud, and hcloud for you from the existing secrets file.
+Use this path when the repo already has an encrypted `infrastructure-secrets.yml` file and a SOPS key ring. Your only one-time setup is creating a SOPS key and asking a teammate to add it to the keyring. After that, the devcontainer automatically configures connections to Hetzner Cloud, Docker Registry, and Terraform Cloud from the secrets file.
 
-## 1. Get the SOPS key
+## 1. The SOPS keyring
 
-You need the private key that can decrypt `secrets/infrastructure-secrets.yml`.
+You need to be part of the SOPS keyring to be able to decrypt `secrets/infrastructure-secrets.yml`.
 
 **You generate a new key and get added:**
+
 
 1. Generate your key and commit your public key:
    ```bash
@@ -32,24 +33,27 @@ You need the private key that can decrypt `secrets/infrastructure-secrets.yml`.
    ```bash
    git pull
    ```
-   Your private key is in `~/.config/sops/age/keys.txt` (created by `task secrets:keygen`). If you use another machine, you must copy this file there securely; it is not in the repo.
+   Your private key is in `~/.config/sops/age/keys.txt` (created by `task secrets:keygen`). It is not in the repo, keep it somewhere safe.
 
-## 2. Development environment
+4. Verify that it works:
+   Open `secrets/infrastructure-secrets.yml`, you should be able to view and edit the secrets.
 
-1. Open the `iac` folder in VS Code or Cursor.
-2. Choose **Reopen in Container**. Wait for the image to build or pull (first time only).
+## 2. Launch the IaC Devcontainer
+
+Run Cmd-Shift-P - > **Dev Containers: Reopen in Container**.
+VSCode will launch into the IaC Devcontainer with your project mounted on the 'app' subdirectory of the project root. 
 
 On startup, the devcontainer decrypts `secrets/infrastructure-secrets.yml` (using your mounted `~/.config/sops/age/keys.txt`) and writes:
 
-- `~/.docker/config.json` — registry auth for Docker, crane, Trivy
-- `~/.terraform.d/credentials.tfrc.json` — Terraform Cloud token
-- `~/.config/hcloud/cli.toml` — Hetzner Cloud API token
+- `~/.docker/config.json` — Credentials for the built in Docker Registry used for application deployment.
+- `~/.terraform.d/credentials.tfrc.json` — Terraform Cloud token used for shared terraform state.
+- `~/.config/hcloud/cli.toml` — Hetzner Cloud API token used for creating the server and firewall.
 
-You do not need to run `task terraform:login` or `hcloud context create`; they are configured from the secrets file.
+This means that you now have access to the Hetzner cloud, Terraform cloud and Docker registry without needing to login.
 
-**Terraform Cloud:** Credentials are configured from secrets by the devcontainer. Ask an existing member to add you to the Terraform Cloud organization. If you will run Terraform (e.g. to apply firewall changes), initialize the workspace once: `task terraform:init -- dev` or `task terraform:init -- prod` (use the `--` separator). State is stored in Terraform Cloud, one workspace per environment. For how the org and workspaces are set up, see [Install: new project](new-project.md) (Terraform Cloud section).
+**Terraform Cloud:** This project uses TFC solely as a free backend for storing shared terraform state even though it offers lots of other functionality. That functionality is explicitly avoided to stay clear of vendor lockin. TFC comes with an extensive management console, if you are interested ask an existing team member to add you to the Terraform Cloud organization so you can have a look. See [Install: new project](new-project.md) (Terraform Cloud section) for more info.
 
-## 3. Add your SSH access
+## 3. Configure your SSH access
 
 To log in to servers for maintenance, troubleshooting, and running Ansible you need your SSH key on Hetzner and your IP allowed by the firewall:
 
@@ -66,21 +70,15 @@ To log in to servers for maintenance, troubleshooting, and running Ansible you n
 
 If your IP changes later (e.g. new network or VPN), update `allowed_ssh_ips` and run `task terraform:apply -- <workspace>` again. Remember the `--` separator (e.g. `task terraform:apply -- dev`).
 
-## 4. Optional: SSH config for Cursor Remote-SSH
+## 4. Optional: Run VScode/Cursor on the server
 
-To use Cursor Remote-SSH with the server, run once (from inside the devcontainer):
-
-```bash
-task server:setup-remote-cursor
-```
-
-This updates `~/.ssh/config` with the server host and settings. The task uses Terraform output or inventory to get the server IP.
+See the [Run VScode/Cursor on the server] documentation
 
 ## 5. Verify
 
 - **Registry:** `task registry:overview` (should list repos/tags).
+- **Deployment status:** `task app:versions -- dev` (should show the deployment status of the app)
 - **Terraform:** `task terraform:plan -- dev` (should run without asking for login).
 - **hcloud:** `task server:list-hetzner-keys` (should list keys).
-- **Secrets:** Open `secrets/infrastructure-secrets.yml` in VS Code; it should decrypt without errors.
 
 For Terraform Cloud setup details (workspaces, state, recovery) and full provisioning (Ansible bootstrap and run), see [Getting started](getting-started.md) and [Application deployment](application-deployment.md).

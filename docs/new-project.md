@@ -36,7 +36,7 @@ Create the following; you will put the relevant values into `infrastructure-secr
 | What | Where to get it |
 |------|------------------|
 | **Hetzner Cloud API token** | Hetzner Cloud Console → Security → API tokens. Create a token with Read & Write. |
-| **Terraform Cloud token** | Terraform Cloud → User Settings → Tokens. Create an API token. You need an organization (e.g. create one) and workspaces `platform-dev` and `platform-prod` (see [StateManagement](past/StateManagement.md)). |
+| **Terraform Cloud token** | Terraform Cloud → User Settings → Tokens. Create an API token. You need an organization (e.g. create one) and workspaces `platform-dev` and `platform-prod` (see step 6 below). |
 | **Registry credentials** | If you use the self-hosted registry: choose a username and password and the registry domain; the registry will be configured later by Ansible. If you use a third-party registry, use its credentials. |
 | **Your SSH public key** | Ensure you have `~/.ssh/id_rsa.pub` (or generate with `ssh-keygen`). You will add this key to Hetzner and put the Hetzner key ID in secrets. SSH is used to log in to the server for maintenance and troubleshooting. |
 | **Your IP for SSH** | Your current IP (e.g. from [whatismyipaddress.com](https://whatismyipaddress.com/)); use CIDR form e.g. `203.0.113.50/32`. The firewall only allows SSH from IPs listed in `allowed_ssh_ips`. |
@@ -83,7 +83,7 @@ No need to run `task terraform:login` or `hcloud context create`; they are popul
 
 ## 6. Terraform Cloud (one-time)
 
-Team use of Terraform; see [StateManagement.md](past/StateManagement.md) for rationale.
+We use Terraform Cloud for shared state, automatic locking, and state history. No local state files; each team member uses the same state.
 
 - Create a Terraform Cloud account and organization (e.g. `rednaw`). Set execution mode to **Local** at organization level.
 - Backend in `terraform/versions.tf` expects organization name and workspaces `platform-dev`, `platform-prod`. Create those workspaces in Terraform Cloud:

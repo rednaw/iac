@@ -1,5 +1,6 @@
 
 documentation TLC
+Platform parameterization (multi-org, remove hardcoded rednaw.nl)
 image cleanup automation
 app specific securityheaders
 Hardcoded domain `rednaw.nl`
