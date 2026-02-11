@@ -3,7 +3,6 @@ documentation TLC
 Platform parameterization (multi-org, remove hardcoded rednaw.nl)
 image cleanup automation
 app specific securityheaders
-Hardcoded domain `rednaw.nl`
 checks TLC (DX, better error msg, eg, ansible with no server, ansible:run without bootstrap, ..)
 
 DONE

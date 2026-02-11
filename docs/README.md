@@ -2,7 +2,7 @@
 
 # Documentation
 
-New to the project? Start with [Getting started](getting-started.md).
+If you are here for the first time checkout the [Getting Started](getting-started.md) guide.
 
 <table>
 <tr>

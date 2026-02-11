@@ -1,0 +1,13 @@
+{
+  "folders": [
+    {
+      "name": "iac",
+      "path": "."
+    },
+    {
+      "name": "app",
+      "path": "app"
+    }
+  ],
+  "settings": {}
+}
