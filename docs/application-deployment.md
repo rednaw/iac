@@ -49,7 +49,7 @@ The `versions` command is implemented as a Python script (`scripts/application_v
 
 ## App mount
 
-The devcontainer mounts your app repository at `/workspaces/iac/app` so you can run deploy and versions from the IAC repo without installing Task or Ansible on your machine. The mount uses **`APP_HOST_PATH`** from the environment of the process that opens the folder (e.g. Cursor or VS Code). To have that variable set even when you launch the editor from the Dock or Spotlight (e.g. after a reboot), use a path file in your home directory and a small snippet in your shell profile (macOS and Linux).
+The devcontainer mounts your app repository at `/workspaces/iac/app` so you can run app:deploy and app:versions versions from the IAC repo without installing Task or Ansible on your machine. The mount uses **`APP_HOST_PATH`** from the environment of the process that opens the workspace (e.g. Cursor or VS Code). To have that variable set even when you launch the editor from the Dock or Spotlight (e.g. after a reboot), use a path file in your home directory and a small snippet in your shell profile (macOS and Linux).
 
 ### Set which app you're working on
 
@@ -65,7 +65,7 @@ If you omit the path, the script will prompt you. The script:
 2. Ensures your profile (**`~/.zprofile`** on macOS, **`~/.profile`** on Linux) loads that path into `APP_HOST_PATH` (idempotent; it won't add the snippet twice)
 3. On macOS: runs `launchctl setenv APP_HOST_PATH ...` so the current session gets it without re-login
 
-After running it, **Reopen in Container** so the devcontainer picks up the mount. To work on a different app later, run the script again with the other app's path.
+After running it, open `iac.code-workspace` (or **Reopen in Container** if already open) so the devcontainer picks up the mount. To work on a different app later, run the script again with the other app's path.
 
 **Manual alternative:** Create `~/.config/iac-app-path` containing one line — the absolute path to your app repo. Then add the following to your profile:
 
@@ -294,7 +294,7 @@ deployment:
 ### App mount
 
 **App directory missing at `/workspaces/iac/app` (e.g. after reboot or when opening from Dock/Spotlight)**  
-The editor process didn't have `APP_HOST_PATH` in its environment. Run `./scripts/setup-app-path.sh /path/to/your/app` on the host to set the path file and profile snippet; on macOS it will update the current session. Then **Reopen in Container**. See [App mount](#app-mount).
+The editor process didn't have `APP_HOST_PATH` in its environment. Run `./scripts/setup-app-path.sh /path/to/your/app` on the host to set the path file and profile snippet; on macOS it will update the current session. Then open `iac.code-workspace` and **Reopen in Container**. See [App mount](#app-mount).
 
 ### Deployment Failures
 
