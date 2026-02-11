@@ -61,7 +61,7 @@ Terraform Cloud solves all the fundamental problems of state management:
 - Organization: `rednaw`
 - Workspaces: `platform-dev`, `platform-prod` (separate workspaces per environment)
 - Backend prefix: `platform-` (matches all workspaces with this prefix)
-- Authentication: Via `terraform login` or manual token in `~/.terraform.d/credentials.tfrc.json`
+- Authentication: The devcontainer writes `~/.terraform.d/credentials.tfrc.json` from `terraform_cloud_token` in `secrets/infrastructure-secrets.yml`.
 
 **When this is a good fit**
 - Any team with 2+ developers (recommended for all team setups)

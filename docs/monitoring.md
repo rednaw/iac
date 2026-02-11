@@ -6,4 +6,4 @@ Open it at [https://monitoring.rednaw.nl](https://monitoring.rednaw.nl). Log in 
 
 One dashboard, **Host Metrics**, is pre-installed from the repo (`ansible/roles/server/files/openobserve-host-metrics.json`) when you run the server playbook. You can add or change dashboards in the UI, or manage this one by editing that file and re-running the playbook.
 
-For setup (secrets, deploy), see [Getting started](INSTALL.md) and [Secrets](secrets.md).
+For setup (secrets, deploy), see [Getting started](getting-started.md) and [Secrets](secrets.md).

@@ -2,14 +2,6 @@
 version: '3'
 
 tasks:
-  login:
-    desc: Authenticate with Terraform Cloud
-    dir: terraform
-    cmds:
-      - echo "🔐 Authenticating with Terraform Cloud..."
-      - cmd: terraform login
-        silent: true
-
   init:
     desc: "Initialize Terraform (use: task terraform:init -- dev or -- prod)"
     dir: terraform

@@ -6,8 +6,6 @@ import json
 from pathlib import Path
 from datetime import datetime
 
-REGISTRY = "registry.rednaw.nl"
-
 # ANSI color codes
 BOLD = "\033[1m"
 RESET = "\033[0m"
@@ -187,14 +185,19 @@ def print_overview(full_repo: str, tags: list[str], deployed_digest: str):
 def main():
     args = sys.argv[1:]
 
-    if len(args) != 2:
-        die("Usage: task application:overview -- <WORKSPACE> <IMAGE_REPO>")
+    if len(args) != 4:
+        die(
+            "Usage: task app:versions -- <environment>\n"
+            "Example: task app:versions -- dev"
+        )
 
-    workspace, image_repo = args
+    workspace, registry, image_repo, deploy_slug = args
     hostname = get_hostname(workspace)
 
-    full_repo = f"{REGISTRY}/{image_repo}"
-    app_name = Path(image_repo).name
+    full_repo = f"{registry}/{image_repo}"
+    # Use deploy_slug for server path so we read the same deploy-history Ansible wrote to
+    # (Ansible uses app_root basename, e.g. /opt/deploy/app, not image repo name)
+    app_name = deploy_slug
 
     print(f"IMAGE: {image_repo}\n")
 

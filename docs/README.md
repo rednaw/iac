@@ -4,7 +4,7 @@
 <tr>
 <td valign="top">
 
-- [Getting started](INSTALL.md)
+- [Getting started](getting-started.md)
 - [Secrets management](secrets.md)
 - [Application deployment](application-deployment.md)
 - [Upgrading dependencies](upgrading.md)
@@ -26,43 +26,38 @@
 </tr>
 </table>
 
-For the self-hosted registry (auth, crane, tasks): [Registry](registry.md).
 
 ```
 Infrastructure as Code
 
 Terraform commands:
-  task terraform:login                  # Authenticate with Terraform Cloud
-  task terraform:init -- <workspace>    # Initialize workspace (dev or prod)
-  task terraform:plan -- <workspace>    # Plan changes (dev or prod)
-  task terraform:apply -- <workspace>   # Apply changes (dev or prod)
-  task terraform:destroy -- <workspace> # Destroy resources (dev or prod)
-  task terraform:output -- <workspace>  # Show outputs (dev or prod)
+  task terraform:init    -- <workspace>  # Initialize workspace (dev or prod)
+  task terraform:plan    -- <workspace>  # Plan changes (dev or prod)
+  task terraform:apply   -- <workspace>  # Apply changes (dev or prod)
+  task terraform:destroy -- <workspace>  # Destroy resources (dev or prod)
+  task terraform:output  -- <workspace>  # Show outputs (dev or prod)
 
 Ansible commands:
-  task ansible:install                  # Install required collections
-  task ansible:bootstrap -- <workspace> # One-time bootstrap as root (dev or prod)
-  task ansible:run -- <workspace>       # Configure server (Docker, Nginx, security)
+  task ansible:install                   # Install required collections
+  task ansible:bootstrap -- <workspace>  # One-time bootstrap as root (dev or prod)
+  task ansible:run       -- <workspace>  # Configure server (Docker, Nginx, security)
 
 Testing:
-  task test:run                         # Run all tests (validate, format check, security scan)
+  task test:run                          # Run all tests (validate, format check, security scan)
 
 Secrets Management (SOPS):
-  task secrets:keygen                   # Generate age key pair
-  task secrets:generate-sops-config     # Generate .sops.yaml
-  Edit secrets in VS Code (SOPS extension handles encryption)
+  task secrets:keygen                    # Generate age key pair
+  task secrets:generate-sops-config      # Generate .sops.yaml
 
-Application Deployment (run from app directory):
-  task iac:deploy -- <WORKSPACE> <SHA>
+Application Deployment:
+  task app:deploy   -- <env> <sha>
+  task app:versions -- <env>
 
 Registry:
-  task registry:overview                # List tags (TAG, CREATED, DESCRIPTION) for all repos
-
-Images (run from app directory):
-  task iac:versions -- <WORKSPACE>  # Show available versions with deployment status
+  task registry:overview                 # List tags (TAG, CREATED, DESCRIPTION) for all repos
 
 Utilities:
-  task server:check-status              # Check if servers are up (checks both dev and prod)
-  task server:list-hetzner-keys         # List Hetzner SSH keys with IDs
-  task server:setup-remote-cursor       # Add server to ~/.ssh/config for Cursor Remote-SSH
+  task server:check-status               # Check if servers are up (checks both dev and prod)
+  task server:list-hetzner-keys          # List Hetzner SSH keys with IDs
+  task server:setup-remote-cursor        # Add server to ~/.ssh/config for Cursor Remote-SSH
 ```

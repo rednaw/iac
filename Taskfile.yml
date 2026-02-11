@@ -18,6 +18,7 @@ includes:
   server: tasks/Taskfile.server.yml
   test: tasks/Taskfile.test.yml
   registry: tasks/Taskfile.registry.yml
+  app: tasks/Taskfile.app.yml
 
 tasks:
   default:
@@ -33,7 +34,6 @@ tasks:
         echo "Infrastructure as Code"
         echo ""
         echo "Terraform commands:"
-        echo "  task terraform:login                   # Authenticate with Terraform Cloud"
         echo "  task terraform:init    -- <workspace>  # Initialize workspace (dev or prod)"
         echo "  task terraform:plan    -- <workspace>  # Plan changes (dev or prod)"
         echo "  task terraform:apply   -- <workspace>  # Apply changes (dev or prod)"
@@ -51,11 +51,10 @@ tasks:
         echo "Secrets Management (SOPS):"
         echo "  task secrets:keygen                    # Generate age key pair"
         echo "  task secrets:generate-sops-config      # Generate .sops.yaml"
-        echo "  Edit secrets in VS Code (SOPS extension handles encryption)"
         echo ""
         echo "Application Deployment:"
-        echo "  Run from app directory: task iac:deploy -- <env> <sha>"
-        echo "  Run from app directory: task iac:versions -- <env>"
+        echo "  task app:deploy   -- <env> <sha>"
+        echo "  task app:versions -- <env>"
         echo ""
         echo "Registry:"
         echo "  task registry:overview                 # List tags (TAG, CREATED, DESCRIPTION) for all repos"

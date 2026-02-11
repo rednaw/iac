@@ -1,49 +1,25 @@
 # yaml-language-server: $schema=https://taskfile.dev/schema.json
 #
-# Application deployment tasks - include this from your app's Taskfile.yml:
+# Application deployment tasks — run from IAC devcontainer.
+# App repo is mounted at /workspaces/iac/app (set APP_HOST_PATH on host).
+# Registry and image come from the app's iac.yml.
 #
-#   version: '3'
-#   vars:
-#     REGISTRY_NAME: registry.example.com
-#     IMAGE_NAME: myorg/myapp
-#   includes:
-#     iac:
-#       taskfile: ../iac/tasks/Taskfile.app.yml
+#   task app:deploy   -- <env> <sha>
+#   task app:versions -- <env>
 #
-# Then run: task iac:deploy -- dev abc123
-#           task iac:versions -- dev
-#
-# Secrets: Edit secrets.yml directly in VS Code (SOPS extension decrypts transparently)
+# See docs/application-deployment.md.
 
 version: '3'
 
 vars:
   IAC_ROOT:
     sh: realpath "{{.TASKFILE_DIR}}/.."
-  APP_ROOT:
-    sh: pwd
+  APP_ROOT: /workspaces/iac/app
 
 tasks:
-  default:
-    desc: Show available commands
-    silent: true
-    cmds:
-      - |
-        echo "Application Deployment"
-        echo ""
-        echo "Commands:"
-        echo "  task iac:deploy   -- <env> <sha>   Deploy a version"
-        echo "  task iac:versions -- <env>         List available versions"
-        echo ""
-        echo "Secrets:"
-        echo "  task iac:secrets:init              Initialize .sops.yaml and secrets.yml (one-time)"
-        echo "  Then edit secrets.yml in VS Code (SOPS extension handles encryption)"
-
   deploy:
-    desc: "Deploy application (use: task iac:deploy -- <environment> <sha>)"
+    desc: "Deploy application (use: task app:deploy -- <environment> <sha>)"
     silent: true
-    requires:
-      vars: [REGISTRY_NAME, IMAGE_NAME]
     vars:
       WORKSPACE:
         sh: echo "{{.CLI_ARGS}}" | awk '{print $1}'
@@ -51,11 +27,17 @@ tasks:
         sh: echo "{{.CLI_ARGS}}" | awk '{print $2}'
     preconditions:
       - sh: '[ $(echo "{{.CLI_ARGS}}" | wc -w | tr -d " ") -eq 2 ]'
-        msg: "Usage: task iac:deploy -- <environment> <sha>"
+        msg: "Usage: task app:deploy -- <environment> <sha>"
       - sh: '[ "{{.WORKSPACE}}" = "dev" ] || [ "{{.WORKSPACE}}" = "prod" ]'
         msg: "Invalid environment '{{.WORKSPACE}}'. Use: dev or prod"
+      - sh: test -d "{{.APP_ROOT}}"
+        msg: "App not mounted at {{.APP_ROOT}}. Set APP_HOST_PATH and see docs/application-deployment.md."
+      - sh: test -f "{{.APP_ROOT}}/iac.yml"
+        msg: "App missing iac.yml at {{.APP_ROOT}}. See docs/application-deployment.md."
     cmds:
       - |
+        REGISTRY_NAME=$(yq -r '.REGISTRY_NAME' "{{.APP_ROOT}}/iac.yml")
+        IMAGE_NAME=$(yq -r '.IMAGE_NAME' "{{.APP_ROOT}}/iac.yml")
         # Prepare SSH host keys
         cd "{{.IAC_ROOT}}" && task hostkeys:prepare -- "{{.WORKSPACE}}"
         
@@ -67,20 +49,26 @@ tasks:
           -e "app_root={{.APP_ROOT}}" \
           -e "workspace={{.WORKSPACE}}" \
           -e "sha={{.SHA}}" \
-          -e "registry_name={{.REGISTRY_NAME}}" \
-          -e "image_name={{.IMAGE_NAME}}"
+          -e "registry_name=$REGISTRY_NAME" \
+          -e "image_name=$IMAGE_NAME"
 
   versions:
-    desc: "List available versions (use: task iac:versions -- <environment>)"
+    desc: "List available versions (use: task app:versions -- <environment>)"
     silent: true
-    requires:
-      vars: [IMAGE_NAME]
     vars:
       WORKSPACE: "{{.CLI_ARGS}}"
     preconditions:
       - sh: '[ $(echo "{{.CLI_ARGS}}" | wc -w | tr -d " ") -eq 1 ]'
-        msg: "Usage: task iac:versions -- <environment>\nExample: task iac:versions -- dev"
+        msg: "Usage: task app:versions -- <environment>\nExample: task app:versions -- dev"
       - sh: '[ "{{.WORKSPACE}}" = "dev" ] || [ "{{.WORKSPACE}}" = "prod" ]'
         msg: "Invalid environment '{{.WORKSPACE}}'. Use: dev or prod"
+      - sh: test -d "{{.APP_ROOT}}"
+        msg: "App not mounted at {{.APP_ROOT}}. Set APP_HOST_PATH and see docs/application-deployment.md."
+      - sh: test -f "{{.APP_ROOT}}/iac.yml"
+        msg: "App missing iac.yml at {{.APP_ROOT}}. See docs/application-deployment.md."
     cmds:
-      - cd "{{.IAC_ROOT}}" && python3 scripts/application_versions.py "{{.WORKSPACE}}" "{{.IMAGE_NAME}}"
+      - |
+        REGISTRY_NAME=$(yq -r '.REGISTRY_NAME' "{{.APP_ROOT}}/iac.yml")
+        IMAGE_NAME=$(yq -r '.IMAGE_NAME' "{{.APP_ROOT}}/iac.yml")
+        APP_SLUG=$(basename "{{.APP_ROOT}}")
+        cd "{{.IAC_ROOT}}" && python3 scripts/application_versions.py "{{.WORKSPACE}}" "$REGISTRY_NAME" "$IMAGE_NAME" "$APP_SLUG"
