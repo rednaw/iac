@@ -131,4 +131,4 @@ crane ls registry.rednaw.nl/rednaw/hello-world | grep -E '^[0-9a-f]{7}$'
 
 - [Application deployment](application-deployment.md) — How apps are deployed and how they use the registry
 - [Secrets](secrets.md) — Where registry credentials are stored (SOPS)
-- [Security](SECURITY.md) — How registry auth fits into the security model
+- [Private](private.md) — Local config files and auth

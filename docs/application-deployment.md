@@ -306,7 +306,7 @@ The editor process didn't have `APP_HOST_PATH` in its environment. Run `./script
 - Ensure the app is mounted at `/workspaces/iac/app` and contains `iac.yml` with `REGISTRY_NAME` and `IMAGE_NAME`. Run `./scripts/setup-app-path.sh /path/to/your/app` on the host (or set the path manually); see [App mount](#app-mount).
 
 **"Host key verification failed"**
-- Run `task hostkeys:prepare -- <WORKSPACE>` manually before deploy. We use `StrictHostKeyChecking=accept-new` only; see [Troubleshooting](TROUBLESHOOTING.md) for details.
+- Run `task hostkeys:prepare -- <WORKSPACE>` manually before deploy. We use `StrictHostKeyChecking=accept-new` only; see [Troubleshooting](troubleshooting.md) for details.
 
 **Ansible playbook failures**
 - Check Ansible logs for specific errors
@@ -342,5 +342,5 @@ The editor process didn't have `APP_HOST_PATH` in its environment. Run `./script
 ## See Also
 
 - [Registry](registry.md) — Private registry auth, commands, troubleshooting
-- [Troubleshooting](TROUBLESHOOTING.md) — Host key verification, connection issues
+- [Troubleshooting](troubleshooting.md) — Host key verification, connection issues
 - [Ansible Role](../ansible/roles/deploy_app/) — Deployment role implementation

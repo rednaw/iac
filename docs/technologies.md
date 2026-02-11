@@ -26,7 +26,7 @@ These are the main tools and technologies used by Rednaw IaC
 - [Docker Registry](https://distribution.github.io/distribution/) - a stateless, server side application that lets you store and distribute docker images.
 
 #### Web server and TLS
-- [Certbot](https://eff-certbot.readthedocs.io/en/stable/intro.html) - Fetches and renews certificates from Let’s Encrypt
+- [Certbot](https://eff-certbot.readthedocs.io/en/stable/intro.html) - Fetches and renews certificates from Let's Encrypt
 - [Nginx](https://nginx.org/) - Reverse proxy and static file serving on the server
 
 #### Server security
@@ -36,4 +36,3 @@ These are the main tools and technologies used by Rednaw IaC
 - [Ansible Lint](https://docs.ansible.com/projects/lint/) - Promotes best practices for Ansible
 - [ShellCheck](https://www.shellcheck.net/) - Finds bugs in shell scripts.
 - [TFsec](https://aquasecurity.github.io/tfsec/v1.20.0/) - A static analysis security scanner for Terraform code.
-
