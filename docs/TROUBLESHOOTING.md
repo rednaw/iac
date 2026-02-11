@@ -17,4 +17,4 @@
 - Run `task ansible:install`
 
 **"Host key verification failed"**
-- Tasks run `hostkeys:prepare` before SSH/Ansible and use `StrictHostKeyChecking=accept-new` only. See [SSH host keys](SSH-host-keys.md).
+- Tasks run `hostkeys:prepare` before SSH/Ansible to remove old keys for the workspace hostname. If you still get errors (e.g. after a server recreate), run `task hostkeys:prepare -- <workspace>` before your command. We use `StrictHostKeyChecking=accept-new` only (never `no`).

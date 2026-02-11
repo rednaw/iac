@@ -1,10 +1,13 @@
 [**<---**](../README.md)
-# Infrastructure as Code
+
+# Documentation
+
+New to the project? Start with [Getting started](getting-started.md).
+
 <table>
 <tr>
 <td valign="top">
 
-- [Getting started](getting-started.md)
 - [Secrets management](secrets.md)
 - [Application deployment](application-deployment.md)
 - [Upgrading dependencies](upgrading.md)

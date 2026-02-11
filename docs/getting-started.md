@@ -12,28 +12,56 @@
 
 ## Summary
 
-Clone the repo, open the `iac` folder, and choose **Reopen in Container**.
+1. Clone the repo, open the `iac` folder, VSCode/Cursor will offer to reopen in devcontainer, **do not do that yet**.
+2. Set which app the devcontainer will mount: run **`./scripts/setup-app-path.sh /path/to/your/app`**, see [Application deployment](application-deployment.md#app-mount).
+3. For setting up a **new project** follow the [Install: new project](new-project.md) guide, if you want to join an **existing project** follow the [Install: joining an existing project](joining.md) guide.
 
-Set which app the devcontainer mounts: run **`./scripts/setup-app-path.sh /path/to/your/app`** on the host (macOS/Linux). See [Application deployment](application-deployment.md#app-mount).
+## Result
+When done you will be in full control of your application infrastructure via the IaC Devcontainer
 
-| Situation | Guide |
-|-----------|--------|
-| **New project** — you are creating infrastructure and there is no `infrastructure-secrets.yml` yet | [Install: new project](new-project.md) |
-| **Joining** — the repo already has encrypted secrets and you need access | [Install: joining an existing project](joining.md) |
+```mermaid
+graph TB
+    subgraph IAC[IaC Devcontainer]
+        TASK(Taskfile<br/>Automation)
+        SOPS(SOPS<br/>Secrets Management)
+        TF(Terraform)
+        ANS(Ansible)
+        INFRA_SECRETS@{ shape: lin-doc, label: "infrastructure-secrets.yml" }
+    end
 
+    subgraph SERVER[Ubuntu Server]
+      NGINX(Nginx<br/>Reverse Proxy)
+      subgraph DOCKER[Docker Engine]
+        SUPPORTING_SERVICES@{ shape: cyl, label: "Supporting Services<br/>Postgres, Redis, ..." }
+        APP_SERVICE(Application Service)
+      end
+      OBSERVE(OpenObserve<br/>Monitors system health)
+      REGISTRY(Docker Registry)
+      SEC(Security Tools<br/>fail2ban, SSH hardening, AbuseIPDB)
+    end
 
-## Provision server
+    subgraph APP[Your application]
+      COMPOSE@{ shape: docs, label: "docker-compose.yml, Dockerfile,<br/>Application code" }
+      IAC_YML@{ shape: lin-doc, label: "iac.yml<br/>IaC configuration" }
+      PUSH@{ shape: subproc, label: "Github workflow<br/>Build and push" }
+      APP_SECRETS@{ shape: lin-doc, label: "secrets.yml<br/>SOPS managed application secrets" }
+    end
 
-After completing your install path, use:
+    IAC -->|mount| APP
+    
+    TASK -->|orchestrate| TF
+    TASK -->|orchestrate| ANS
 
-```bash
-task terraform:init -- dev              # Initialize Terraform for dev
-task terraform:apply -- dev             # Create dev server
-task ansible:install                    # Install Ansible collections (once)
-task ansible:bootstrap -- dev           # Setup ubuntu user (one-time, requires server IP)
-task ansible:run -- dev                 # Configure dev server
+    SOPS -->|read| INFRA_SECRETS
+        
+    TF -->|provision| SERVER
+    TF -->|read| SOPS
+    
+    ANS -->|provision| SERVER
+    ANS -->|read| SOPS
+
+    APP_SERVICE -->|pull application image| REGISTRY
+    PUSH --->|push application image| REGISTRY 
+    
+    APP_SERVICE -->|proxy| NGINX
 ```
-
-**Server IP:** `task terraform:output -- dev` or `task terraform:output -- prod`
-
-Use `prod` instead of `dev` for production.
