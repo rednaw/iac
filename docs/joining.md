@@ -44,8 +44,6 @@ You need to be part of the SOPS keyring to be able to decrypt `secrets/infrastru
 2. Open the workspace: **File → Open Workspace from File...** → select `iac.code-workspace` in the repo root.
 3. Run **Cmd+Shift+P** → **Dev Containers: Reopen in Container**.
 
-The workspace has a single root (IAC). The app’s deploy files (`iac.yml`, `docker-compose.yml`, `secrets.yml`) appear under `app/`. 
-
 On startup, the devcontainer decrypts `secrets/infrastructure-secrets.yml` (using your mounted `~/.config/sops/age/keys.txt`) and writes:
 
 - `~/.docker/config.json` — Credentials for the built in Docker Registry used for application deployment.
