@@ -74,5 +74,5 @@ tasks:
       - |
         REGISTRY_NAME=$(yq -r '.REGISTRY_NAME' "{{.APP_ROOT}}/iac.yml")
         IMAGE_NAME=$(yq -r '.IMAGE_NAME' "{{.APP_ROOT}}/iac.yml")
-        APP_SLUG=$(echo "$IMAGE_NAME" | sed 's|.*/||')
+        APP_SLUG="${IMAGE_NAME##*/}"
         cd "{{.IAC_ROOT}}" && python3 scripts/application_versions.py "{{.WORKSPACE}}" "$REGISTRY_NAME" "$IMAGE_NAME" "$APP_SLUG"
