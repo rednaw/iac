@@ -1,15 +1,20 @@
 #!/usr/bin/env bash
-# Warn if the app is not mounted at /workspaces/iac/app (APP_HOST_PATH not set or invalid).
+# Warn if the app deploy files are not mounted. Run ./scripts/setup-app-path.sh on the host.
 # See docs/application-deployment.md#app-mount.
 set -euo pipefail
 
 APP_ROOT="/workspaces/iac/app"
-IAC_DOCS="docs/application-deployment.md"
+REQUIRED=(iac.yml docker-compose.yml secrets.yml)
+missing=()
 
-if [ ! -d "$APP_ROOT" ] || [ ! -f "$APP_ROOT/iac.yml" ]; then
+for f in "${REQUIRED[@]}"; do
+  [[ -f "$APP_ROOT/$f" ]] || missing+=("$f")
+done
+
+if [[ ${#missing[@]} -gt 0 ]]; then
   echo ""
-  echo "⚠️  App not mounted or missing iac.yml at $APP_ROOT"
-  echo "   Set APP_HOST_PATH in your local environment (e.g. .zshrc) and reopen the devcontainer."
-  echo "   See $IAC_DOCS for details."
+  echo "⚠️  App deploy files not mounted at $APP_ROOT: ${missing[*]}"
+  echo "   Run ./scripts/setup-app-path.sh /path/to/app on the host, then reopen the devcontainer."
+  echo "   See docs/application-deployment.md"
   echo ""
 fi

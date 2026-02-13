@@ -65,8 +65,8 @@
 
 - name: Set deploy target
   ansible.builtin.set_fact:
-    app_slug: "{{ app_root | basename }}"
-    deploy_target: "/opt/deploy/{{ app_root | basename }}"
+    app_slug: "{{ image_name | split('/') | last }}"
+    deploy_target: "/opt/deploy/{{ image_name | split('/') | last }}"
   delegate_to: localhost
   become: false
 

@@ -14,8 +14,11 @@ ansible/.ansible/
 __pycache__/
 *.pyc
 
-# Documents scratchpad
-docs/attic
+# Mounted application files
+app/docker-compose.yml
+app/iac.yml
+app/secrets.yml
+
 
 .DS_Store
-
+.vscode/

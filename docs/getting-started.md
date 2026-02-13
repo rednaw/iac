@@ -13,7 +13,7 @@
 ## Summary
 
 1. Clone the repo, open the `iac` folder, VSCode/Cursor will offer to reopen in devcontainer, **do not do that yet**.
-2. Set which app the devcontainer will mount: run **`./scripts/setup-app-path.sh /path/to/your/app`**, see [Application deployment](application-deployment.md#app-mount).
+2. Set which app the devcontainer will mount: run **`./scripts/setup-app-path.sh /path/to/your/app`** (the app must have `iac.yml`, `docker-compose.yml`, and `secrets.yml`). See [Application deployment](application-deployment.md#app-mount).
 3. For setting up a **new project** follow the [Install: new project](new-project.md) guide, if you want to join an **existing project** follow the [Install: joining an existing project](joining.md) guide.
 
 ## Result
@@ -47,7 +47,7 @@ graph TB
       APP_SECRETS@{ shape: lin-doc, label: "secrets.yml<br/>SOPS managed application secrets" }
     end
 
-    IAC -->|mount| APP
+    IAC -->|mount 3 files| APP
     
     TASK -->|orchestrate| TF
     TASK -->|orchestrate| ANS
