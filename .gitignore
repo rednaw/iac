@@ -18,7 +18,7 @@ __pycache__/
 app/docker-compose.yml
 app/iac.yml
 app/secrets.yml
-
+app/.sops.yaml
 
 .DS_Store
 .vscode/
