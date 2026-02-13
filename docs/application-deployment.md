@@ -41,7 +41,7 @@ The deployment system provides two commands:
 - `task app:deploy -- <env> <sha>` — Deploy an application version
 - `task app:versions -- <env>` — List available versions
 
-The app repository must be mounted at `/workspaces/iac/app` (see [App mount](#app-mount) below).
+Three app files must be mounted at `/workspaces/iac/app`: `iac.yml`, `docker-compose.yml`, `secrets.yml` (see [App mount](#app-mount) below).
 
 The `versions` command is implemented as a Python script (`scripts/application_versions.py`). The `deploy` command runs an Ansible playbook that orchestrates the entire deployment.
 
@@ -49,11 +49,14 @@ The `versions` command is implemented as a Python script (`scripts/application_v
 
 ## App mount
 
-The devcontainer mounts your app repository at `/workspaces/iac/app` so you can run app:deploy and app:versions versions from the IAC repo without installing Task or Ansible on your machine. The mount uses **`APP_HOST_PATH`** from the environment of the process that opens the workspace (e.g. Cursor or VS Code). To have that variable set even when you launch the editor from the Dock or Spotlight (e.g. after a reboot), use a path file in your home directory and a small snippet in your shell profile (macOS and Linux).
+
+The devcontainer mounts three files from your app repo at `/workspaces/iac/app`: `iac.yml`, `docker-compose.yml`, `secrets.yml`. This lets you run `app:deploy` and `app:versions` from the IAC repo without installing Task or Ansible on your machine. The mount uses **`APP_HOST_PATH`** from the environment of the process that opens the workspace (e.g. Cursor or VS Code).
+
+**Required files** — Each app must have all three. `secrets.yml` can be minimal (e.g. `{}`) if the app has no secrets; it must exist.
 
 ### Set which app you're working on
 
-**Recommended:** Run the setup script from the host (once per machine, and again whenever you switch to a different app):
+Run the setup script from the host (once per machine, and again whenever you switch to a different app):
 
 ```bash
 ./scripts/setup-app-path.sh /path/to/your/app
@@ -61,8 +64,8 @@ The devcontainer mounts your app repository at `/workspaces/iac/app` so you can 
 
 If you omit the path, the script will prompt you. The script:
 
-1. Writes the path to **`~/.config/iac-app-path`**
-2. Ensures your profile (**`~/.zprofile`** on macOS, **`~/.profile`** on Linux) loads that path into `APP_HOST_PATH` (idempotent; it won't add the snippet twice)
+1. **Validates** that the app has `iac.yml`, `docker-compose.yml`, and `secrets.yml`
+2. Adds or updates **`export APP_HOST_PATH=/path/to/app`** in your profile (`~/.zprofile` on macOS, `~/.profile` on Linux)
 3. On macOS: runs `launchctl setenv APP_HOST_PATH ...` so the current session gets it without re-login
 
 After running it, open `iac.code-workspace` (or **Reopen in Container** if already open) so the devcontainer picks up the mount. To work on a different app later, run the script again with the other app's path.
@@ -74,7 +77,7 @@ After running it, open `iac.code-workspace` (or **Reopen in Container** if alrea
 - **Linux** (`~/.profile`):  
   `[ -f ~/.config/iac-app-path ] && export APP_HOST_PATH=$(cat ~/.config/iac-app-path)`
 
-On macOS, run `launchctl setenv APP_HOST_PATH "$(cat ~/.config/iac-app-path)"` in a terminal to update the current session without re-logging in. On Linux, log out and back in (or start Cursor from a terminal after sourcing your profile).
+**Manual alternative:** Add `export APP_HOST_PATH=/path/to/your/app` to your profile. On macOS, also run `launchctl setenv APP_HOST_PATH "/path/to/your/app"` after profile changes so GUI-launched editors see it.
 
 ---
 
@@ -102,7 +105,7 @@ task app:deploy -- prod abc1234
 
 1. **Validates inputs:**
    - Validates environment is `dev` or `prod`
-   - Ensures the app is mounted at `/workspaces/iac/app` and contains `iac.yml`
+   - Ensures `/workspaces/iac/app` contains `iac.yml`, `docker-compose.yml`, and `secrets.yml`
    - Reads `REGISTRY_NAME` and `IMAGE_NAME` from the app's `iac.yml`
 
 2. **Prepares and runs Ansible:**
@@ -112,7 +115,7 @@ task app:deploy -- prod abc1234
 3. **The `deploy_app` role:**
    - Resolves tag → digest using `crane digest`
    - Extracts metadata using `crane config` (description, build time)
-   - Decrypts app secrets if `secrets.yml` exists (SOPS-encrypted YAML)
+   - Decrypts app secrets from `secrets.yml` (SOPS-encrypted YAML)
    - Copies files, configures Docker auth
    - Deploys the application with Docker Compose
    - Records deployment metadata
@@ -151,7 +154,7 @@ task app:versions -- prod
 
 1. **Reads deployment state:**
    - SSHs to workspace hostname (e.g., `dev.rednaw.nl`)
-   - Reads `/opt/deploy/<app>/deploy-info.yml`
+   - Reads `/opt/deploy/<slug>/deploy-info.yml` (slug is derived from `IMAGE_NAME`, e.g. `rednaw/hello-world` → `hello-world`)
    - Extracts currently deployed digest
 
 2. **Lists registry tags:**
@@ -194,7 +197,7 @@ IMAGE_NAME: rednaw/hello-world
 **Required files in app directory (mounted at `/workspaces/iac/app`):**
 - `iac.yml`: Registry and image name (as above)
 - `docker-compose.yml`: Service definition with `image: ${IMAGE}`
-- `secrets.yml`: (optional) SOPS-encrypted environment variables (YAML format)
+- `secrets.yml`: SOPS-encrypted environment variables (YAML format); can be minimal (e.g. `{}`) if no secrets
 
 ---
 
@@ -303,7 +306,7 @@ The editor process didn't have `APP_HOST_PATH` in its environment. Run `./script
 - Check tag format (7 hex characters)
 
 **"missing required vars" / "iac.yml not found"**
-- Ensure the app is mounted at `/workspaces/iac/app` and contains `iac.yml` with `REGISTRY_NAME` and `IMAGE_NAME`. Run `./scripts/setup-app-path.sh /path/to/your/app` on the host (or set the path manually); see [App mount](#app-mount).
+- Ensure `/workspaces/iac/app` has `iac.yml`, `docker-compose.yml`, and `secrets.yml`. Run `./scripts/setup-app-path.sh /path/to/your/app` on the host; see [App mount](#app-mount).
 
 **"Host key verification failed"**
 - Run `task hostkeys:prepare -- <WORKSPACE>` manually before deploy. We use `StrictHostKeyChecking=accept-new` only; see [Troubleshooting](troubleshooting.md) for details.
@@ -332,7 +335,7 @@ The editor process didn't have `APP_HOST_PATH` in its environment. Run `./script
 ## Design Principles
 
 - **Minimal app configuration** — Just `REGISTRY_NAME` and `IMAGE_NAME` in `iac.yml`; no Task/Ansible in the app repo
-- **Ops from IAC** — Deploy and versions run from the IAC devcontainer; app repo is mounted via `APP_HOST_PATH`
+- **Ops from IAC** — Deploy and versions run from the IAC devcontainer; three app files (`iac.yml`, `docker-compose.yml`, `secrets.yml`) are mounted via `APP_HOST_PATH`
 - **Humans deploy by tag** — Short SHAs are readable
 - **Machines run by digest** — Immutable digests ensure safety
 - **History is never lost** — Append-only audit trail

@@ -8,7 +8,10 @@
   "mounts": [
     "source=${localEnv:HOME}/.config/sops,target=/home/vscode/.config/sops,type=bind",
     "source=${localEnv:HOME}/.ssh,target=/home/vscode/.ssh,type=bind",
-    "source=${localEnv:APP_HOST_PATH},target=/workspaces/iac/app,type=bind"
+    "source=${localEnv:APP_HOST_PATH}/iac.yml,target=/workspaces/iac/app/iac.yml,type=bind",
+    "source=${localEnv:APP_HOST_PATH}/docker-compose.yml,target=/workspaces/iac/app/docker-compose.yml,type=bind",
+    "source=${localEnv:APP_HOST_PATH}/secrets.yml,target=/workspaces/iac/app/secrets.yml,type=bind",
+    "source=${localEnv:APP_HOST_PATH}/.sops.yaml,target=/workspaces/iac/app/.sops.yaml,type=bind"
   ],
 
   "customizations": {
@@ -26,9 +29,7 @@
 
   "remoteUser": "vscode",
   
-  "postCreateCommand": "mise trust -a && echo '✅ Dev container ready' && task --version && sops --version && terraform --version && cursor-agent --version",
-
-  "postStartCommand": "bash scripts/devcontainer-secrets-setup.sh && bash scripts/devcontainer-app-mount-check.sh",
+  "postCreateCommand": "bash .devcontainer/devcontainer-setup.sh",
 
   "features": {
     "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
