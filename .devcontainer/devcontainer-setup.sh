@@ -1,24 +1,31 @@
 #!/usr/bin/env bash
-# Configure devcontainer credentials from SOPS so tools work without manual setup:
-# - Docker/crane/trivy registry auth (~/.docker/config.json)
-# - hcloud CLI token (~/.config/hcloud/cli.toml)
+# DevContainer setup script:
+# - Trust mise tools (user-specific, must run as vscode user)
+# - Configure credentials from SOPS (Docker registry, hcloud, Terraform Cloud)
 # Requires SOPS key and secrets/infrastructure-secrets.yml in repo.
 set -euo pipefail
+
+########################################
+# Trust mise tools (user-specific)
+########################################
+
+mise trust -a
+
+########################################
+# Decrypt secrets once
+########################################
 
 REGISTRY="${REGISTRY:-registry.rednaw.nl}"
 DOCKER_CONFIG="${HOME}/.docker/config.json"
 HCLOUD_CONFIG_DIR="${HOME}/.config/hcloud"
 HCLOUD_CONFIG_FILE="${HCLOUD_CONFIG_DIR}/cli.toml"
-TERRAFORM_CONFIG_DIR="${HOME}/.terraform.d"
-TERRAFORM_CRED_FILE="${TERRAFORM_CONFIG_DIR}/credentials.tfrc.json"
 SOPS_KEY_FILE="${HOME}/.config/sops/age/keys.txt"
 SECRETS_FILE="${1:-secrets/infrastructure-secrets.yml}"
 
-# Decrypt secrets once
 DECRYPTED=$(SOPS_AGE_KEY_FILE="$SOPS_KEY_FILE" sops -d "$SECRETS_FILE")
 
 ########################################
-# Registry (~/.docker/config.json)
+# Docker Registry (~/.docker/config.json)
 ########################################
 
 mkdir -p "$(dirname "$DOCKER_CONFIG")"
@@ -45,7 +52,7 @@ if [ -n "$REG_USER" ] && [ -n "$REG_PASS" ]; then
     echo "Registry auth configured for $REGISTRY in $DOCKER_CONFIG (new config created)."
   fi
 
-  chmod 600 "$DOCKER_CONFIG" 2>/dev/null || true
+  chmod 600 "$DOCKER_CONFIG"
 else
   echo "Registry credentials (registry_username/registry_password) not found in $SECRETS_FILE, skipping registry auth."
 fi
@@ -67,36 +74,30 @@ active_context = "default"
   token = "$HCLOUD_TOKEN"
 EOF
 
-  chmod 600 "$HCLOUD_CONFIG_FILE" 2>/dev/null || true
+  chmod 600 "$HCLOUD_CONFIG_FILE"
   echo "hcloud CLI config written to $HCLOUD_CONFIG_FILE (context \"default\")."
 else
   echo "hcloud_token not found in $SECRETS_FILE, skipping hcloud CLI config."
 fi
 
 ########################################
-# Terraform Cloud (~/.terraform.d/credentials.tfrc.json)
+# Terraform Cloud (TF_TOKEN_app_terraform_io env var)
+# Terraform Cloud supports environment variable authentication:
+# https://developer.hashicorp.com/terraform/cloud-docs/workspaces/remote-state#environment-variable-credentials
 ########################################
 
 TFC_TOKEN=$(echo "$DECRYPTED" | yq -r '.terraform_cloud_token // ""')
 
 if [ -n "$TFC_TOKEN" ]; then
-  mkdir -p "$TERRAFORM_CONFIG_DIR"
-
-  if [ -f "$TERRAFORM_CRED_FILE" ]; then
-    # Merge/overwrite app.terraform.io token
-    tmp="$(mktemp)"
-    jq --arg token "$TFC_TOKEN" '
-      .credentials["app.terraform.io"].token = $token
-    ' "$TERRAFORM_CRED_FILE" > "$tmp" && mv "$tmp" "$TERRAFORM_CRED_FILE"
-  else
-    # Create minimal credentials file
-    jq -n --arg token "$TFC_TOKEN" '
-      {credentials: {"app.terraform.io": {token: $token}}}
-    ' > "$TERRAFORM_CRED_FILE"
-  fi
-
-  chmod 600 "$TERRAFORM_CRED_FILE" 2>/dev/null || true
-  echo "Terraform Cloud credentials written to $TERRAFORM_CRED_FILE (app.terraform.io)."
+  export TF_TOKEN_app_terraform_io="$TFC_TOKEN"
+  
+  # Persist to shell profiles if they exist
+  for profile in "${HOME}/.bashrc" "${HOME}/.zshrc"; do
+    [ -f "$profile" ] && ! grep -q "TF_TOKEN_app_terraform_io" "$profile" 2>/dev/null && \
+      echo "export TF_TOKEN_app_terraform_io=\"$TFC_TOKEN\"" >> "$profile"
+  done
+  
+  echo "Terraform Cloud token configured (TF_TOKEN_app_terraform_io)."
 else
   echo "terraform_cloud_token not found in $SECRETS_FILE, skipping Terraform Cloud credentials."
 fi

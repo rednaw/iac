@@ -41,7 +41,7 @@ All environments use the **same credential source**: SOPS-decrypted `secrets/inf
 
 ### DevContainer
 
-- **Trigger:** `postStartCommand` runs `scripts/devcontainer-secrets-setup.sh` on container start.
+- **Trigger:** `postCreateCommand` runs `.devcontainer/devcontainer-setup.sh` on container creation.
 - **Effect:** The script writes to `~/.docker/config.json` inside the devcontainer so `docker`, `crane`, and `trivy` can access the private registry without manual `docker login`.
 - **When:** Automatic; no manual steps. No `DOCKER_CONFIG` env var needed.
 - **Tools:** Registry-related tools (e.g. **crane**, Docker CLI, jq) are automatically installed in the devcontainer via [mise](https://mise.jdx.dev/) and the image build; you can run `task registry:overview`, `crane ls`, etc. from inside the devcontainer.

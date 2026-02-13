@@ -1,12 +1,8 @@
 {
   "folders": [
     {
-      "name": "iac",
+      "name": "IaC",
       "path": "."
-    },
-    {
-      "name": "app",
-      "path": "app"
     }
   ],
   "settings": {}

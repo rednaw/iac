@@ -34,6 +34,14 @@ resource "hcloud_firewall" "platform" {
     port        = "443"
     description = "HTTPS"
   }
+
+  # ICMP (ping)
+  rule {
+    direction   = "in"
+    protocol    = "icmp"
+    source_ips  = ["0.0.0.0/0", "::/0"]
+    description = "Allow ping from anywhere"
+  }
 }
 
 # VPS Server

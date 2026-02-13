@@ -1,16 +1,12 @@
 #!/usr/bin/env bash
 # Set which app the IAC devcontainer mounts at /workspaces/iac/app.
-# Writes the path to ~/.config/iac-app-path and ensures your shell profile
-# loads it into APP_HOST_PATH so GUI-launched Cursor/VS Code see it (macOS/Linux).
-# Run from the host (not inside the devcontainer). See docs/application-deployment.md.
+# Writes export APP_HOST_PATH=... to your shell profile. Run from the host.
+# See docs/application-deployment.md.
 set -euo pipefail
 
-CONFIG_DIR="${HOME}/.config"
-PATH_FILE="${CONFIG_DIR}/iac-app-path"
-MARKER="IAC devcontainer: app path (setup-app-path.sh)"
+MARKER="# IAC devcontainer: app path (setup-app-path.sh)"
+REQUIRED_FILES=(iac.yml docker-compose.yml secrets.yml)
 
-# Run on the host so we update the host's profile and path file; the devcontainer
-# reads APP_HOST_PATH from the process that launched the editor.
 running_in_devcontainer() {
   [[ -f /.dockerenv ]] || [[ -n "${DEVCONTAINER:-}" ]]
 }
@@ -18,7 +14,8 @@ running_in_devcontainer() {
 usage() {
   echo "Usage: $0 [PATH_TO_APP]"
   echo ""
-  echo "  PATH_TO_APP  Absolute or relative path to your app repo (e.g. the one with iac.yml)."
+  echo "  PATH_TO_APP  Absolute or relative path to your app repo."
+  echo "               Must contain iac.yml, docker-compose.yml, secrets.yml."
   echo "               If omitted, you will be prompted."
   echo ""
   echo "Sets which app is mounted in the IAC devcontainer. Run again with a different path"
@@ -34,6 +31,22 @@ resolve_path() {
   fi
 }
 
+validate_app() {
+  local dir="$1"
+  local missing=()
+  for f in "${REQUIRED_FILES[@]}"; do
+    [[ -f "$dir/$f" ]] || missing+=("$f")
+  done
+  if [[ ${#missing[@]} -gt 0 ]]; then
+    echo "❌ Missing required files in $dir:"
+    printf '   - %s\n' "${missing[@]}"
+    echo ""
+    echo "Each app must have iac.yml, docker-compose.yml, and secrets.yml."
+    echo "secrets.yml can be minimal (e.g. {}) if the app has no secrets."
+    exit 1
+  fi
+}
+
 detect_os() {
   case "$(uname -s)" in
     Darwin) echo "macos" ;;
@@ -42,38 +55,27 @@ detect_os() {
   esac
 }
 
-ensure_snippet_macos() {
-  local profile="$HOME/.zprofile"
+update_profile() {
+  local profile="$1"
+  local app_path="$2"
+
+  # Remove old block if present
   if [[ -f "$profile" ]] && grep -q "$MARKER" "$profile" 2>/dev/null; then
-    return 0
+    awk -v marker="$MARKER" '
+      $0 == marker { skip=1; next }
+      skip && /^export APP_HOST_PATH=/ { skip=0; next }
+      { print }
+    ' "$profile" > "$profile.tmp" && mv "$profile.tmp" "$profile"
   fi
+
+  # Append new block
   mkdir -p "$(dirname "$profile")"
-  cat >> "$profile" << 'SNIPPET'
-
-# IAC devcontainer: app path (setup-app-path.sh) — load into session for GUI-launched apps
-[ -f ~/.config/iac-app-path ] && export APP_HOST_PATH=$(cat ~/.config/iac-app-path) && launchctl setenv APP_HOST_PATH "$APP_HOST_PATH"
-SNIPPET
-  echo "Added APP_HOST_PATH loader to $profile"
-}
-
-ensure_snippet_linux() {
-  local profile="$HOME/.profile"
-  if [[ -f "$profile" ]] && grep -q "$MARKER" "$profile" 2>/dev/null; then
-    return 0
-  fi
-  mkdir -p "$(dirname "$profile")"
-  cat >> "$profile" << 'SNIPPET'
-
-# IAC devcontainer: app path (setup-app-path.sh) — load for session
-[ -f ~/.config/iac-app-path ] && export APP_HOST_PATH=$(cat ~/.config/iac-app-path)
-SNIPPET
-  echo "Added APP_HOST_PATH loader to $profile"
+  printf '\n%s\nexport APP_HOST_PATH="%s"\n' "$MARKER" "$app_path" >> "$profile"
 }
 
 main() {
   if running_in_devcontainer; then
     echo "This script must be run on the host, not inside the devcontainer."
-    echo "It updates your host profile and ~/.config/iac-app-path so the editor process has APP_HOST_PATH."
     echo "Open a terminal on your Mac/Linux (outside Cursor) and run: $0 [PATH_TO_APP]"
     exit 1
   fi
@@ -86,29 +88,27 @@ main() {
     fi
     path=$(resolve_path "$1")
   else
-    echo "Path to your app repo (directory containing iac.yml):"
+    echo "Path to your app repo (must contain iac.yml, docker-compose.yml, secrets.yml):"
     read -r path
     path=$(resolve_path "$path")
   fi
 
-  mkdir -p "$CONFIG_DIR"
-  echo "$path" > "$PATH_FILE"
-  echo "Wrote $PATH_FILE: $path"
+  validate_app "$path"
 
   local os
   os=$(detect_os)
   case "$os" in
     macos)
-      ensure_snippet_macos
+      update_profile "$HOME/.zprofile" "$path"
       launchctl setenv APP_HOST_PATH "$path"
-      echo "Current session updated (launchctl setenv). Reopen the IAC devcontainer to see the app."
+      echo "Updated ~/.zprofile. Current session updated (launchctl). Reopen the IAC devcontainer to see the app."
       ;;
     linux)
-      ensure_snippet_linux
-      echo "Profile updated. Log out and back in (or run: source ~/.profile in a new login shell), then Reopen in Container."
+      update_profile "$HOME/.profile" "$path"
+      echo "Updated ~/.profile. Log out and back in (or run: source ~/.profile), then Reopen in Container."
       ;;
     *)
-      echo "Unsupported OS. Set APP_HOST_PATH in your environment and ensure your profile loads it. See docs/application-deployment.md."
+      echo "Unsupported OS. Add to your profile: export APP_HOST_PATH=\"$path\""
       exit 1
       ;;
   esac
