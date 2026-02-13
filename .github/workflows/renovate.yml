@@ -21,7 +21,7 @@ jobs:
     steps:
       - name: Run Renovate
         # Use full tag; action version (v44.x) is separate from Renovate core version
-        uses: renovatebot/github-action@v46.0.2
+        uses: renovatebot/github-action@v46.1.0
         with:
           token: ${{ secrets.RENOVATE_TOKEN }}
         env:
