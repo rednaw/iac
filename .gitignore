@@ -17,7 +17,7 @@ __pycache__/
 # Mounted application files
 app/docker-compose.yml
 app/iac.yml
-app/secrets.yml
+app/.env
 app/.sops.yaml
 
 .DS_Store

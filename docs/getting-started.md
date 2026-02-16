@@ -13,7 +13,7 @@
 ## Summary
 
 1. Clone the repo, open the `iac` folder, VSCode/Cursor will offer to reopen in devcontainer, **do not do that yet**.
-2. Set which app the devcontainer will mount: run **`./scripts/setup-app-path.sh /path/to/your/app`** (the app must have `iac.yml`, `docker-compose.yml`, and `secrets.yml`). See [Application deployment](application-deployment.md#app-mount).
+2. Set which app the devcontainer will mount: run **`./scripts/setup-app-path.sh /path/to/your/app`** (the app must have `iac.yml`, `docker-compose.yml`, `.env`, and `.sops.yaml`). See [Application deployment](application-deployment.md#app-mount).
 3. For setting up a **new project** follow the [Install: new project](new-project.md) guide, if you want to join an **existing project** follow the [Install: joining an existing project](joining.md) guide.
 
 ## Result
@@ -41,13 +41,13 @@ graph TB
     end
 
     subgraph APP[Your application]
-      COMPOSE@{ shape: docs, label: "docker-compose.yml, Dockerfile,<br/>Application code" }
+      COMPOSE@{ shape: lin-doc, label: "docker-compose.yml<br/>Application services" }
       IAC_YML@{ shape: lin-doc, label: "iac.yml<br/>IaC configuration" }
       PUSH@{ shape: subproc, label: "Github workflow<br/>Build and push" }
-      APP_SECRETS@{ shape: lin-doc, label: "secrets.yml<br/>SOPS managed application secrets" }
+      APP_SECRETS@{ shape: lin-doc, label: ".env<br/>SOPS managed application secrets (dotenv)" }
     end
 
-    IAC -->|mount 3 files| APP
+    IAC -->|mount 4 files| APP
     
     TASK -->|orchestrate| TF
     TASK -->|orchestrate| ANS

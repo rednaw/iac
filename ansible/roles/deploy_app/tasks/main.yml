@@ -12,7 +12,7 @@
 #
 # Expected files in app_root:
 #   docker-compose.yml: Docker Compose service definition
-#   secrets.yml:        SOPS-encrypted environment variables (YAML format); can be minimal
+#   .env:               SOPS-encrypted environment variables (dotenv format); can be minimal
 #
 # Requires infrastructure_secrets to be loaded by the calling playbook
 

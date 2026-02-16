@@ -1,7 +1,7 @@
 # yaml-language-server: $schema=https://taskfile.dev/schema.json
 #
 # Application deployment tasks — run from IAC devcontainer.
-# Three app files (iac.yml, docker-compose.yml, secrets.yml) are mounted at /workspaces/iac/app via APP_HOST_PATH.
+# Four app files (iac.yml, docker-compose.yml, .env, .sops.yaml) are mounted at /workspaces/iac/app via APP_HOST_PATH.
 # Registry and image come from the app's iac.yml.
 #
 #   task app:deploy   -- <env> <sha>
@@ -33,11 +33,13 @@ tasks:
       - sh: test -d "{{.APP_ROOT}}"
         msg: "App not mounted at {{.APP_ROOT}}. Run ./scripts/setup-app-path.sh /path/to/app and reopen the devcontainer."
       - sh: test -f "{{.APP_ROOT}}/iac.yml"
-        msg: "App missing iac.yml. Run ./scripts/setup-app-path.sh /path/to/app (app must have iac.yml, docker-compose.yml, secrets.yml)."
+        msg: "App missing iac.yml. Run ./scripts/setup-app-path.sh /path/to/app (app must have iac.yml, docker-compose.yml, .env, .sops.yaml)."
       - sh: test -f "{{.APP_ROOT}}/docker-compose.yml"
         msg: "App missing docker-compose.yml. Run ./scripts/setup-app-path.sh /path/to/app."
-      - sh: test -f "{{.APP_ROOT}}/secrets.yml"
-        msg: "App missing secrets.yml. Each app must have secrets.yml (can be minimal, e.g. {}). Run ./scripts/setup-app-path.sh /path/to/app."
+      - sh: test -f "{{.APP_ROOT}}/.env"
+        msg: "App missing .env. Each app must have .env (can be minimal if no secrets). Run ./scripts/setup-app-path.sh /path/to/app."
+      - sh: test -f "{{.APP_ROOT}}/.sops.yaml"
+        msg: "App missing .sops.yaml. Run ./scripts/setup-app-path.sh /path/to/app (app must have iac.yml, docker-compose.yml, .env, .sops.yaml)."
     cmds:
       - |
         REGISTRY_NAME=$(yq -r '.REGISTRY_NAME' "{{.APP_ROOT}}/iac.yml")
@@ -69,7 +71,7 @@ tasks:
       - sh: test -d "{{.APP_ROOT}}"
         msg: "App not mounted at {{.APP_ROOT}}. Run ./scripts/setup-app-path.sh /path/to/app and reopen the devcontainer."
       - sh: test -f "{{.APP_ROOT}}/iac.yml"
-        msg: "App missing iac.yml. Run ./scripts/setup-app-path.sh /path/to/app."
+        msg: "App missing iac.yml. Run ./scripts/setup-app-path.sh /path/to/app (app must have iac.yml, docker-compose.yml, .env, .sops.yaml)."
     cmds:
       - |
         REGISTRY_NAME=$(yq -r '.REGISTRY_NAME' "{{.APP_ROOT}}/iac.yml")
