@@ -7,7 +7,7 @@ Use this path when you are creating new infrastructure and there is no `infrastr
 ## 1. Development environment
 
 1. Install [Docker](https://docs.docker.com/get-docker/), [VS Code](https://code.visualstudio.com/) or [Cursor](https://cursor.com/), and the [Dev Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) extension.
-2. Clone the repo, run **`./scripts/setup-app-path.sh /path/to/your/app`** on the host.
+2. Clone the repo, run **`./scripts/setup-app-path.sh /path/to/your/app`** on the host (the app must have `iac.yml`, `docker-compose.yml`, `.env`, `.sops.yaml`).
 3. Open the workspace: **File → Open Workspace from File...** → select `iac.code-workspace` in the repo root.
 4. When prompted, choose **Reopen in Container**. Wait for the image to build.
 

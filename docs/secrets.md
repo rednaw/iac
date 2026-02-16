@@ -26,7 +26,7 @@ With the extension installed and configured, encrypted files open transparently 
 | Type | File | Format |
 |------|------|--------|
 | Infrastructure | `iac/secrets/infrastructure-secrets.yml` | YAML |
-| Application | `<app>/secrets.yml` | YAML |
+| Application | `<app>/.env` | dotenv |
 
 Both are encrypted at rest, committed to Git.
 
@@ -81,7 +81,7 @@ Open `secrets/infrastructure-secrets.yml` in VS Code — if it decrypts, you're 
 Just open the file. The SOPS extension decrypts it automatically. Save to re-encrypt.
 
 - `iac/secrets/infrastructure-secrets.yml` — Infrastructure secrets
-- `hello-world/secrets.yml` — Application secrets
+- `hello-world/.env` — Application secrets (dotenv; use SOPS + dotenv extension)
 
 ### From command line
 
@@ -94,18 +94,17 @@ SOPS_AGE_KEY_FILE=~/.config/sops/age/keys.txt sops <file>
 
 ## Creating New App Secrets
 
-1. Create `secrets.yml` in your app directory (VS Code)
-2. Add your variables in YAML format:
-   ```yaml
-   DATABASE_URL: "postgres://..."
-   API_KEY: "sk-..."
+1. Create `.env` in your app directory (VS Code).
+2. Install the **dotenv** extension (`mikestead.dotenv`) so `.env` is recognized; in the IAC devcontainer it is preconfigured.
+3. Add your variables in dotenv format:
    ```
-3. Save — the SOPS extension encrypts automatically
-4. Commit
+   DATABASE_URL=postgres://...
+   API_KEY=sk-...
+   ```
+4. Save — the SOPS extension encrypts automatically.
+5. Commit.
 
-That's it. The `.sops.yaml` rules match any `secrets.yml` file.
-
-**Note:** The deploy process converts YAML to dotenv format for docker-compose.
+That's it. Ensure the app's `.sops.yaml` has a `path_regex` that matches `.env` (e.g. `\.env$`). The IAC devcontainer includes the **dotenv** extension (`mikestead.dotenv`) and `files.associations` for `*.env`/`.env` so the SOPS extension can decrypt and you edit as dotenv. The deploy process uses the decrypted dotenv directly for docker-compose.
 
 ---
 
@@ -125,7 +124,7 @@ iac/
 └── ...
 
 hello-world/
-└── secrets.yml                         # Encrypted YAML (committed)
+└── .env                                # Encrypted dotenv (committed)
 ```
 
 **Private keys** are stored outside the repo:

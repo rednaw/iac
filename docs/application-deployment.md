@@ -16,7 +16,7 @@ flowchart LR
         C["task app:deploy"]
     end
 
-    subgraph GITHUB["GitHub workflow"]
+    subgraph GITHUB["Application GitHub"]
         A["Merge pull request"]
         D["Test, build, tag & push image"]
     end
@@ -41,7 +41,7 @@ The deployment system provides two commands:
 - `task app:deploy -- <env> <sha>` — Deploy an application version
 - `task app:versions -- <env>` — List available versions
 
-Three app files must be mounted at `/workspaces/iac/app`: `iac.yml`, `docker-compose.yml`, `secrets.yml` (see [App mount](#app-mount) below).
+Four app files must be mounted at `/workspaces/iac/app`: `iac.yml`, `docker-compose.yml`, `.env`, `.sops.yaml` (see [App mount](#app-mount) below).
 
 The `versions` command is implemented as a Python script (`scripts/application_versions.py`). The `deploy` command runs an Ansible playbook that orchestrates the entire deployment.
 
@@ -50,9 +50,9 @@ The `versions` command is implemented as a Python script (`scripts/application_v
 ## App mount
 
 
-The devcontainer mounts three files from your app repo at `/workspaces/iac/app`: `iac.yml`, `docker-compose.yml`, `secrets.yml`. This lets you run `app:deploy` and `app:versions` from the IAC repo without installing Task or Ansible on your machine. The mount uses **`APP_HOST_PATH`** from the environment of the process that opens the workspace (e.g. Cursor or VS Code).
+The devcontainer mounts four files from your app repo at `/workspaces/iac/app`: `iac.yml`, `docker-compose.yml`, `.env`, `.sops.yaml`. This lets you run `app:deploy` and `app:versions` from the IAC repo without installing Task or Ansible on your machine. The mount uses **`APP_HOST_PATH`** from the environment of the process that opens the workspace (e.g. Cursor or VS Code).
 
-**Required files** — Each app must have all three. `secrets.yml` can be minimal (e.g. `{}`) if the app has no secrets; it must exist.
+**Required files** — Each app must have all four. `.env` can be minimal (e.g. empty or a comment) if the app has no secrets; it must exist. `.sops.yaml` is the SOPS config for the app (used when decrypting `.env`). The IAC devcontainer includes the **dotenv** extension and `files.associations` so SOPS-decrypted `.env` files are edited as dotenv.
 
 ### Set which app you're working on
 
@@ -64,20 +64,11 @@ Run the setup script from the host (once per machine, and again whenever you swi
 
 If you omit the path, the script will prompt you. The script:
 
-1. **Validates** that the app has `iac.yml`, `docker-compose.yml`, and `secrets.yml`
+1. **Validates** that the app has `iac.yml`, `docker-compose.yml`, `.env`, and `.sops.yaml`
 2. Adds or updates **`export APP_HOST_PATH=/path/to/app`** in your profile (`~/.zprofile` on macOS, `~/.profile` on Linux)
 3. On macOS: runs `launchctl setenv APP_HOST_PATH ...` so the current session gets it without re-login
 
 After running it, open `iac.code-workspace` (or **Reopen in Container** if already open) so the devcontainer picks up the mount. To work on a different app later, run the script again with the other app's path.
-
-**Manual alternative:** Create `~/.config/iac-app-path` containing one line — the absolute path to your app repo. Then add the following to your profile:
-
-- **macOS** (`~/.zprofile`):  
-  `[ -f ~/.config/iac-app-path ] && export APP_HOST_PATH=$(cat ~/.config/iac-app-path) && launchctl setenv APP_HOST_PATH "$APP_HOST_PATH"`
-- **Linux** (`~/.profile`):  
-  `[ -f ~/.config/iac-app-path ] && export APP_HOST_PATH=$(cat ~/.config/iac-app-path)`
-
-**Manual alternative:** Add `export APP_HOST_PATH=/path/to/your/app` to your profile. On macOS, also run `launchctl setenv APP_HOST_PATH "/path/to/your/app"` after profile changes so GUI-launched editors see it.
 
 ---
 
@@ -101,37 +92,6 @@ task app:deploy -- dev 706c88c
 task app:deploy -- prod abc1234
 ```
 
-**What happens internally:**
-
-1. **Validates inputs:**
-   - Validates environment is `dev` or `prod`
-   - Ensures `/workspaces/iac/app` contains `iac.yml`, `docker-compose.yml`, and `secrets.yml`
-   - Reads `REGISTRY_NAME` and `IMAGE_NAME` from the app's `iac.yml`
-
-2. **Prepares and runs Ansible:**
-   - Prepares SSH host keys (`task hostkeys:prepare`)
-   - Runs the IAC `deploy-app.yml` playbook
-
-3. **The `deploy_app` role:**
-   - Resolves tag → digest using `crane digest`
-   - Extracts metadata using `crane config` (description, build time)
-   - Decrypts app secrets from `secrets.yml` (SOPS-encrypted YAML)
-   - Copies files, configures Docker auth
-   - Deploys the application with Docker Compose
-   - Records deployment metadata
-
-4. **Records deployment:**
-   - Writes `/opt/deploy/<app>/deploy-info.yml` (current state)
-   - Appends to `/opt/deploy/<app>/deploy-history.yml` (audit trail)
-
-**Error handling:**
-- Tag doesn't exist → Clear error with crane output
-- Image not found → See [Registry](registry.md#authentication-how-to-log-in)
-- Invalid environment → Validation error
-- App not mounted or `iac.yml` missing → Set `APP_HOST_PATH` and ensure the app directory contains `iac.yml`
-- Missing required vars in `iac.yml` → Error with message
-
----
 
 ### `task app:versions`
 
@@ -143,31 +103,6 @@ task app:versions -- <environment>
 
 **Arguments:**
 - `<environment>`: `dev` or `prod`
-
-**Examples:**
-```bash
-task app:versions -- dev
-task app:versions -- prod
-```
-
-**What happens internally:**
-
-1. **Reads deployment state:**
-   - SSHs to workspace hostname (e.g., `dev.rednaw.nl`)
-   - Reads `/opt/deploy/<slug>/deploy-info.yml` (slug is derived from `IMAGE_NAME`, e.g. `rednaw/hello-world` → `hello-world`)
-   - Extracts currently deployed digest
-
-2. **Lists registry tags:**
-   - Uses `crane ls` to list all tags for the repository
-   - For each tag:
-     - Resolves tag → digest
-     - Extracts creation timestamp and description from image config
-     - Compares digest with deployed digest
-
-3. **Displays formatted output:**
-   - Shows TAG, CREATED, DESCRIPTION columns
-   - Marks currently deployed digest with `→`
-   - Sorted newest first
 
 **Output format:**
 ```
@@ -196,8 +131,13 @@ IMAGE_NAME: rednaw/hello-world
 
 **Required files in app directory (mounted at `/workspaces/iac/app`):**
 - `iac.yml`: Registry and image name (as above)
-- `docker-compose.yml`: Service definition with `image: ${IMAGE}`
-- `secrets.yml`: SOPS-encrypted environment variables (YAML format); can be minimal (e.g. `{}`) if no secrets
+- `docker-compose.yml`: Single compose file that defines the **full stack** (app, database, and any other services). The app service must use `image: ${IMAGE}`. Deploy copies only this file (plus `.env`) to the server; no other compose files are copied.
+- `.env`: SOPS-encrypted environment variables (dotenv format); can be minimal if no secrets
+- `.sops.yaml`: SOPS config for the app (used when decrypting `.env`)
+
+### App development workflow
+
+App development is **devcontainer-first**. The app repo’s devcontainer uses the same `docker-compose.yml`, with a **minimal** override under `.devcontainer/` that overrides the app service with `build: .` and an `image:` tag so the app container is built from source when the devcontainer starts. Running the stack locally outside the devcontainer (e.g. `docker compose up` on the host) is optional; apps can add a `docker-compose.override.yml` later if they want.
 
 ---
 
@@ -278,7 +218,7 @@ deployment:
 **`ansible/roles/deploy_app/tasks/`** contains:
 - `main.yml` — Orchestrates all steps
 - `resolve-image.yml` — Tag → digest resolution, metadata extraction
-- `decrypt-secrets.yml` — Decrypts `secrets.yml` if present (converts YAML to dotenv)
+- `decrypt-secrets.yml` — Decrypts `.env` if present (output is already dotenv)
 - `prepare-server.yml` — Copies files, configures Docker auth
 - `run-container.yml` — Runs Docker Compose
 - `record-deployment.yml` — Writes deployment records
@@ -306,7 +246,7 @@ The editor process didn't have `APP_HOST_PATH` in its environment. Run `./script
 - Check tag format (7 hex characters)
 
 **"missing required vars" / "iac.yml not found"**
-- Ensure `/workspaces/iac/app` has `iac.yml`, `docker-compose.yml`, and `secrets.yml`. Run `./scripts/setup-app-path.sh /path/to/your/app` on the host; see [App mount](#app-mount).
+- Ensure `/workspaces/iac/app` has `iac.yml`, `docker-compose.yml`, `.env`, and `.sops.yaml`. Run `./scripts/setup-app-path.sh /path/to/your/app` on the host; see [App mount](#app-mount).
 
 **"Host key verification failed"**
 - Run `task hostkeys:prepare -- <WORKSPACE>` manually before deploy. We use `StrictHostKeyChecking=accept-new` only; see [Troubleshooting](troubleshooting.md) for details.
@@ -335,7 +275,9 @@ The editor process didn't have `APP_HOST_PATH` in its environment. Run `./script
 ## Design Principles
 
 - **Minimal app configuration** — Just `REGISTRY_NAME` and `IMAGE_NAME` in `iac.yml`; no Task/Ansible in the app repo
-- **Ops from IAC** — Deploy and versions run from the IAC devcontainer; three app files (`iac.yml`, `docker-compose.yml`, `secrets.yml`) are mounted via `APP_HOST_PATH`
+- **Single full-stack compose file** — One `docker-compose.yml` defines the whole stack (app + db + rest); app service uses `image: ${IMAGE}`; deploy copies only that file
+- **App dev is devcontainer-first** — The app’s devcontainer builds the app container from source via a minimal override under `.devcontainer/`; local `docker compose` run is optional
+- **Ops from IAC** — Deploy and versions run from the IAC devcontainer; four app files (`iac.yml`, `docker-compose.yml`, `.env`, `.sops.yaml`) are mounted via `APP_HOST_PATH`
 - **Humans deploy by tag** — Short SHAs are readable
 - **Machines run by digest** — Immutable digests ensure safety
 - **History is never lost** — Append-only audit trail
