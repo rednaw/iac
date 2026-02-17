@@ -9,9 +9,15 @@ http:
         certResolver: letsencrypt
       service: api@internal
       middlewares:
+        - dashboard-headers
         - dashboard-auth
 
   middlewares:
+    dashboard-headers:
+      headers:
+        customResponseHeaders:
+          X-Frame-Options: "DENY"
+          Referrer-Policy: "strict-origin-when-cross-origin"
     dashboard-auth:
       basicAuth:
         usersFile: /etc/traefik/auth/htpasswd

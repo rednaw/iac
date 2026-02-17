@@ -104,7 +104,9 @@
       traefik.http.routers.registry.rule: "Host(`registry.{{ base_domain | default('rednaw.nl') }}`)"
       traefik.http.routers.registry.entrypoints: "websecure"
       traefik.http.routers.registry.tls.certresolver: "letsencrypt"
-      traefik.http.routers.registry.middlewares: "registry-auth"
+      traefik.http.routers.registry.middlewares: "registry-headers,registry-auth"
+      traefik.http.middlewares.registry-headers.headers.customResponseHeaders.X-Frame-Options: "DENY"
+      traefik.http.middlewares.registry-headers.headers.customResponseHeaders.Referrer-Policy: "strict-origin-when-cross-origin"
       traefik.http.middlewares.registry-auth.basicauth.usersfile: "/etc/traefik/auth/htpasswd"
       traefik.http.services.registry.loadbalancer.server.port: "5000"
     healthcheck:

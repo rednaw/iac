@@ -65,6 +65,9 @@
       traefik.http.routers.openobserve.rule: "Host(`monitoring.{{ base_domain | default('rednaw.nl') }}`)"
       traefik.http.routers.openobserve.entrypoints: "websecure"
       traefik.http.routers.openobserve.tls.certresolver: "letsencrypt"
+      traefik.http.routers.openobserve.middlewares: "openobserve-headers"
+      traefik.http.middlewares.openobserve-headers.headers.customResponseHeaders.X-Frame-Options: "DENY"
+      traefik.http.middlewares.openobserve-headers.headers.customResponseHeaders.Referrer-Policy: "strict-origin-when-cross-origin"
       traefik.http.services.openobserve.loadbalancer.server.port: "5080"
     healthcheck:
       test: ["CMD", "/openobserve", "view", "-c", "version"]
