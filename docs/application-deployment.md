@@ -54,6 +54,8 @@ The devcontainer mounts four files from your app repo at `/workspaces/iac/app`: 
 
 **Required files** — Each app must have all four. `.env` can be minimal (e.g. empty or a comment) if the app has no secrets; it must exist. `.sops.yaml` is the SOPS config for the app (used when decrypting `.env`). The IAC devcontainer includes the **dotenv** extension and `files.associations` so SOPS-decrypted `.env` files are edited as dotenv.
 
+**Traefik (routing)** — The app's `docker-compose.yml` must attach the app service to the external `traefik` network and add Traefik labels so the reverse proxy routes traffic. See [Traefik configuration examples](traefik/configuration-examples.md#application-service-docker-labels): add `networks: [ default, traefik ]`, `networks.traefik.external: true`, and labels for the router rule (e.g. `Host(\`dev.rednaw.nl\`) || Host(\`prod.rednaw.nl\`)`), entrypoints, TLS cert resolver, and loadbalancer server port.
+
 ### Set which app you're working on
 
 Run the setup script from the host (once per machine, and again whenever you switch to a different app):

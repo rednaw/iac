@@ -349,26 +349,26 @@ Do this in Ansible so the next full run leaves no Nginx/Certbot on the server.
 
 | # | Step | Done |
 |---|------|------|
-| 1.1 | Create `ansible/roles/server/tasks/traefik.yml` | [ ] |
-| 1.2 | Create `traefik.yml.j2` | [ ] |
-| 1.3 | Create `traefik-dynamic-redirects.yml.j2` | [ ] |
+| 1.1 | Create `ansible/roles/server/tasks/traefik.yml` | [x] |
+| 1.2 | Create `traefik.yml.j2` | [x] |
+| 1.3 | Create `traefik-dynamic-redirects.yml.j2` | [x] |
 | 1.4 | Optional middlewares/TLS templates | [ ] |
-| 1.5 | Edit `main.yml`: remove nginx/certbot, add traefik | [ ] |
-| 1.6 | Registry: htpasswd to /etc/traefik/auth, REGISTRY_AUTH=none, no auth volume | [ ] |
-| 1.7 | Registry container: traefik network + labels | [ ] |
-| 1.8 | OpenObserve: traefik network + labels | [ ] |
-| 1.9 | Handlers: remove nginx, add Traefik restart if needed | [ ] |
-| 1.10 | Fail2ban: traefik jail + filter, remove nginx | [ ] |
-| 2.1 | Each app repo: docker-compose traefik network + labels | [ ] |
-| 2.2 | Document Traefik label requirements for new apps | [ ] |
-| 3.1 | Run `task ansible:run -- dev` | [ ] |
-| 3.2 | Verify Traefik and all routes (dev) | [ ] |
-| 3.3 | Deploy one app and test (dev) | [ ] |
-| 3.4 | Verify fail2ban (dev) | [ ] |
-| 4.1 | Run `task ansible:run -- prod` | [ ] |
-| 4.2 | Verify production | [ ] |
-| 4.3 | Remove Nginx/Certbot from role and server | [ ] |
-| 4.4 | Update architecture/deployment docs | [ ] |
+| 1.5 | Edit `main.yml`: remove nginx/certbot, add traefik | [x] |
+| 1.6 | Registry: htpasswd to /etc/traefik/auth, REGISTRY_AUTH=none, no auth volume | [x] |
+| 1.7 | Registry container: traefik network + labels | [x] |
+| 1.8 | OpenObserve: traefik network + labels | [x] |
+| 1.9 | Handlers: remove nginx, add Traefik restart if needed | [x] |
+| 1.10 | Fail2ban: traefik jail + filter, remove nginx | [x] |
+| 2.1 | Each app repo: docker-compose traefik network + labels (do in app repo; app/ is mount) | [ ] |
+| 2.2 | Document Traefik label requirements for new apps | [x] |
+| 3.1 | Run `task ansible:run -- dev` | [x] |
+| 3.2 | Verify Traefik and all routes (dev) | [x] |
+| 3.3 | Deploy one app and test (dev) | [x] |
+| 3.4 | Verify fail2ban (dev) | [x] |
+| 4.1 | Run `task ansible:run -- prod` | [ ] (skip) |
+| 4.2 | Verify production | [ ] (skip) |
+| 4.3 | Remove Nginx/Certbot from role and server | [x] |
+| 4.4 | Update architecture/deployment docs | [x] |
 
 ---
 

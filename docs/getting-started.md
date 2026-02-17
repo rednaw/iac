@@ -30,7 +30,7 @@ graph TB
     end
 
     subgraph SERVER[Ubuntu Server]
-      NGINX(Nginx<br/>Reverse Proxy)
+      TRAEFIK(Traefik<br/>Reverse Proxy + TLS)
       subgraph DOCKER[Docker Engine]
         SUPPORTING_SERVICES@{ shape: cyl, label: "Supporting Services<br/>Postgres, Redis, ..." }
         APP_SERVICE(Application Service)

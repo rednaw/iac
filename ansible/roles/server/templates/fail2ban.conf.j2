@@ -28,6 +28,12 @@ action = %(action_)s
 action = %(action_)s
 {% endif %}
 
+# Nginx jails disabled (we use Traefik)
+[nginx-http-auth]
+enabled = false
+[nginx-limit-req]
+enabled = false
+
 # SSH brute force protection
 [sshd]
 enabled = true
@@ -37,50 +43,39 @@ maxretry = 5
 bantime = 3600
 findtime = 600
 
-# Nginx HTTP authentication failures (uses standard filter)
-[nginx-http-auth]
+# Traefik: auth failures (dashboard, registry, etc.)
+[traefik-auth]
 enabled = true
 port = http,https
-logpath = /var/log/nginx/error.log
+logpath = /var/log/traefik/access.log
 maxretry = 6
 bantime = 1800
 findtime = 600
+failregex = ^<HOST> -.*"(GET|POST).*HTTP.*" (401|403) .*$
 
-# Nginx rate limiting violations - using standard nginx-limit-req filter
-[nginx-limit-req]
+# Traefik: failed app login attempts (/api/auth/login 401|403) – filter in filter.d/traefik-login-attempts.conf
+[traefik-login-attempts]
 enabled = true
 port = http,https
-logpath = /var/log/nginx/error.log
-maxretry = 10
-bantime = 1800
-findtime = 600
-
-# Failed login attempts
-[nginx-login-attempts]
-enabled = true
-port = http,https
-logpath = /var/log/nginx/access.log
+logpath = /var/log/traefik/access.log
 maxretry = 8
 bantime = 3600
 findtime = 600
-failregex = ^<HOST> -.*"/api/auth/login.*HTTP.*" (401|403) .*$
 
-# Block known bad bots and user agents
-# Blocks requests from known malicious user agents
-[nginx-badbots]
+# Traefik: repeated 403 Forbidden – filter in filter.d/traefik-forbidden.conf
+[traefik-forbidden]
 enabled = true
 port = http,https
-logpath = /var/log/nginx/access.log
-maxretry = 3
-bantime = 86400
-findtime = 600
-
-# Block repeated 403 Forbidden errors
-# Blocks IPs that repeatedly trigger 403 Forbidden responses
-[nginx-forbidden]
-enabled = true
-port = http,https
-logpath = /var/log/nginx/error.log
+logpath = /var/log/traefik/access.log
 maxretry = 5
 bantime = 3600
+findtime = 600
+
+# Traefik: known bad/scanner paths – filter in filter.d/traefik-badbots.conf
+[traefik-badbots]
+enabled = true
+port = http,https
+logpath = /var/log/traefik/access.log
+maxretry = 3
+bantime = 86400
 findtime = 600

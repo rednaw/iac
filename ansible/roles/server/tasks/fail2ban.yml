@@ -20,6 +20,17 @@
     mode: '0644'
   notify: Restart fail2ban
 
+- name: Deploy fail2ban filters for Traefik jails
+  ansible.builtin.copy:
+    src: "{{ item.src }}"
+    dest: "/etc/fail2ban/filter.d/{{ item.dest }}"
+    mode: '0644'
+  loop:
+    - { src: fail2ban-filter-traefik-login-attempts.conf, dest: traefik-login-attempts.conf }
+    - { src: fail2ban-filter-traefik-forbidden.conf, dest: traefik-forbidden.conf }
+    - { src: fail2ban-filter-traefik-badbots.conf, dest: traefik-badbots.conf }
+  notify: Restart fail2ban
+
 - name: Ensure fail2ban is running
   ansible.builtin.systemd:
     name: fail2ban

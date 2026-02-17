@@ -1,0 +1,44 @@
+# Traefik static configuration
+# Dashboard on traefik.{{ base_domain }} (see dynamic/dashboard.yml)
+
+api:
+  dashboard: true
+
+global:
+  checkNewVersion: false
+  sendAnonymousUsage: false
+
+# No entrypoint-level redirect on :80 so ACME HTTP-01 can complete.
+# HTTP→HTTPS is done via dynamic redirect router (low priority) in redirects-http.yml.
+entryPoints:
+  web:
+    address: ":80"
+  websecure:
+    address: ":443"
+  traefik:
+    address: ":8080"
+
+certificatesResolvers:
+  letsencrypt:
+    acme:
+      email: "admin@{{ base_domain }}"
+      storage: /etc/traefik/certs/acme.json
+      httpChallenge:
+        entryPoint: web
+
+providers:
+  docker:
+    endpoint: "unix:///var/run/docker.sock"
+    exposedByDefault: false
+    network: traefik
+    watch: true
+  file:
+    directory: /etc/traefik/dynamic
+    watch: true
+
+log:
+  level: INFO
+
+accessLog:
+  filePath: /var/log/traefik/access.log
+  format: common

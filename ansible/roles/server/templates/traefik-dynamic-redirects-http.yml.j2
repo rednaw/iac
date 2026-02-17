@@ -1,0 +1,16 @@
+# Redirect HTTP (port 80) to HTTPS. Exclude ACME path so Let's Encrypt HTTP-01 can complete.
+http:
+  routers:
+    to-https:
+      rule: "HostRegexp(`{name:.+}`) && !PathPrefix(`/.well-known/acme-challenge`)"
+      entryPoints:
+        - web
+      priority: 1
+      middlewares:
+        - redirect-https
+      service: noop@internal
+  middlewares:
+    redirect-https:
+      redirectScheme:
+        scheme: https
+        permanent: true

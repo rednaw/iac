@@ -1,0 +1,28 @@
+# Redirect www and apex to app hostname (per-server via traefik_redirect_target)
+http:
+  routers:
+    redirect-www:
+      rule: "Host(`www.{{ base_domain }}`)"
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: letsencrypt
+      middlewares:
+        - redirect-to-app
+      service: noop@internal
+    redirect-apex:
+      rule: "Host(`{{ base_domain }}`)"
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: letsencrypt
+      middlewares:
+        - redirect-to-app
+      service: noop@internal
+
+  middlewares:
+    redirect-to-app:
+      redirectRegex:
+        regex: "^https://(www\\.)?{{ base_domain | regex_escape() | replace('\\', '\\\\') }}(.*)"
+        replacement: "https://{{ traefik_redirect_target }}$2"
+        permanent: true

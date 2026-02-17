@@ -1,0 +1,17 @@
+# Dashboard on https://traefik.{{ base_domain }} with basic auth
+http:
+  routers:
+    dashboard:
+      rule: "Host(`traefik.{{ base_domain }}`)"
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: letsencrypt
+      service: api@internal
+      middlewares:
+        - dashboard-auth
+
+  middlewares:
+    dashboard-auth:
+      basicAuth:
+        usersFile: /etc/traefik/auth/htpasswd

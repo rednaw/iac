@@ -43,7 +43,7 @@ Terraform commands:
 Ansible commands:
   task ansible:install                   # Install required collections
   task ansible:bootstrap -- <workspace>  # One-time bootstrap as root (dev or prod)
-  task ansible:run       -- <workspace>  # Configure server (Docker, Nginx, security)
+  task ansible:run       -- <workspace>  # Configure server (Docker, Traefik, security)
 
 Testing:
   task test:run                          # Run all tests (validate, format check, security scan)

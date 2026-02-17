@@ -23,15 +23,7 @@
     group: root
     mode: '0755'
 
-- name: Create registry auth directory
-  ansible.builtin.file:
-    path: /etc/docker-registry/auth
-    state: directory
-    owner: root
-    group: root
-    mode: '0755'
-
-- name: Generate htpasswd file
+- name: Generate htpasswd file for Traefik
   ansible.builtin.command: >
     htpasswd -Bbn
     {{ infrastructure_secrets.registry_username }}
@@ -40,10 +32,10 @@
   changed_when: true
   no_log: true
 
-- name: Write htpasswd file
+- name: Write htpasswd to Traefik auth directory
   ansible.builtin.copy:
     content: "{{ htpasswd_output.stdout }}\n"
-    dest: /etc/docker-registry/auth/htpasswd
+    dest: /etc/traefik/auth/htpasswd
     mode: '0644'
     owner: root
     group: root
@@ -103,10 +95,18 @@
       - "127.0.0.1:5001:5000"
     volumes:
       - /var/lib/docker-registry:/var/lib/registry
-      - /etc/docker-registry/auth:/auth
       - /etc/docker-registry/config.yml:/etc/distribution/config.yml:ro
     networks:
       - name: registry-network
+      - name: traefik
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.registry.rule: "Host(`registry.{{ base_domain | default('rednaw.nl') }}`)"
+      traefik.http.routers.registry.entrypoints: "websecure"
+      traefik.http.routers.registry.tls.certresolver: "letsencrypt"
+      traefik.http.routers.registry.middlewares: "registry-auth"
+      traefik.http.middlewares.registry-auth.basicauth.usersfile: "/etc/traefik/auth/htpasswd"
+      traefik.http.services.registry.loadbalancer.server.port: "5000"
     healthcheck:
       test: ["CMD-SHELL", "nc -z localhost 5000 || exit 1"]
       interval: 30s
