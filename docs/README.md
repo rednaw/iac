@@ -19,6 +19,7 @@ If you are here for the first time checkout the [Getting Started](getting-starte
 <td valign="top">
 
 - [Tools and technologies used](technologies.md)
+- [Traefik](traefik.md)
 - [Private](private.md)
 - [Troubleshooting](troubleshooting.md)
 - [Remote VS Code / Cursor](remote-vscode.md)
