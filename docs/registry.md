@@ -10,7 +10,7 @@ This document describes the private Docker registry used to store container imag
 - **Hostname:** `registry.rednaw.nl` (value comes from SOPS secret `registry_domain`)
 - **Software:** [Docker Registry](https://distribution.github.io/distribution/) (image `registry:3`)
 - **Protocol:** Docker Registry API v2, served over HTTPS with HTTP Basic Auth
-- **Purpose:** Store application images (e.g. `rednaw/hello-world`) and the IAC dev image (`iac/iac-dev`); used by GitHub Actions, the devcontainer, and on the server by the ubuntu and deploy users
+- **Purpose:** Store application images (e.g. `rednaw/tientje-ketama`) and the IAC dev image (`iac/iac-dev`); used by GitHub Actions, the devcontainer, and on the server by the ubuntu and deploy users
 
 ---
 
@@ -84,7 +84,7 @@ If you see "No repositories found (or access denied)", see [Troubleshooting](#tr
 | Task | Command |
 |------|--------|
 | List repos | `crane catalog registry.rednaw.nl` |
-| List tags for an image | `crane ls registry.rednaw.nl/<image>` e.g. `crane ls registry.rednaw.nl/rednaw/hello-world` |
+| List tags for an image | `crane ls registry.rednaw.nl/<image>` e.g. `crane ls registry.rednaw.nl/rednaw/tientje-ketama` |
 | Get digest of a tag | `crane digest registry.rednaw.nl/<image>:<tag>` |
 | Inspect manifest | `crane manifest registry.rednaw.nl/<image>:<tag>` |
 | Delete a tag | `crane delete registry.rednaw.nl/<image>:<tag>` |
@@ -109,9 +109,9 @@ Filter SHA-like tags (e.g. for pruning):
 ### Example: list SHA-only tags for pruning
 
 ```bash
-crane ls registry.rednaw.nl/rednaw/hello-world | grep -E '^[0-9a-f]{7}$'
+crane ls registry.rednaw.nl/rednaw/tientje-ketama | grep -E '^[0-9a-f]{7}$'
 # Then delete if safe, e.g.:
-# crane delete registry.rednaw.nl/rednaw/hello-world:<sha>
+# crane delete registry.rednaw.nl/rednaw/tientje-ketama:<sha>
 ```
 
 ---

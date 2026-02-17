@@ -108,7 +108,7 @@ task app:versions -- <environment>
 
 **Output format:**
 ```
-IMAGE: rednaw/hello-world
+IMAGE: rednaw/tientje-ketama
 
      TAG              CREATED              DESCRIPTION                             
      ---              -------              -----------                             
@@ -124,7 +124,7 @@ Applications declare deployment settings in an **`iac.yml`** file in the app rep
 
 ```yaml
 REGISTRY_NAME: registry.rednaw.nl
-IMAGE_NAME: rednaw/hello-world
+IMAGE_NAME: rednaw/tientje-ketama
 ```
 
 **Required keys:**
@@ -151,11 +151,11 @@ App development is **devcontainer-first**. The app repo’s devcontainer uses th
 **Purpose:** Current deployment state  
 **Format:**
 ```yaml
-app: hello-world
+app: tientje-ketama
 workspace: prod
 
 image:
-  repo: registry.rednaw.nl/rednaw/hello-world
+  repo: registry.rednaw.nl/rednaw/tientje-ketama
   tag: 706c88c
   digest: sha256:99f9385b2f625e7d656aaff2c8eb5ef73c2e2913626ba162428473ec09241928
   description: "add healthcheck + fix nginx proxy header"

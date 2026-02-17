@@ -17,7 +17,7 @@
 3. For setting up a **new project** follow the [Install: new project](new-project.md) guide, if you want to join an **existing project** follow the [Install: joining an existing project](joining.md) guide.
 
 ## Result
-When done you will be in full control of your application infrastructure via the IaC Devcontainer
+When done you will be in full control of your application infrastructure using the IaC Devcontainer
 
 ```mermaid
 graph TB
@@ -31,20 +31,21 @@ graph TB
 
     subgraph SERVER[Ubuntu Server]
       TRAEFIK(Traefik<br/>Reverse Proxy + TLS)
-      subgraph DOCKER[Docker Engine]
+      subgraph DOCKER[App Docker Compose]
         SUPPORTING_SERVICES@{ shape: cyl, label: "Supporting Services<br/>Postgres, Redis, ..." }
         APP_SERVICE(Application Service)
       end
       OBSERVE(OpenObserve<br/>Monitors system health)
       REGISTRY(Docker Registry)
-      SEC(Security Tools<br/>fail2ban, SSH hardening, AbuseIPDB)
+      SEC(Security hardening<br/>Fail2ban, SSH, AbuseIPDB)
     end
 
-    subgraph APP[Your application]
+    subgraph APP[Application Devcontainer]
       COMPOSE@{ shape: lin-doc, label: "docker-compose.yml<br/>Application services" }
       IAC_YML@{ shape: lin-doc, label: "iac.yml<br/>IaC configuration" }
       PUSH@{ shape: subproc, label: "Github workflow<br/>Build and push" }
-      APP_SECRETS@{ shape: lin-doc, label: ".env<br/>SOPS managed application secrets (dotenv)" }
+      APP_SECRETS@{ shape: lin-doc, label: ".env<br/>Application secrets" }
+      SOPS_CONFIG@{ shape: lin-doc, label: ".sops.yml<br/>SOPS configuration" }
     end
 
     IAC -->|mount 4 files| APP
@@ -63,5 +64,5 @@ graph TB
     APP_SERVICE -->|pull application image| REGISTRY
     PUSH --->|push application image| REGISTRY 
     
-    APP_SERVICE -->|proxy| NGINX
+    APP_SERVICE -->|proxy| TRAEFIK
 ```
