@@ -64,40 +64,6 @@
     name: traefik:v3.6.8
     source: pull
 
-# Free ports 80/443 before starting Traefik (stop Nginx first)
-- name: Stop and disable Nginx
-  ansible.builtin.systemd:
-    name: nginx
-    state: stopped
-    enabled: false
-  failed_when: false
-
-- name: Stop and disable Certbot timer
-  ansible.builtin.systemd:
-    name: certbot.timer
-    state: stopped
-    enabled: false
-  failed_when: false
-
-- name: Remove Nginx and Certbot packages
-  ansible.builtin.apt:
-    name:
-      - nginx
-      - nginx-common
-      - certbot
-      - python3-certbot-nginx
-    state: absent
-  failed_when: false
-
-- name: Remove Nginx and webroot directories
-  ansible.builtin.file:
-    path: "{{ item }}"
-    state: absent
-  loop:
-    - /etc/nginx
-    - /var/www/html
-  failed_when: false
-
 - name: Ensure Traefik container is running
   community.docker.docker_container:
     name: traefik

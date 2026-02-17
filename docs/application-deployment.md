@@ -158,7 +158,7 @@ image:
   repo: registry.rednaw.nl/rednaw/tientje-ketama
   tag: 706c88c
   digest: sha256:99f9385b2f625e7d656aaff2c8eb5ef73c2e2913626ba162428473ec09241928
-  description: "add healthcheck + fix nginx proxy header"
+  description: "add healthcheck + fix proxy header"
   built_at: "2026-01-24T22:41:03Z"
 
 deployment:
@@ -178,7 +178,7 @@ deployment:
 - image:
     tag: 706c88c
     digest: sha256:99f9385b2f625e7d656aaff2c8eb5ef73c2e2913626ba162428473ec09241928
-    description: "add healthcheck + fix nginx proxy header"
+    description: "add healthcheck + fix proxy header"
     built_at: "2026-01-24T22:41:03Z"
 
   deployment:
