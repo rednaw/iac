@@ -59,6 +59,18 @@
       - /var/lib/openobserve:/data
     networks:
       - name: openobserve-network
+      - name: traefik
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.openobserve.rule: "Host(`monitoring.{{ base_domain | default('rednaw.nl') }}`)"
+      traefik.http.routers.openobserve.entrypoints: "websecure"
+      traefik.http.routers.openobserve.tls.certresolver: "letsencrypt"
+      traefik.http.routers.openobserve.middlewares: "openobserve-headers"
+      traefik.http.middlewares.openobserve-headers.headers.customResponseHeaders.X-Frame-Options: "DENY"
+      traefik.http.middlewares.openobserve-headers.headers.customResponseHeaders.Referrer-Policy: "strict-origin-when-cross-origin"
+      traefik.http.middlewares.openobserve-headers.headers.customResponseHeaders.Strict-Transport-Security: "max-age=31536000; includeSubDomains"
+      traefik.http.middlewares.openobserve-headers.headers.customResponseHeaders.X-Content-Type-Options: "nosniff"
+      traefik.http.services.openobserve.loadbalancer.server.port: "5080"
     healthcheck:
       test: ["CMD", "/openobserve", "view", "-c", "version"]
       interval: 30s

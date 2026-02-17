@@ -19,6 +19,7 @@ If you are here for the first time checkout the [Getting Started](getting-starte
 <td valign="top">
 
 - [Tools and technologies used](technologies.md)
+- [Traefik](traefik.md)
 - [Private](private.md)
 - [Troubleshooting](troubleshooting.md)
 - [Remote VS Code / Cursor](remote-vscode.md)
@@ -43,7 +44,7 @@ Terraform commands:
 Ansible commands:
   task ansible:install                   # Install required collections
   task ansible:bootstrap -- <workspace>  # One-time bootstrap as root (dev or prod)
-  task ansible:run       -- <workspace>  # Configure server (Docker, Nginx, security)
+  task ansible:run       -- <workspace>  # Configure server (Docker, Traefik, security)
 
 Testing:
   task test:run                          # Run all tests (validate, format check, security scan)

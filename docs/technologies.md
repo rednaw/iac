@@ -26,8 +26,7 @@ These are the main tools and technologies used by Rednaw IaC
 - [Docker Registry](https://distribution.github.io/distribution/) - a stateless, server side application that lets you store and distribute docker images.
 
 #### Web server and TLS
-- [Certbot](https://eff-certbot.readthedocs.io/en/stable/intro.html) - Fetches and renews certificates from Let's Encrypt
-- [Nginx](https://nginx.org/) - Reverse proxy and static file serving on the server
+- [Traefik](https://doc.traefik.io/traefik/) - Reverse proxy with built-in Let's Encrypt (ACME) for TLS
 
 #### Server security
 - [Fail2ban](https://github.com/fail2ban/fail2ban/blob/master/README.md) - Intrusion prevention by banning IPs that show malicious behaviour (e.g. repeated failed SSH logins)

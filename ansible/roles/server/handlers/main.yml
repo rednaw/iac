@@ -11,11 +11,6 @@
     name: fail2ban
     state: restarted
 
-- name: Restart nginx
-  ansible.builtin.systemd:
-    name: nginx
-    state: restarted
-
 - name: Reload systemd
   ansible.builtin.systemd:
     daemon_reload: true

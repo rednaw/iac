@@ -54,6 +54,8 @@ The devcontainer mounts four files from your app repo at `/workspaces/iac/app`: 
 
 **Required files** — Each app must have all four. `.env` can be minimal (e.g. empty or a comment) if the app has no secrets; it must exist. `.sops.yaml` is the SOPS config for the app (used when decrypting `.env`). The IAC devcontainer includes the **dotenv** extension and `files.associations` so SOPS-decrypted `.env` files are edited as dotenv.
 
+**Traefik (routing)** — The app's `docker-compose.yml` must attach the app service to the external `traefik` network and add Traefik labels so the reverse proxy routes traffic. See [Traefik documentation](traefik.md#adding-a-new-application) for details: add `networks: [ default, traefik ]`, `networks.traefik.external: true`, and labels for the router rule (e.g. `Host(\`dev.rednaw.nl\`) || Host(\`prod.rednaw.nl\`)`), entrypoints, TLS cert resolver, and loadbalancer server port.
+
 ### Set which app you're working on
 
 Run the setup script from the host (once per machine, and again whenever you switch to a different app):
@@ -106,7 +108,7 @@ task app:versions -- <environment>
 
 **Output format:**
 ```
-IMAGE: rednaw/hello-world
+IMAGE: rednaw/tientje-ketama
 
      TAG              CREATED              DESCRIPTION                             
      ---              -------              -----------                             
@@ -122,7 +124,7 @@ Applications declare deployment settings in an **`iac.yml`** file in the app rep
 
 ```yaml
 REGISTRY_NAME: registry.rednaw.nl
-IMAGE_NAME: rednaw/hello-world
+IMAGE_NAME: rednaw/tientje-ketama
 ```
 
 **Required keys:**
@@ -149,14 +151,14 @@ App development is **devcontainer-first**. The app repo’s devcontainer uses th
 **Purpose:** Current deployment state  
 **Format:**
 ```yaml
-app: hello-world
+app: tientje-ketama
 workspace: prod
 
 image:
-  repo: registry.rednaw.nl/rednaw/hello-world
+  repo: registry.rednaw.nl/rednaw/tientje-ketama
   tag: 706c88c
   digest: sha256:99f9385b2f625e7d656aaff2c8eb5ef73c2e2913626ba162428473ec09241928
-  description: "add healthcheck + fix nginx proxy header"
+  description: "add healthcheck + fix proxy header"
   built_at: "2026-01-24T22:41:03Z"
 
 deployment:
@@ -176,7 +178,7 @@ deployment:
 - image:
     tag: 706c88c
     digest: sha256:99f9385b2f625e7d656aaff2c8eb5ef73c2e2913626ba162428473ec09241928
-    description: "add healthcheck + fix nginx proxy header"
+    description: "add healthcheck + fix proxy header"
     built_at: "2026-01-24T22:41:03Z"
 
   deployment:

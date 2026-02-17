@@ -18,7 +18,4 @@ http:
     X-Frame-Options: [DENY]
     X-XSS-Protection: [1; mode=block]
 
-auth:
-  htpasswd:
-    realm: Registry Realm
-    path: /auth/htpasswd
+# Auth handled by Traefik (basic auth middleware); registry accepts all requests

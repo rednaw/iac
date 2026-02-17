@@ -1,0 +1,89 @@
+---
+# yaml-language-server: $schema=https://json.schemastore.org/ansible-stable-2.9.json
+# Traefik: reverse proxy, TLS (ACME), dashboard
+# Runs after Docker, before registry (so /etc/traefik/auth exists for htpasswd).
+
+- name: Set Traefik facts (base_domain, app_environment)
+  ansible.builtin.set_fact:
+    app_environment: "{{ 'dev' if 'dev' in inventory_hostname else 'prod' }}"
+    base_domain: "{{ base_domain | default('rednaw.nl') }}"
+
+- name: Set Traefik redirect target
+  ansible.builtin.set_fact:
+    traefik_redirect_target: "{{ app_environment }}.{{ base_domain }}"
+
+- name: Create Traefik directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - /etc/traefik
+    - /etc/traefik/dynamic
+    - /etc/traefik/certs
+    - /etc/traefik/auth
+    - /var/log/traefik
+
+- name: Deploy Traefik static config
+  ansible.builtin.template:
+    src: traefik.yml.j2
+    dest: /etc/traefik/traefik.yml
+    mode: '0644'
+
+- name: Deploy Traefik dynamic redirects
+  ansible.builtin.template:
+    src: traefik-dynamic-redirects.yml.j2
+    dest: /etc/traefik/dynamic/redirects.yml
+    mode: '0644'
+
+- name: Deploy Traefik HTTP→HTTPS redirect (low priority so ACME works on :80)
+  ansible.builtin.template:
+    src: traefik-dynamic-redirects-http.yml.j2
+    dest: /etc/traefik/dynamic/redirects-http.yml
+    mode: '0644'
+
+- name: Deploy Traefik dynamic dashboard (hostname + auth)
+  ansible.builtin.template:
+    src: traefik-dynamic-dashboard.yml.j2
+    dest: /etc/traefik/dynamic/dashboard.yml
+    mode: '0644'
+
+- name: Deploy Traefik app-host router (cert for main hostname when app not running)
+  ansible.builtin.template:
+    src: traefik-dynamic-app-host.yml.j2
+    dest: /etc/traefik/dynamic/app-host.yml
+    mode: '0644'
+
+- name: Ensure Traefik Docker network exists
+  community.docker.docker_network:
+    name: traefik
+    state: present
+
+- name: Pull Traefik image
+  community.docker.docker_image:
+    name: traefik:v3.6.8
+    source: pull
+
+- name: Ensure Traefik container is running
+  community.docker.docker_container:
+    name: traefik
+    image: traefik:v3.6.8
+    state: started
+    restart_policy: unless-stopped
+    ports:
+      - "0.0.0.0:80:80"
+      - "[::]:80:80"
+      - "0.0.0.0:443:443"
+      - "[::]:443:443"
+      - "127.0.0.1:8080:8080"
+      - "[::1]:8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /etc/traefik:/etc/traefik:ro
+      - /etc/traefik/certs:/etc/traefik/certs
+      - /var/log/traefik:/var/log/traefik
+      - /etc/traefik/auth:/etc/traefik/auth:ro
+    networks:
+      - name: traefik
+    command:
+      - --configFile=/etc/traefik/traefik.yml
