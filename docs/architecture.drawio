@@ -1,6 +1,6 @@
 <mxfile host="65bd71144e">
     <diagram name="Architecture" id="_tyH6BruzC2F-PemxCJo">
-        <mxGraphModel dx="991" dy="651" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+        <mxGraphModel dx="1188" dy="704" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
             <root>
                 <mxCell id="0"/>
                 <mxCell id="1" parent="0"/>
@@ -86,22 +86,22 @@
                 <mxCell id="azXVzSsdnahNq89P9S0F-15" value="Security Tools&#10;fail2ban, SSH hardening" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C97D60;strokeColor=#333333;fontColor=#FFFFFF;fontStyle=1" parent="azXVzSsdnahNq89P9S0F-11" vertex="1">
                     <mxGeometry x="200" y="350" width="120" height="50" as="geometry"/>
                 </mxCell>
-                <mxCell id="37" value="OpenObserve" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C97D60;strokeColor=#333333;fontColor=#FFFFFF;fontStyle=1;verticalAlign=top;" vertex="1" parent="azXVzSsdnahNq89P9S0F-11">
+                <mxCell id="37" value="OpenObserve" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C97D60;strokeColor=#333333;fontColor=#FFFFFF;fontStyle=1;verticalAlign=top;" parent="azXVzSsdnahNq89P9S0F-11" vertex="1">
                     <mxGeometry x="200" y="100" width="100" height="70" as="geometry"/>
                 </mxCell>
-                <mxCell id="40" value="" style="sketch=0;pointerEvents=1;shadow=0;dashed=0;html=1;strokeColor=none;fillColor=#505050;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;outlineConnect=0;align=center;shape=mxgraph.office.security.lock_protected;" vertex="1" parent="azXVzSsdnahNq89P9S0F-11">
+                <mxCell id="40" value="" style="sketch=0;pointerEvents=1;shadow=0;dashed=0;html=1;strokeColor=none;fillColor=#505050;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;outlineConnect=0;align=center;shape=mxgraph.office.security.lock_protected;" parent="azXVzSsdnahNq89P9S0F-11" vertex="1">
                     <mxGeometry x="274" y="135" width="20" height="27" as="geometry"/>
                 </mxCell>
-                <mxCell id="41" value="" style="sketch=0;pointerEvents=1;shadow=0;dashed=0;html=1;strokeColor=none;fillColor=#505050;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;outlineConnect=0;align=center;shape=mxgraph.office.security.lock_protected;" vertex="1" parent="azXVzSsdnahNq89P9S0F-11">
+                <mxCell id="41" value="" style="sketch=0;pointerEvents=1;shadow=0;dashed=0;html=1;strokeColor=none;fillColor=#505050;labelPosition=center;verticalLabelPosition=bottom;verticalAlign=top;outlineConnect=0;align=center;shape=mxgraph.office.security.lock_protected;" parent="azXVzSsdnahNq89P9S0F-11" vertex="1">
                     <mxGeometry x="274" y="275" width="20" height="27" as="geometry"/>
                 </mxCell>
                 <mxCell id="azXVzSsdnahNq89P9S0F-10" value="Firewall" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#5B6E91;strokeColor=#333333;fontColor=#FFFFFF;fontStyle=1" parent="1" vertex="1">
                     <mxGeometry x="565" y="245" width="50" height="420" as="geometry"/>
                 </mxCell>
-                <mxCell id="azXVzSsdnahNq89P9S0F-14" value="Nginx&#10;Reverse Proxy + SSL" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C97D60;strokeColor=#333333;fontColor=#FFFFFF;fontStyle=1" parent="1" vertex="1">
+                <mxCell id="azXVzSsdnahNq89P9S0F-14" value="Traefik reverse proxy &amp;amp; SSL" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C97D60;strokeColor=#333333;fontColor=#FFFFFF;fontStyle=1" parent="1" vertex="1">
                     <mxGeometry x="465" y="250" width="50" height="315" as="geometry"/>
                 </mxCell>
-                <mxCell id="4" value="" style="endArrow=classic;html=1;rounded=0;entryX=1;entryY=0.25;entryDx=0;entryDy=0;exitX=0.5;exitY=0.5;exitDx=0;exitDy=0;exitPerimeter=0;" parent="1" target="16" edge="1" source="2">
+                <mxCell id="4" value="" style="endArrow=classic;html=1;rounded=0;entryX=1;entryY=0.25;entryDx=0;entryDy=0;exitX=0.5;exitY=0.5;exitDx=0;exitDy=0;exitPerimeter=0;" parent="1" source="2" target="16" edge="1">
                     <mxGeometry width="50" height="50" relative="1" as="geometry">
                         <mxPoint x="730" y="300" as="sourcePoint"/>
                         <mxPoint x="670" y="430" as="targetPoint"/>
@@ -161,7 +161,7 @@
                 <mxCell id="legend-hetzner-color" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F8F9FA;strokeColor=#333333;" parent="legend-group" vertex="1">
                     <mxGeometry x="85" y="45.833333333333336" width="15" height="12.5" as="geometry"/>
                 </mxCell>
-                <mxCell id="38" value="" style="endArrow=classic;html=1;rounded=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;exitX=0.5;exitY=0.5;exitDx=0;exitDy=0;exitPerimeter=0;" edge="1" parent="1" source="2" target="37">
+                <mxCell id="38" value="" style="endArrow=classic;html=1;rounded=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;exitX=0.5;exitY=0.5;exitDx=0;exitDy=0;exitPerimeter=0;" parent="1" source="2" target="37" edge="1">
                     <mxGeometry width="50" height="50" relative="1" as="geometry">
                         <mxPoint x="740" y="310" as="sourcePoint"/>
                         <mxPoint x="295.9724448000002" y="302.97822676334874" as="targetPoint"/>

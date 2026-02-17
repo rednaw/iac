@@ -1,0 +1,12 @@
+# Router for main app hostname (e.g. dev.rednaw.nl) so Traefik requests a Let's Encrypt cert
+# even when the app container is not running. Priority -1 so the app's Docker router wins when deployed.
+http:
+  routers:
+    app-host:
+      rule: "Host(`{{ traefik_redirect_target }}`)"
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: letsencrypt
+      priority: -1
+      service: noop@internal

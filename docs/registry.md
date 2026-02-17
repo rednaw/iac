@@ -10,7 +10,7 @@ This document describes the private Docker registry used to store container imag
 - **Hostname:** `registry.rednaw.nl` (value comes from SOPS secret `registry_domain`)
 - **Software:** [Docker Registry](https://distribution.github.io/distribution/) (image `registry:3`)
 - **Protocol:** Docker Registry API v2, served over HTTPS with HTTP Basic Auth
-- **Purpose:** Store application images (e.g. `rednaw/hello-world`) and the IAC dev image (`iac/iac-dev`); used by GitHub Actions, the devcontainer, and on the server by the ubuntu and deploy users
+- **Purpose:** Store application images (e.g. `rednaw/tientje-ketama`) and the IAC dev image (`iac/iac-dev`); used by GitHub Actions, the devcontainer, and on the server by the ubuntu and deploy users
 
 ---
 
@@ -24,8 +24,8 @@ The registry runs on the same Ubuntu server(s) as the applications, configured b
 | **Container** | `registry:3`, name `registry`, port `127.0.0.1:5001→5000` |
 | **Storage** | `/var/lib/docker-registry` on the host (bind-mounted) |
 | **Config** | `/etc/docker-registry/config.yml` (from `registry-config.yml.j2`) |
-| **Auth** | htpasswd file at `/etc/docker-registry/auth/htpasswd` (generated from SOPS credentials) |
-| **Nginx** | Proxies HTTPS `registry.rednaw.nl` → `http://127.0.0.1:5001`; Basic Auth at Nginx, then `auth_basic off` for `/v2/` so the registry receives the request and can validate with the same credentials |
+| **Auth** | htpasswd at `/etc/traefik/auth/htpasswd` (Traefik basic-auth middleware; registry uses same credentials, `REGISTRY_AUTH=none`) |
+| **Traefik** | Proxies HTTPS `registry.rednaw.nl` → registry container; Basic Auth middleware; TLS via Let's Encrypt |
 
 Credentials and domain are taken from SOPS-decrypted `secrets/infrastructure-secrets.yml`:
 
@@ -84,7 +84,7 @@ If you see "No repositories found (or access denied)", see [Troubleshooting](#tr
 | Task | Command |
 |------|--------|
 | List repos | `crane catalog registry.rednaw.nl` |
-| List tags for an image | `crane ls registry.rednaw.nl/<image>` e.g. `crane ls registry.rednaw.nl/rednaw/hello-world` |
+| List tags for an image | `crane ls registry.rednaw.nl/<image>` e.g. `crane ls registry.rednaw.nl/rednaw/tientje-ketama` |
 | Get digest of a tag | `crane digest registry.rednaw.nl/<image>:<tag>` |
 | Inspect manifest | `crane manifest registry.rednaw.nl/<image>:<tag>` |
 | Delete a tag | `crane delete registry.rednaw.nl/<image>:<tag>` |
@@ -109,9 +109,9 @@ Filter SHA-like tags (e.g. for pruning):
 ### Example: list SHA-only tags for pruning
 
 ```bash
-crane ls registry.rednaw.nl/rednaw/hello-world | grep -E '^[0-9a-f]{7}$'
+crane ls registry.rednaw.nl/rednaw/tientje-ketama | grep -E '^[0-9a-f]{7}$'
 # Then delete if safe, e.g.:
-# crane delete registry.rednaw.nl/rednaw/hello-world:<sha>
+# crane delete registry.rednaw.nl/rednaw/tientje-ketama:<sha>
 ```
 
 ---
@@ -123,7 +123,7 @@ crane ls registry.rednaw.nl/rednaw/hello-world | grep -E '^[0-9a-f]{7}$'
 | "No repositories found (or access denied)" | Use the devcontainer. |
 | "Could not resolve digest" / image not found | Check image exists: `crane ls registry.rednaw.nl/<repo>`. Ensure tag is correct and auth is configured. |
 | Deploy fails to pull image | On the server, deploy user’s auth is in `/opt/deploy/.docker/config.json`; ensure Ansible has run and `infrastructure_secrets` contains correct `registry_domain`, `registry_username`, `registry_password`. |
-| Registry unreachable from laptop | Check DNS and HTTPS for `registry.rednaw.nl`; ensure Nginx and the registry container are running on the server. |
+| Registry unreachable from laptop | Check DNS and HTTPS for `registry.rednaw.nl`; ensure Traefik and the registry container are running on the server. |
 
 ---
 

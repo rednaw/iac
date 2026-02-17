@@ -5,7 +5,7 @@
 #
 # Required variables:
 #   registry_name: Registry hostname (e.g. registry.rednaw.nl)
-#   image_name: Image name (e.g. rednaw/hello-world)
+#   image_name: Image name (e.g. rednaw/tientje-ketama)
 #   app_root: Absolute path to the app root directory (on localhost)
 #   workspace: Workspace name (dev or prod)
 #   sha: Image tag / commit SHA to deploy (e.g. abc1234)

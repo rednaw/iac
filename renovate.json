@@ -6,6 +6,7 @@
     "github-actions",
     "dockerfile",
     "terraform",
+    "ansible",
     "ansible-galaxy",
     "pip_requirements",
     "custom.regex",

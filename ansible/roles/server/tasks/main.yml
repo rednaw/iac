@@ -11,20 +11,14 @@
 - name: Harden SSH
   ansible.builtin.import_tasks: ssh.yml
 
-- name: Install nginx
-  ansible.builtin.import_tasks: nginx.yml
-
-- name: Configure SSL certificates
-  ansible.builtin.import_tasks: certbot.yml
-
-- name: Configure nginx sites
-  ansible.builtin.import_tasks: nginx.yml
-
 - name: Configure fail2ban
   ansible.builtin.import_tasks: fail2ban.yml
 
 - name: Install Docker
   ansible.builtin.import_tasks: docker.yml
+
+- name: Install and configure Traefik
+  ansible.builtin.import_tasks: traefik.yml
 
 - name: Create deploy user
   ansible.builtin.import_tasks: deploy-user.yml

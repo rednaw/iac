@@ -81,7 +81,7 @@ Open `secrets/infrastructure-secrets.yml` in VS Code — if it decrypts, you're 
 Just open the file. The SOPS extension decrypts it automatically. Save to re-encrypt.
 
 - `iac/secrets/infrastructure-secrets.yml` — Infrastructure secrets
-- `hello-world/.env` — Application secrets (dotenv; use SOPS + dotenv extension)
+- `tientje-ketama/.env` — Application secrets (dotenv; use SOPS + dotenv extension)
 
 ### From command line
 
@@ -123,7 +123,7 @@ iac/
 ├── .sops.yaml                          # Encryption rules (committed)
 └── ...
 
-hello-world/
+tientje-ketama/
 └── .env                                # Encrypted dotenv (committed)
 ```
 

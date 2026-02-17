@@ -18,7 +18,7 @@ None of these feel right.
 A fourth option: proper infrastructure-as-code, but approachable.
 
 - **Terraform** provisions your server (Hetzner, cheap and European)
-- **Ansible** configures it (Docker, security hardening, Nginx and more)
+- **Ansible** configures it (Docker, security hardening, Traefik and more)
 - **SOPS** encrypts your secrets (committed to Git, decrypted transparently in VS Code)
 - **docker-compose** runs your apps (the format you already know)
 
@@ -43,7 +43,7 @@ Everything is code. Everything is versioned. Nothing is magic.
 
 **Teach, don't hide.** Every decision is documented. When you outgrow this, you'll understand what you're moving to.
 
-**Opinionated defaults.** Hetzner. DevContainers. Docker Registry. Nginx. SOPS. OpenObserve. You can change them, but you don't have to decide.
+**Opinionated defaults.** Hetzner. DevContainers. Docker Registry. Traefik. SOPS. OpenObserve. You can change them, but you don't have to decide.
 
 **Single server, done well.** Many projects don't need a cluster. They need one reliable server, properly configured.
 
