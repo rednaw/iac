@@ -42,3 +42,9 @@ log:
 accessLog:
   filePath: /var/log/traefik/access.log
   format: common
+
+metrics:
+  prometheus:
+    addEntryPointsLabels: true
+    addServicesLabels: true
+    addRoutersLabels: true

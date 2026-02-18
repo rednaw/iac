@@ -1,0 +1,285 @@
+{
+  "version": 2,
+  "dashboardId": "docker-container-metrics",
+  "title": "Docker Container Metrics",
+  "description": "Docker container metrics: CPU, memory, network, and disk I/O",
+  "role": "",
+  "owner": "",
+  "created": "2025-02-17T00:00:00.000Z",
+  "panels": [
+    {
+      "id": "Panel_CPU_Utilization",
+      "type": "line",
+      "title": "CPU Utilization by Container",
+      "description": "",
+      "config": {
+        "show_legends": true,
+        "legends_position": "bottom",
+        "unit": "percent",
+        "decimals": 0
+      },
+      "queryType": "promql",
+      "queries": [
+        {
+          "query": "container_cpu_utilization{}",
+          "customQuery": true,
+          "fields": {
+            "stream": "container_cpu_usage_total",
+            "stream_type": "metrics",
+            "x": [],
+            "y": [],
+            "z": [],
+            "filter": []
+          },
+          "config": {
+            "promql_legend": "{container_name}",
+            "layer_type": "scatter",
+            "weight_fixed": 1
+          }
+        }
+      ],
+      "layout": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 9,
+        "i": 1
+      }
+    },
+    {
+      "id": "Panel_Memory_Percent",
+      "type": "line",
+      "title": "Memory Usage Percentage",
+      "description": "",
+      "config": {
+        "show_legends": true,
+        "legends_position": "bottom",
+        "unit": "percent",
+        "decimals": 0
+      },
+      "queryType": "promql",
+      "queries": [
+        {
+          "query": "container_memory_percent{}",
+          "customQuery": true,
+          "fields": {
+            "stream": "container_memory_usage_total",
+            "stream_type": "metrics",
+            "x": [],
+            "y": [],
+            "z": [],
+            "filter": []
+          },
+          "config": {
+            "promql_legend": "{container_name}",
+            "layer_type": "scatter",
+            "weight_fixed": 1
+          }
+        }
+      ],
+      "layout": {
+        "x": 24,
+        "y": 0,
+        "w": 24,
+        "h": 9,
+        "i": 2
+      }
+    },
+    {
+      "id": "Panel_CPU_Time",
+      "type": "line",
+      "title": "CPU Time Consumed",
+      "description": "",
+      "config": {
+        "show_legends": true,
+        "legends_position": "bottom",
+        "unit": "nanoseconds",
+        "decimals": 2
+      },
+      "queryType": "promql",
+      "queries": [
+        {
+          "query": "irate(container_cpu_usage_total{}[5m])",
+          "customQuery": true,
+          "fields": {
+            "stream": "container_cpu_usage_total",
+            "stream_type": "metrics",
+            "x": [],
+            "y": [],
+            "z": [],
+            "filter": []
+          },
+          "config": {
+            "promql_legend": "{container_name}",
+            "layer_type": "scatter",
+            "weight_fixed": 1
+          }
+        }
+      ],
+      "layout": {
+        "x": 0,
+        "y": 9,
+        "w": 24,
+        "h": 9,
+        "i": 3
+      }
+    },
+    {
+      "id": "Panel_Memory_Usage",
+      "type": "line",
+      "title": "Memory Usage Without Cache",
+      "description": "",
+      "config": {
+        "show_legends": true,
+        "legends_position": "right",
+        "unit": "bytes",
+        "decimals": 0
+      },
+      "queryType": "promql",
+      "queries": [
+        {
+          "query": "container_memory_usage_total{}",
+          "customQuery": true,
+          "fields": {
+            "stream": "container_memory_usage_total",
+            "stream_type": "metrics",
+            "x": [],
+            "y": [],
+            "z": [],
+            "filter": []
+          },
+          "config": {
+            "promql_legend": "{container_name}",
+            "layer_type": "scatter",
+            "weight_fixed": 1
+          }
+        }
+      ],
+      "layout": {
+        "x": 24,
+        "y": 9,
+        "w": 24,
+        "h": 9,
+        "i": 4
+      }
+    },
+    {
+      "id": "Panel_Network_RX",
+      "type": "line",
+      "title": "Network IO - Received",
+      "description": "",
+      "config": {
+        "show_legends": true,
+        "legends_position": "bottom",
+        "unit": "bytes",
+        "decimals": 0
+      },
+      "queryType": "promql",
+      "queries": [
+        {
+          "query": "irate(container_network_io_usage_rx_bytes{}[5m])",
+          "customQuery": true,
+          "fields": {
+            "stream": "container_network_io_usage_rx_bytes",
+            "stream_type": "metrics",
+            "x": [],
+            "y": [],
+            "z": [],
+            "filter": []
+          },
+          "config": {
+            "promql_legend": "{container_name}",
+            "layer_type": "scatter",
+            "weight_fixed": 1
+          }
+        }
+      ],
+      "layout": {
+        "x": 0,
+        "y": 18,
+        "w": 17,
+        "h": 9,
+        "i": 5
+      }
+    },
+    {
+      "id": "Panel_Network_TX",
+      "type": "line",
+      "title": "Network IO - Transmitted",
+      "description": "",
+      "config": {
+        "show_legends": true,
+        "legends_position": "bottom",
+        "unit": "bytes",
+        "decimals": 0
+      },
+      "queryType": "promql",
+      "queries": [
+        {
+          "query": "irate(container_network_io_usage_tx_bytes{}[5m])",
+          "customQuery": true,
+          "fields": {
+            "stream": "container_network_io_usage_tx_bytes",
+            "stream_type": "metrics",
+            "x": [],
+            "y": [],
+            "z": [],
+            "filter": []
+          },
+          "config": {
+            "promql_legend": "{container_name}",
+            "layer_type": "scatter",
+            "weight_fixed": 1
+          }
+        }
+      ],
+      "layout": {
+        "x": 17,
+        "y": 18,
+        "w": 16,
+        "h": 9,
+        "i": 6
+      }
+    },
+    {
+      "id": "Panel_Disk_IO",
+      "type": "line",
+      "title": "Total Disk I/O",
+      "description": "",
+      "config": {
+        "show_legends": true,
+        "legends_position": "bottom",
+        "unit": "bytes",
+        "decimals": 0
+      },
+      "queryType": "promql",
+      "queries": [
+        {
+          "query": "sum by(container_name) (irate(container_blockio_io_service_bytes_recursive{}[5m]))",
+          "customQuery": true,
+          "fields": {
+            "stream": "container_blockio_io_service_bytes_recursive",
+            "stream_type": "metrics",
+            "x": [],
+            "y": [],
+            "z": [],
+            "filter": []
+          },
+          "config": {
+            "promql_legend": "{container_name}",
+            "layer_type": "scatter",
+            "weight_fixed": 1
+          }
+        }
+      ],
+      "layout": {
+        "x": 33,
+        "y": 18,
+        "w": 15,
+        "h": 9,
+        "i": 7
+      }
+    }
+  ],
+  "variables": null
+}

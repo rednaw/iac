@@ -7,11 +7,6 @@ receivers:
       cpu: {}
       disk: {}
       filesystem:
-        include_mount_points:
-          mount_points:
-            - /var/lib/openobserve
-            - /var/lib/docker-registry
-          match_type: strict
         include_fs_types:
           fs_types:
             - ext4
@@ -28,16 +23,41 @@ receivers:
     collection_interval: 30s
     timeout: 5s
 
+  # Prometheus receiver: scrape Traefik metrics
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: 'traefik'
+          scrape_interval: 30s
+          metrics_path: '/metrics'
+          static_configs:
+            # Traefik is on openobserve-network, accessible via container name
+            - targets: ['traefik:8080']
+              labels:
+                job: 'traefik'
+                instance: 'traefik'
+
 exporters:
   otlp_http:
-    endpoint: http://openobserve:5080/api/default/
+    endpoint: http://openobserve:5080/api/default
     tls:
       insecure: true
     headers:
       Authorization: "Basic {{ openobserve_ingest_auth }}"
 
+  # Send Traefik metrics via Prometheus remote write so metric names are preserved for PromQL
+  prometheusremotewrite:
+    endpoint: http://openobserve:5080/api/default/prometheus/api/v1/write
+    headers:
+      Authorization: "Basic {{ openobserve_ingest_auth }}"
+
 service:
   pipelines:
+    # Host + Docker metrics via OTLP
     metrics:
       receivers: [hostmetrics, docker_stats]
       exporters: [otlp_http]
+    # Traefik metrics via Prometheus remote write (preserves traefik_* names for dashboard)
+    metrics/traefik:
+      receivers: [prometheus]
+      exporters: [prometheusremotewrite]

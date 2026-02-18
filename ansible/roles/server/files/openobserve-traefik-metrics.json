@@ -1,0 +1,431 @@
+{
+  "version": 2,
+  "dashboardId": "traefik-metrics",
+  "title": "Traefik Metrics",
+  "description": "Traefik reverse proxy metrics: requests, latency, errors, and service performance",
+  "role": "",
+  "owner": "",
+  "created": "2025-02-17T00:00:00.000Z",
+  "panels": [
+    {
+      "id": "Panel_Traefik_Config_Reloads",
+      "type": "line",
+      "title": "Config Reloads",
+      "description": "Total number of configuration reloads",
+      "config": {
+        "show_legends": false,
+        "unit": "short",
+        "decimals": 0
+      },
+      "queryType": "promql",
+      "queries": [
+        {
+          "query": "traefik_config_reloads_total",
+          "customQuery": true,
+          "fields": {
+            "stream": "traefik_config_reloads_total",
+            "stream_type": "metrics",
+            "x": [],
+            "y": [],
+            "z": [],
+            "filter": []
+          },
+          "config": {
+            "promql_legend": "",
+            "layer_type": "scatter",
+            "weight_fixed": 1
+          }
+        }
+      ],
+      "layout": {
+        "x": 0,
+        "y": 0,
+        "w": 4,
+        "h": 4,
+        "i": 1
+      }
+    },
+    {
+      "id": "Panel_Traefik_Open_Connections",
+      "type": "line",
+      "title": "Open Connections",
+      "description": "Current number of open connections",
+      "config": {
+        "show_legends": false,
+        "unit": "short",
+        "decimals": 0
+      },
+      "queryType": "promql",
+      "queries": [
+        {
+          "query": "sum(traefik_open_connections)",
+          "customQuery": true,
+          "fields": {
+            "stream": "traefik_open_connections",
+            "stream_type": "metrics",
+            "x": [],
+            "y": [],
+            "z": [],
+            "filter": []
+          },
+          "config": {
+            "promql_legend": "",
+            "layer_type": "scatter",
+            "weight_fixed": 1
+          }
+        }
+      ],
+      "layout": {
+        "x": 4,
+        "y": 0,
+        "w": 4,
+        "h": 4,
+        "i": 2
+      }
+    },
+    {
+      "id": "Panel_Traefik_Requests_Per_Entrypoint",
+      "type": "line",
+      "title": "Requests per Entrypoint",
+      "description": "Request rate by entrypoint",
+      "config": {
+        "show_legends": true,
+        "legends_position": "bottom",
+        "unit": "reqps",
+        "decimals": 2
+      },
+      "queryType": "promql",
+      "queries": [
+        {
+          "query": "sum(rate(traefik_entrypoint_requests_total[5m])) by (entrypoint)",
+          "customQuery": true,
+          "fields": {
+            "stream": "traefik_entrypoint_requests_total",
+            "stream_type": "metrics",
+            "x": [],
+            "y": [],
+            "z": [],
+            "filter": []
+          },
+          "config": {
+            "promql_legend": "{entrypoint}",
+            "layer_type": "scatter",
+            "weight_fixed": 1
+          }
+        }
+      ],
+      "layout": {
+        "x": 0,
+        "y": 4,
+        "w": 12,
+        "h": 6,
+        "i": 3
+      }
+    },
+    {
+      "id": "Panel_Traefik_Request_Duration",
+      "type": "line",
+      "title": "Request Duration (p50, p95, p99)",
+      "description": "Request latency percentiles",
+      "config": {
+        "show_legends": true,
+        "legends_position": "bottom",
+        "unit": "s",
+        "decimals": 3
+      },
+      "queryType": "promql",
+      "queries": [
+        {
+          "query": "histogram_quantile(0.50, sum(rate(traefik_entrypoint_request_duration_seconds_bucket[5m])) by (le, entrypoint))",
+          "customQuery": true,
+          "fields": {
+            "stream": "traefik_entrypoint_request_duration_seconds",
+            "stream_type": "metrics",
+            "x": [],
+            "y": [],
+            "z": [],
+            "filter": []
+          },
+          "config": {
+            "promql_legend": "p50 - {entrypoint}",
+            "layer_type": "scatter",
+            "weight_fixed": 1
+          }
+        },
+        {
+          "query": "histogram_quantile(0.95, sum(rate(traefik_entrypoint_request_duration_seconds_bucket[5m])) by (le, entrypoint))",
+          "customQuery": true,
+          "fields": {
+            "stream": "traefik_entrypoint_request_duration_seconds",
+            "stream_type": "metrics",
+            "x": [],
+            "y": [],
+            "z": [],
+            "filter": []
+          },
+          "config": {
+            "promql_legend": "p95 - {entrypoint}",
+            "layer_type": "scatter",
+            "weight_fixed": 1
+          }
+        },
+        {
+          "query": "histogram_quantile(0.99, sum(rate(traefik_entrypoint_request_duration_seconds_bucket[5m])) by (le, entrypoint))",
+          "customQuery": true,
+          "fields": {
+            "stream": "traefik_entrypoint_request_duration_seconds",
+            "stream_type": "metrics",
+            "x": [],
+            "y": [],
+            "z": [],
+            "filter": []
+          },
+          "config": {
+            "promql_legend": "p99 - {entrypoint}",
+            "layer_type": "scatter",
+            "weight_fixed": 1
+          }
+        }
+      ],
+      "layout": {
+        "x": 0,
+        "y": 10,
+        "w": 12,
+        "h": 6,
+        "i": 4
+      }
+    },
+    {
+      "id": "Panel_Traefik_HTTP_Status_Codes",
+      "type": "line",
+      "title": "HTTP Status Codes",
+      "description": "Request rate by HTTP status code",
+      "config": {
+        "show_legends": true,
+        "legends_position": "bottom",
+        "unit": "reqps",
+        "decimals": 2
+      },
+      "queryType": "promql",
+      "queries": [
+        {
+          "query": "sum(rate(traefik_entrypoint_requests_total[5m])) by (code)",
+          "customQuery": true,
+          "fields": {
+            "stream": "traefik_entrypoint_requests_total",
+            "stream_type": "metrics",
+            "x": [],
+            "y": [],
+            "z": [],
+            "filter": []
+          },
+          "config": {
+            "promql_legend": "{code}",
+            "layer_type": "scatter",
+            "weight_fixed": 1
+          }
+        }
+      ],
+      "layout": {
+        "x": 0,
+        "y": 16,
+        "w": 8,
+        "h": 6,
+        "i": 5
+      }
+    },
+    {
+      "id": "Panel_Traefik_TLS_Certs",
+      "type": "line",
+      "title": "TLS Certificate Expiry",
+      "description": "Days until TLS certificate expiration",
+      "config": {
+        "show_legends": true,
+        "legends_position": "bottom",
+        "unit": "d",
+        "decimals": 0
+      },
+      "queryType": "promql",
+      "queries": [
+        {
+          "query": "(traefik_tls_certs_not_after - time()) / 86400",
+          "customQuery": true,
+          "fields": {
+            "stream": "traefik_tls_certs_not_after",
+            "stream_type": "metrics",
+            "x": [],
+            "y": [],
+            "z": [],
+            "filter": []
+          },
+          "config": {
+            "promql_legend": "{cn}",
+            "layer_type": "scatter",
+            "weight_fixed": 1
+          }
+        }
+      ],
+      "layout": {
+        "x": 8,
+        "y": 16,
+        "w": 4,
+        "h": 6,
+        "i": 6
+      }
+    },
+    {
+      "id": "Panel_Traefik_Top_Services",
+      "type": "table",
+      "title": "Top Services by Request Rate",
+      "description": "Most requested services",
+      "config": {
+        "show_legends": false,
+        "unit": "reqps",
+        "decimals": 2
+      },
+      "queryType": "promql",
+      "queries": [
+        {
+          "query": "topk(10, sum(rate(traefik_service_requests_total[5m])) by (service))",
+          "customQuery": true,
+          "fields": {
+            "stream": "traefik_service_requests_total",
+            "stream_type": "metrics",
+            "x": [],
+            "y": [],
+            "z": [],
+            "filter": []
+          },
+          "config": {
+            "promql_legend": "{service}",
+            "layer_type": "scatter",
+            "weight_fixed": 1
+          }
+        }
+      ],
+      "layout": {
+        "x": 0,
+        "y": 22,
+        "w": 6,
+        "h": 8,
+        "i": 7
+      }
+    },
+    {
+      "id": "Panel_Traefik_Slow_Services",
+      "type": "table",
+      "title": "Top Slow Services",
+      "description": "Services with highest p95 latency",
+      "config": {
+        "show_legends": false,
+        "unit": "s",
+        "decimals": 3
+      },
+      "queryType": "promql",
+      "queries": [
+        {
+          "query": "topk(10, histogram_quantile(0.95, sum(rate(traefik_service_request_duration_seconds_bucket[5m])) by (le, service)))",
+          "customQuery": true,
+          "fields": {
+            "stream": "traefik_service_request_duration_seconds",
+            "stream_type": "metrics",
+            "x": [],
+            "y": [],
+            "z": [],
+            "filter": []
+          },
+          "config": {
+            "promql_legend": "{service}",
+            "layer_type": "scatter",
+            "weight_fixed": 1
+          }
+        }
+      ],
+      "layout": {
+        "x": 6,
+        "y": 22,
+        "w": 6,
+        "h": 8,
+        "i": 8
+      }
+    },
+    {
+      "id": "Panel_Traefik_Service_Errors",
+      "type": "line",
+      "title": "Service Error Rate (5xx)",
+      "description": "Error rate by service",
+      "config": {
+        "show_legends": true,
+        "legends_position": "bottom",
+        "unit": "reqps",
+        "decimals": 2
+      },
+      "queryType": "promql",
+      "queries": [
+        {
+          "query": "sum(rate(traefik_service_requests_total{code=~\"5..\"}[5m])) by (service)",
+          "customQuery": true,
+          "fields": {
+            "stream": "traefik_service_requests_total",
+            "stream_type": "metrics",
+            "x": [],
+            "y": [],
+            "z": [],
+            "filter": []
+          },
+          "config": {
+            "promql_legend": "{service}",
+            "layer_type": "scatter",
+            "weight_fixed": 1
+          }
+        }
+      ],
+      "layout": {
+        "x": 0,
+        "y": 30,
+        "w": 12,
+        "h": 6,
+        "i": 9
+      }
+    },
+    {
+      "id": "Panel_Traefik_Retries",
+      "type": "line",
+      "title": "Service Retries",
+      "description": "Number of retries by service",
+      "config": {
+        "show_legends": true,
+        "legends_position": "bottom",
+        "unit": "short",
+        "decimals": 0
+      },
+      "queryType": "promql",
+      "queries": [
+        {
+          "query": "sum(rate(traefik_service_retries_total[5m])) by (service)",
+          "customQuery": true,
+          "fields": {
+            "stream": "traefik_service_retries_total",
+            "stream_type": "metrics",
+            "x": [],
+            "y": [],
+            "z": [],
+            "filter": []
+          },
+          "config": {
+            "promql_legend": "{service}",
+            "layer_type": "scatter",
+            "weight_fixed": 1
+          }
+        }
+      ],
+      "layout": {
+        "x": 0,
+        "y": 36,
+        "w": 12,
+        "h": 6,
+        "i": 10
+      }
+    }
+  ]
+}
