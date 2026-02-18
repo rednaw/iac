@@ -48,6 +48,14 @@
     dest: /etc/traefik/dynamic/dashboard.yml
     mode: '0644'
 
+- name: Deploy logrotate config for Traefik logs
+  ansible.builtin.copy:
+    src: logrotate-traefik
+    dest: /etc/logrotate.d/traefik
+    mode: '0644'
+    owner: root
+    group: root
+
 - name: Deploy Traefik app-host router (cert for main hostname when app not running)
   ansible.builtin.template:
     src: traefik-dynamic-app-host.yml.j2
@@ -88,6 +96,10 @@
       - /etc/traefik/certs:/etc/traefik/certs
       - /var/log/traefik:/var/log/traefik
       - /etc/traefik/auth:/etc/traefik/auth:ro
+    log_driver: json-file
+    log_options:
+      max-size: "10m"
+      max-file: "3"
     networks:
       - name: traefik
       - name: openobserve-network

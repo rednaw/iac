@@ -91,6 +91,10 @@
     image: registry:3
     state: started
     restart_policy: unless-stopped
+    log_driver: json-file
+    log_options:
+      max-size: "10m"
+      max-file: "3"
     ports:
       - "127.0.0.1:5001:5000"
     volumes:
