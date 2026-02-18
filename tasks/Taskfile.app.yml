@@ -44,8 +44,6 @@ tasks:
       - |
         REGISTRY_NAME=$(yq -r '.REGISTRY_NAME' "{{.APP_ROOT}}/iac.yml")
         IMAGE_NAME=$(yq -r '.IMAGE_NAME' "{{.APP_ROOT}}/iac.yml")
-        # Prepare SSH host keys
-        cd "{{.IAC_ROOT}}" && task hostkeys:prepare -- "{{.WORKSPACE}}"
         
         # Run Ansible deployment
         ANSIBLE_CONFIG="{{.IAC_ROOT}}/ansible/ansible.cfg" \
