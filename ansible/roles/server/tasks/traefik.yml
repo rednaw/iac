@@ -1,5 +1,4 @@
 ---
-# yaml-language-server: $schema=https://json.schemastore.org/ansible-stable-2.9.json
 # Traefik: reverse proxy, TLS (ACME), dashboard
 # Runs after Docker, before registry (so /etc/traefik/auth exists for htpasswd).
 

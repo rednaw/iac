@@ -37,9 +37,11 @@ tasks:
           dev)  HOSTNAME="dev.rednaw.nl" ;;
           prod) HOSTNAME="prod.rednaw.nl" ;;
         esac
+        # Extract domain by removing workspace prefix (e.g., dev.rednaw.nl -> rednaw.nl)
+        DOMAIN="${HOSTNAME#*.}"
         KEYFILE="${HOME}/.ssh/known_hosts"
-        echo "Removing $HOSTNAME from $KEYFILE"
-        for name in "$HOSTNAME" "[${HOSTNAME}]:22"; do
-          ssh-keygen -R "$name" -f "$KEYFILE" || true
+        [ ! -f "$KEYFILE" ] && exit 0
+        # Remove all variants: dev.rednaw.nl, rednaw.nl, [dev.rednaw.nl]:22, [rednaw.nl]:22
+        for name in "$HOSTNAME" "$DOMAIN" "[${HOSTNAME}]:22" "[${DOMAIN}]:22"; do
+          ssh-keygen -R "$name" -f "$KEYFILE" -q 2>/dev/null || true
         done
-        echo "Done"

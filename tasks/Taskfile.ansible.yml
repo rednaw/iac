@@ -25,8 +25,6 @@ tasks:
       - |
         echo "NOTE: This step connects as root using your Hetzner SSH key to set up the ubuntu user."
         HOSTNAME=$(task hostkeys:hostname -- "{{.WORKSPACE}}")
-        echo "🔑 Preparing known_hosts..."
-        task hostkeys:prepare -- "{{.WORKSPACE}}"
         ansible-playbook -i "${HOSTNAME}," playbooks/bootstrap.yml
 
   run:
@@ -42,7 +40,5 @@ tasks:
         msg: "Invalid workspace '{{.WORKSPACE}}'. Use: dev or prod"
     cmds:
       - |
-        echo "🔑 Preparing known_hosts..."
-        task hostkeys:prepare -- "{{.WORKSPACE}}"
         echo "⚙️  Running full Ansible playbook for workspace: {{.WORKSPACE}}..."
         ansible-playbook -i "inventory/{{.WORKSPACE}}.ini" playbooks/server.yml

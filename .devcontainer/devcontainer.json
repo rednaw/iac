@@ -27,7 +27,17 @@
         "files.associations": {
           "*.env": "dotenv",
           ".env": "dotenv"
-        }
+        },
+        "yaml.schemas": {
+          "Traefik v2": "ansible/roles/server/templates/traefik*.j2"
+        },
+        "yaml.customTags": [
+          "!vault",
+          "!include",
+          "!include_role",
+          "!include_tasks"
+        ],
+        "ansible.python.interpreterPath": "/usr/bin/python3"
       }
     },
     "remote.containers.autoReopen": true

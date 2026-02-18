@@ -28,6 +28,14 @@
     group: deploy
     mode: '0700'
 
+- name: Ensure Ansible remote_tmp directory exists for deploy user
+  ansible.builtin.file:
+    path: /tmp/.ansible-deploy
+    state: directory
+    owner: deploy
+    group: deploy
+    mode: '0755'
+
 - name: Configure Docker registry auth for deploy user
   ansible.builtin.copy:
     content: |
