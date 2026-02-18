@@ -1,37 +1,29 @@
 {
   "version": 2,
-  "dashboardId": "7140037128083374080JjSlgp",
+  "dashboardId": "host-metrics",
   "title": "Host Metrics",
-  "description": "",
+  "description": "Host system metrics: CPU, memory, disk, and network",
   "role": "",
   "owner": "",
-  "created": "2023-12-11T17:58:26.515Z",
+  "created": "2025-02-17T00:00:00.000Z",
   "panels": [
     {
-      "id": "Panel_ID8767310",
+      "id": "Panel_CPU_Load",
       "type": "line",
-      "title": "Memory Usage: Cached",
-      "description": "Page cache.",
+      "title": "Average CPU Load (5m)",
+      "description": "",
       "config": {
         "show_legends": true,
-        "legends_position": null,
-        "unit": "bytes",
-        "base_map": {
-          "type": "osm"
-        },
-        "map_view": {
-          "zoom": 1,
-          "lat": 0,
-          "lng": 0
-        }
+        "unit": "short",
+        "decimals": 2
       },
       "queryType": "promql",
       "queries": [
         {
-          "query": "system_memory_usage{state=~\"cached\"}",
+          "query": "system_cpu_load_average_5m{}",
           "customQuery": true,
           "fields": {
-            "stream": "system_memory_usage",
+            "stream": "system_cpu_load_average_5m",
             "stream_type": "metrics",
             "x": [],
             "y": [],
@@ -46,30 +38,22 @@
         }
       ],
       "layout": {
-        "x": 8,
-        "y": 6,
+        "x": 0,
+        "y": 0,
         "w": 4,
-        "h": 7,
+        "h": 6,
         "i": 1
       }
     },
     {
-      "id": "Panel_ID4573410",
+      "id": "Panel_CPU_Utilization",
       "type": "line",
       "title": "CPU Utilization",
       "description": "",
       "config": {
         "show_legends": true,
-        "legends_position": null,
         "unit": "percent-1",
-        "base_map": {
-          "type": "osm"
-        },
-        "map_view": {
-          "zoom": 1,
-          "lat": 0,
-          "lng": 0
-        }
+        "decimals": 1
       },
       "queryType": "promql",
       "queries": [
@@ -96,210 +80,18 @@
         "y": 0,
         "w": 4,
         "h": 6,
-        "i": 3
+        "i": 2
       }
     },
     {
-      "id": "Panel_ID8005910",
-      "type": "line",
-      "title": "Disk: Used",
-      "description": "",
-      "config": {
-        "show_legends": true,
-        "legends_position": null,
-        "unit": "bytes",
-        "base_map": {
-          "type": "osm"
-        },
-        "map_view": {
-          "zoom": 1,
-          "lat": 0,
-          "lng": 0
-        }
-      },
-      "queryType": "promql",
-      "queries": [
-        {
-          "query": "system_filesystem_usage{state=\"used\",device!~\"/dev/loop.*\", device!~\"tmpfs|nsfs\"}",
-          "customQuery": true,
-          "fields": {
-            "stream": "bytes_committed",
-            "stream_type": "metrics",
-            "x": [],
-            "y": [],
-            "z": [],
-            "filter": []
-          },
-          "config": {
-            "promql_legend": "{host_name}-{device}",
-            "layer_type": "scatter",
-            "weight_fixed": 1
-          }
-        }
-      ],
-      "layout": {
-        "x": 0,
-        "y": 13,
-        "w": 3,
-        "h": 7,
-        "i": 4
-      }
-    },
-    {
-      "id": "Panel_ID347710",
-      "type": "line",
-      "title": "Disk: Available",
-      "description": "",
-      "config": {
-        "show_legends": true,
-        "legends_position": null,
-        "unit": "bytes",
-        "base_map": {
-          "type": "osm"
-        },
-        "map_view": {
-          "zoom": 1,
-          "lat": 0,
-          "lng": 0
-        }
-      },
-      "queryType": "promql",
-      "queries": [
-        {
-          "query": "system_filesystem_usage{state=\"free\",device!~\"/dev/loop.*\", device!~\"tmpfs|nsfs\"}",
-          "customQuery": true,
-          "fields": {
-            "stream": "bytes_committed",
-            "stream_type": "metrics",
-            "x": [],
-            "y": [],
-            "z": [],
-            "filter": []
-          },
-          "config": {
-            "promql_legend": "{host_name}-{device}",
-            "layer_type": "scatter",
-            "weight_fixed": 1
-          }
-        }
-      ],
-      "layout": {
-        "x": 3,
-        "y": 13,
-        "w": 3,
-        "h": 7,
-        "i": 5
-      }
-    },
-    {
-      "id": "Panel_ID6684110",
-      "type": "line",
-      "title": "Network IO - Received",
-      "description": "",
-      "config": {
-        "show_legends": true,
-        "legends_position": null,
-        "unit": "bps",
-        "base_map": {
-          "type": "osm"
-        },
-        "map_view": {
-          "zoom": 1,
-          "lat": 0,
-          "lng": 0
-        }
-      },
-      "queryType": "promql",
-      "queries": [
-        {
-          "query": "avg by(host_name) (irate(system_network_io{direction=\"receive\" }[5m]))",
-          "customQuery": true,
-          "fields": {
-            "stream": "bytes_committed",
-            "stream_type": "metrics",
-            "x": [],
-            "y": [],
-            "z": [],
-            "filter": []
-          },
-          "config": {
-            "promql_legend": "{host_name}",
-            "layer_type": "scatter",
-            "weight_fixed": 1
-          }
-        }
-      ],
-      "layout": {
-        "x": 4,
-        "y": 20,
-        "w": 4,
-        "h": 7,
-        "i": 7
-      }
-    },
-    {
-      "id": "Panel_ID9916010",
-      "type": "line",
-      "title": "Network IO - transmit",
-      "description": "",
-      "config": {
-        "show_legends": true,
-        "legends_position": null,
-        "unit": "bps",
-        "base_map": {
-          "type": "osm"
-        },
-        "map_view": {
-          "zoom": 1,
-          "lat": 0,
-          "lng": 0
-        }
-      },
-      "queryType": "promql",
-      "queries": [
-        {
-          "query": "avg by(host_name) (irate(system_network_io{direction=\"transmit\" }[5m]))",
-          "customQuery": true,
-          "fields": {
-            "stream": "bytes_committed",
-            "stream_type": "metrics",
-            "x": [],
-            "y": [],
-            "z": [],
-            "filter": []
-          },
-          "config": {
-            "promql_legend": "{host_name}",
-            "layer_type": "scatter",
-            "weight_fixed": 1
-          }
-        }
-      ],
-      "layout": {
-        "x": 8,
-        "y": 20,
-        "w": 4,
-        "h": 7,
-        "i": 8
-      }
-    },
-    {
-      "id": "Panel_ID9832410",
+      "id": "Panel_CPU_Idle",
       "type": "line",
       "title": "CPU: Idle",
       "description": "",
       "config": {
         "show_legends": true,
-        "legends_position": null,
         "unit": "percent-1",
-        "base_map": {
-          "type": "osm"
-        },
-        "map_view": {
-          "zoom": 1,
-          "lat": 0,
-          "lng": 0
-        }
+        "decimals": 1
       },
       "queryType": "promql",
       "queries": [
@@ -307,7 +99,7 @@
           "query": "avg by(state, host_name) (irate(system_cpu_time{state=\"idle\"}[5m]))",
           "customQuery": true,
           "fields": {
-            "stream": "bytes_committed",
+            "stream": "system_cpu_time",
             "stream_type": "metrics",
             "x": [],
             "y": [],
@@ -326,208 +118,18 @@
         "y": 0,
         "w": 4,
         "h": 6,
-        "i": 9
+        "i": 3
       }
     },
     {
-      "id": "Panel_ID244410",
-      "type": "line",
-      "title": "Disk I/O: Write",
-      "description": "",
-      "config": {
-        "show_legends": true,
-        "legends_position": null,
-        "unit": "bps",
-        "base_map": {
-          "type": "osm"
-        },
-        "map_view": {
-          "zoom": 1,
-          "lat": 0,
-          "lng": 0
-        }
-      },
-      "queryType": "promql",
-      "queries": [
-        {
-          "query": "irate(system_disk_io{device!~\"loop.*\", device!~\"tmpfs|nsfs\", direction=\"write\"}[5m])",
-          "customQuery": true,
-          "fields": {
-            "stream": "system_disk_io",
-            "stream_type": "metrics",
-            "x": [],
-            "y": [],
-            "z": [],
-            "filter": []
-          },
-          "config": {
-            "promql_legend": "{host_name}-{device}",
-            "layer_type": "scatter",
-            "weight_fixed": 1
-          }
-        }
-      ],
-      "layout": {
-        "x": 6,
-        "y": 13,
-        "w": 3,
-        "h": 7,
-        "i": 10
-      }
-    },
-    {
-      "id": "Panel_ID9826810",
-      "type": "line",
-      "title": "Disk I/O: Read",
-      "description": "",
-      "config": {
-        "show_legends": true,
-        "legends_position": null,
-        "unit": "bps",
-        "base_map": {
-          "type": "osm"
-        },
-        "map_view": {
-          "zoom": 1,
-          "lat": 0,
-          "lng": 0
-        }
-      },
-      "queryType": "promql",
-      "queries": [
-        {
-          "query": "irate(system_disk_io{device!~\"loop.*\", device!~\"tmpfs|nsfs\", direction=\"read\"}[5m])",
-          "customQuery": true,
-          "fields": {
-            "stream": "system_disk_io",
-            "stream_type": "metrics",
-            "x": [],
-            "y": [],
-            "z": [],
-            "filter": []
-          },
-          "config": {
-            "promql_legend": "{host_name}-{device}",
-            "layer_type": "scatter",
-            "weight_fixed": 1
-          }
-        }
-      ],
-      "layout": {
-        "x": 9,
-        "y": 13,
-        "w": 3,
-        "h": 7,
-        "i": 11
-      }
-    },
-    {
-      "id": "Panel_ID4692210",
-      "type": "line",
-      "title": "Average CPU Load (5m)",
-      "description": "",
-      "config": {
-        "show_legends": true,
-        "legends_position": null,
-        "base_map": {
-          "type": "osm"
-        },
-        "map_view": {
-          "zoom": 1,
-          "lat": 0,
-          "lng": 0
-        }
-      },
-      "queryType": "promql",
-      "queries": [
-        {
-          "query": "system_cpu_load_average_5m{}",
-          "customQuery": true,
-          "fields": {
-            "stream": "bytes_committed",
-            "stream_type": "metrics",
-            "x": [],
-            "y": [],
-            "z": [],
-            "filter": []
-          },
-          "config": {
-            "promql_legend": "{host_name}",
-            "layer_type": "scatter",
-            "weight_fixed": 1
-          }
-        }
-      ],
-      "layout": {
-        "x": 0,
-        "y": 0,
-        "w": 4,
-        "h": 6,
-        "i": 12
-      }
-    },
-    {
-      "id": "Panel_ID332610",
-      "type": "line",
-      "title": "Disk: Average Queue Size",
-      "description": "",
-      "config": {
-        "show_legends": true,
-        "legends_position": null,
-        "base_map": {
-          "type": "osm"
-        },
-        "map_view": {
-          "zoom": 1,
-          "lat": 0,
-          "lng": 0
-        }
-      },
-      "queryType": "promql",
-      "queries": [
-        {
-          "query": "irate(system_disk_weighted_io_time{device!~\"loop.*\", device!~\"tmpfs|nsfs\"}[5m])",
-          "customQuery": true,
-          "fields": {
-            "stream": "system_disk_weighted_io_time",
-            "stream_type": "metrics",
-            "x": [],
-            "y": [],
-            "z": [],
-            "filter": []
-          },
-          "config": {
-            "promql_legend": "{host_name}",
-            "layer_type": "scatter",
-            "weight_fixed": 1
-          }
-        }
-      ],
-      "layout": {
-        "x": 0,
-        "y": 20,
-        "w": 4,
-        "h": 7,
-        "i": 13
-      }
-    },
-    {
-      "id": "Panel_ID4343510",
+      "id": "Panel_Memory_Used",
       "type": "line",
       "title": "Memory Usage: Used",
       "description": "",
       "config": {
         "show_legends": true,
-        "legends_position": null,
         "unit": "bytes",
-        "base_map": {
-          "type": "osm"
-        },
-        "map_view": {
-          "zoom": 1,
-          "lat": 0,
-          "lng": 0
-        }
+        "decimals": 0
       },
       "queryType": "promql",
       "queries": [
@@ -554,26 +156,18 @@
         "y": 6,
         "w": 4,
         "h": 7,
-        "i": 14
+        "i": 4
       }
     },
     {
-      "id": "Panel_ID8078110",
+      "id": "Panel_Memory_Free",
       "type": "line",
-      "title": "Memory Usage: free",
+      "title": "Memory Usage: Free",
       "description": "",
       "config": {
         "show_legends": true,
-        "legends_position": null,
         "unit": "bytes",
-        "base_map": {
-          "type": "osm"
-        },
-        "map_view": {
-          "zoom": 1,
-          "lat": 0,
-          "lng": 0
-        }
+        "decimals": 0
       },
       "queryType": "promql",
       "queries": [
@@ -600,7 +194,311 @@
         "y": 6,
         "w": 4,
         "h": 7,
-        "i": 15
+        "i": 5
+      }
+    },
+    {
+      "id": "Panel_Memory_Cached",
+      "type": "line",
+      "title": "Memory Usage: Cached",
+      "description": "Page cache",
+      "config": {
+        "show_legends": true,
+        "unit": "bytes",
+        "decimals": 0
+      },
+      "queryType": "promql",
+      "queries": [
+        {
+          "query": "system_memory_usage{state=~\"cached\"}",
+          "customQuery": true,
+          "fields": {
+            "stream": "system_memory_usage",
+            "stream_type": "metrics",
+            "x": [],
+            "y": [],
+            "z": [],
+            "filter": []
+          },
+          "config": {
+            "promql_legend": "{host_name}",
+            "layer_type": "scatter",
+            "weight_fixed": 1
+          }
+        }
+      ],
+      "layout": {
+        "x": 8,
+        "y": 6,
+        "w": 4,
+        "h": 7,
+        "i": 6
+      }
+    },
+    {
+      "id": "Panel_Disk_Used",
+      "type": "line",
+      "title": "Disk: Used",
+      "description": "",
+      "config": {
+        "show_legends": true,
+        "unit": "bytes",
+        "decimals": 0
+      },
+      "queryType": "promql",
+      "queries": [
+        {
+          "query": "system_filesystem_usage{state=\"used\",device!~\"/dev/loop.*\", device!~\"tmpfs|nsfs\"}",
+          "customQuery": true,
+          "fields": {
+            "stream": "system_filesystem_usage",
+            "stream_type": "metrics",
+            "x": [],
+            "y": [],
+            "z": [],
+            "filter": []
+          },
+          "config": {
+            "promql_legend": "{host_name}-{device}",
+            "layer_type": "scatter",
+            "weight_fixed": 1
+          }
+        }
+      ],
+      "layout": {
+        "x": 0,
+        "y": 13,
+        "w": 3,
+        "h": 7,
+        "i": 7
+      }
+    },
+    {
+      "id": "Panel_Disk_Available",
+      "type": "line",
+      "title": "Disk: Available",
+      "description": "",
+      "config": {
+        "show_legends": true,
+        "unit": "bytes",
+        "decimals": 0
+      },
+      "queryType": "promql",
+      "queries": [
+        {
+          "query": "system_filesystem_usage{state=\"free\",device!~\"/dev/loop.*\", device!~\"tmpfs|nsfs\"}",
+          "customQuery": true,
+          "fields": {
+            "stream": "system_filesystem_usage",
+            "stream_type": "metrics",
+            "x": [],
+            "y": [],
+            "z": [],
+            "filter": []
+          },
+          "config": {
+            "promql_legend": "{host_name}-{device}",
+            "layer_type": "scatter",
+            "weight_fixed": 1
+          }
+        }
+      ],
+      "layout": {
+        "x": 3,
+        "y": 13,
+        "w": 3,
+        "h": 7,
+        "i": 8
+      }
+    },
+    {
+      "id": "Panel_Disk_IO_Read",
+      "type": "line",
+      "title": "Disk I/O: Read",
+      "description": "",
+      "config": {
+        "show_legends": true,
+        "unit": "bps",
+        "decimals": 0
+      },
+      "queryType": "promql",
+      "queries": [
+        {
+          "query": "irate(system_disk_io{device!~\"loop.*\", device!~\"tmpfs|nsfs\", direction=\"read\"}[5m])",
+          "customQuery": true,
+          "fields": {
+            "stream": "system_disk_io",
+            "stream_type": "metrics",
+            "x": [],
+            "y": [],
+            "z": [],
+            "filter": []
+          },
+          "config": {
+            "promql_legend": "{host_name}-{device}",
+            "layer_type": "scatter",
+            "weight_fixed": 1
+          }
+        }
+      ],
+      "layout": {
+        "x": 6,
+        "y": 13,
+        "w": 3,
+        "h": 7,
+        "i": 9
+      }
+    },
+    {
+      "id": "Panel_Disk_IO_Write",
+      "type": "line",
+      "title": "Disk I/O: Write",
+      "description": "",
+      "config": {
+        "show_legends": true,
+        "unit": "bps",
+        "decimals": 0
+      },
+      "queryType": "promql",
+      "queries": [
+        {
+          "query": "irate(system_disk_io{device!~\"loop.*\", device!~\"tmpfs|nsfs\", direction=\"write\"}[5m])",
+          "customQuery": true,
+          "fields": {
+            "stream": "system_disk_io",
+            "stream_type": "metrics",
+            "x": [],
+            "y": [],
+            "z": [],
+            "filter": []
+          },
+          "config": {
+            "promql_legend": "{host_name}-{device}",
+            "layer_type": "scatter",
+            "weight_fixed": 1
+          }
+        }
+      ],
+      "layout": {
+        "x": 9,
+        "y": 13,
+        "w": 3,
+        "h": 7,
+        "i": 10
+      }
+    },
+    {
+      "id": "Panel_Disk_Queue",
+      "type": "line",
+      "title": "Disk: Average Queue Size",
+      "description": "",
+      "config": {
+        "show_legends": true,
+        "unit": "short",
+        "decimals": 2
+      },
+      "queryType": "promql",
+      "queries": [
+        {
+          "query": "irate(system_disk_weighted_io_time{device!~\"loop.*\", device!~\"tmpfs|nsfs\"}[5m])",
+          "customQuery": true,
+          "fields": {
+            "stream": "system_disk_weighted_io_time",
+            "stream_type": "metrics",
+            "x": [],
+            "y": [],
+            "z": [],
+            "filter": []
+          },
+          "config": {
+            "promql_legend": "{host_name}",
+            "layer_type": "scatter",
+            "weight_fixed": 1
+          }
+        }
+      ],
+      "layout": {
+        "x": 0,
+        "y": 20,
+        "w": 4,
+        "h": 7,
+        "i": 11
+      }
+    },
+    {
+      "id": "Panel_Network_RX",
+      "type": "line",
+      "title": "Network IO - Received",
+      "description": "",
+      "config": {
+        "show_legends": true,
+        "unit": "bps",
+        "decimals": 0
+      },
+      "queryType": "promql",
+      "queries": [
+        {
+          "query": "avg by(host_name) (irate(system_network_io{direction=\"receive\"}[5m]))",
+          "customQuery": true,
+          "fields": {
+            "stream": "system_network_io",
+            "stream_type": "metrics",
+            "x": [],
+            "y": [],
+            "z": [],
+            "filter": []
+          },
+          "config": {
+            "promql_legend": "{host_name}",
+            "layer_type": "scatter",
+            "weight_fixed": 1
+          }
+        }
+      ],
+      "layout": {
+        "x": 4,
+        "y": 20,
+        "w": 4,
+        "h": 7,
+        "i": 12
+      }
+    },
+    {
+      "id": "Panel_Network_TX",
+      "type": "line",
+      "title": "Network IO - Transmit",
+      "description": "",
+      "config": {
+        "show_legends": true,
+        "unit": "bps",
+        "decimals": 0
+      },
+      "queryType": "promql",
+      "queries": [
+        {
+          "query": "avg by(host_name) (irate(system_network_io{direction=\"transmit\"}[5m]))",
+          "customQuery": true,
+          "fields": {
+            "stream": "system_network_io",
+            "stream_type": "metrics",
+            "x": [],
+            "y": [],
+            "z": [],
+            "filter": []
+          },
+          "config": {
+            "promql_legend": "{host_name}",
+            "layer_type": "scatter",
+            "weight_fixed": 1
+          }
+        }
+      ],
+      "layout": {
+        "x": 8,
+        "y": 20,
+        "w": 4,
+        "h": 7,
+        "i": 13
       }
     }
   ],

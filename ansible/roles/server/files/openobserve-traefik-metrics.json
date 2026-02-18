@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dashboardId": "traefik-metrics-dashboard",
+  "dashboardId": "traefik-metrics",
   "title": "Traefik Metrics",
   "description": "Traefik reverse proxy metrics: requests, latency, errors, and service performance",
   "role": "",

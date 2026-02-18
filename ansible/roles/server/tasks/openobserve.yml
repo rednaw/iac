@@ -19,7 +19,7 @@
 
 - name: Generate OpenObserve ingest auth key (base64 email:password)
   ansible.builtin.set_fact:
-    openobserve_ingest_auth: "{{ (infrastructure_secrets.openobserve_username + '@monitoring.local:' + infrastructure_secrets.openobserve_password) | b64encode }}"
+    openobserve_ingest_auth: "{{ (infrastructure_secrets.openobserve_username + '@observe.local:' + infrastructure_secrets.openobserve_password) | b64encode }}"
   no_log: true
 
 - name: Deploy OTEL Collector config (host metrics -> OpenObserve)
@@ -49,7 +49,7 @@
     state: started
     restart_policy: unless-stopped
     env:
-      ZO_ROOT_USER_EMAIL: "{{ infrastructure_secrets.openobserve_username }}@monitoring.local"
+      ZO_ROOT_USER_EMAIL: "{{ infrastructure_secrets.openobserve_username }}@observe.local"
       ZO_ROOT_USER_PASSWORD: "{{ infrastructure_secrets.openobserve_password }}"
       ZO_LOCAL_MODE: "true"
       ZO_RETENTION_DAYS: "7"
@@ -62,7 +62,7 @@
       - name: traefik
     labels:
       traefik.enable: "true"
-      traefik.http.routers.openobserve.rule: "Host(`monitoring.{{ base_domain | default('rednaw.nl') }}`)"
+      traefik.http.routers.openobserve.rule: "Host(`observe.{{ base_domain | default('rednaw.nl') }}`)"
       traefik.http.routers.openobserve.entrypoints: "websecure"
       traefik.http.routers.openobserve.tls.certresolver: "letsencrypt"
       traefik.http.routers.openobserve.middlewares: "openobserve-headers"
