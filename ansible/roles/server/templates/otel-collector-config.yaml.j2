@@ -1,5 +1,4 @@
-# OTEL Collector: host + Docker metrics -> OpenObserve. Auth = Basic (email:password from secrets).
-
+# OTEL Collector
 receivers:
   hostmetrics:
     collection_interval: 30s
@@ -37,6 +36,91 @@ receivers:
                 job: 'traefik'
                 instance: 'traefik'
 
+  # Log receivers
+  # Traefik access logs
+  filelog/traefik:
+    include:
+      - /var/log/traefik/access.log
+    exclude:
+      - /var/log/traefik/access.log.*
+
+  # Docker container logs (JSON format)
+  filelog/docker:
+    include:
+      - /var/lib/docker/containers/*/*-json.log
+    exclude:
+      - /var/lib/docker/containers/*/*-json.log.*
+    operators:
+      - type: json_parser
+
+  # System logs (syslog)
+  filelog/syslog:
+    include:
+      - /var/log/syslog
+    exclude:
+      - /var/log/syslog.*
+
+  # Auth logs
+  filelog/auth:
+    include:
+      - /var/log/auth.log
+    exclude:
+      - /var/log/auth.log.*
+
+  # Fail2ban logs
+  filelog/fail2ban:
+    include:
+      - /var/log/fail2ban.log
+    exclude:
+      - /var/log/fail2ban.log.*
+
+processors:
+  # Set stream name per log source
+  # OpenObserve creates streams based on resource attributes - using service.name as primary identifier
+  resource/traefik:
+    attributes:
+      - key: service.name
+        value: traefik-access
+        action: upsert
+      - key: log.source
+        value: traefik
+        action: upsert
+  resource/docker:
+    attributes:
+      - key: service.name
+        value: docker-containers
+        action: upsert
+      - key: log.source
+        value: docker
+        action: upsert
+  resource/syslog:
+    attributes:
+      - key: service.name
+        value: syslog
+        action: upsert
+      - key: log.source
+        value: syslog
+        action: upsert
+  resource/auth:
+    attributes:
+      - key: service.name
+        value: auth
+        action: upsert
+      - key: log.source
+        value: auth
+        action: upsert
+  resource/fail2ban:
+    attributes:
+      - key: service.name
+        value: fail2ban
+        action: upsert
+      - key: log.source
+        value: fail2ban
+        action: upsert
+  batch:
+    timeout: 5s
+    send_batch_size: 1024
+
 exporters:
   otlp_http:
     endpoint: http://openobserve:5080/api/default
@@ -61,3 +145,24 @@ service:
     metrics/traefik:
       receivers: [prometheus]
       exporters: [prometheusremotewrite]
+    # Logs pipelines: one per source so each gets its own stream in OpenObserve
+    logs/traefik:
+      receivers: [filelog/traefik]
+      processors: [resource/traefik, batch]
+      exporters: [otlp_http]
+    logs/docker:
+      receivers: [filelog/docker]
+      processors: [resource/docker, batch]
+      exporters: [otlp_http]
+    logs/syslog:
+      receivers: [filelog/syslog]
+      processors: [resource/syslog, batch]
+      exporters: [otlp_http]
+    logs/auth:
+      receivers: [filelog/auth]
+      processors: [resource/auth, batch]
+      exporters: [otlp_http]
+    logs/fail2ban:
+      receivers: [filelog/fail2ban]
+      processors: [resource/fail2ban, batch]
+      exporters: [otlp_http]

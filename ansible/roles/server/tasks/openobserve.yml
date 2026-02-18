@@ -48,6 +48,10 @@
     image: openobserve/openobserve:latest
     state: started
     restart_policy: unless-stopped
+    log_driver: json-file
+    log_options:
+      max-size: "10m"
+      max-file: "3"
     env:
       ZO_ROOT_USER_EMAIL: "{{ infrastructure_secrets.openobserve_username }}@observe.local"
       ZO_ROOT_USER_PASSWORD: "{{ infrastructure_secrets.openobserve_password }}"
@@ -83,17 +87,27 @@
     name: otel/opentelemetry-collector-contrib:latest
     source: pull
 
-- name: Ensure OTEL Collector container is running (Linux host metrics + Docker -> OpenObserve)
+- name: Ensure OTEL Collector container is running (Linux host metrics + Docker + logs -> OpenObserve)
   community.docker.docker_container:
     name: otel-collector
     image: otel/opentelemetry-collector-contrib:latest
     state: started
     restart_policy: unless-stopped
+    log_driver: json-file
+    log_options:
+      max-size: "10m"
+      max-file: "3"
     user: "0"
     command: ["--config=/etc/otelcol/config.yaml"]
     volumes:
       - /etc/otel-collector/config.yaml:/etc/otelcol/config.yaml:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
+      # Log directories for log collection
+      - /var/log/traefik:/var/log/traefik:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/log/syslog:/var/log/syslog:ro
+      - /var/log/auth.log:/var/log/auth.log:ro
+      - /var/log/fail2ban.log:/var/log/fail2ban.log:ro
     networks:
       - name: openobserve-network
     healthcheck:
