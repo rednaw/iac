@@ -59,6 +59,11 @@
     name: traefik
     state: present
 
+- name: Ensure OpenObserve network exists (for Traefik metrics scraping)
+  community.docker.docker_network:
+    name: openobserve-network
+    state: present
+
 - name: Pull Traefik image
   community.docker.docker_image:
     name: traefik:v3.6.8
@@ -85,5 +90,6 @@
       - /etc/traefik/auth:/etc/traefik/auth:ro
     networks:
       - name: traefik
+      - name: openobserve-network
     command:
       - --configFile=/etc/traefik/traefik.yml
