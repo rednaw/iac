@@ -7,11 +7,6 @@ receivers:
       cpu: {}
       disk: {}
       filesystem:
-        include_mount_points:
-          mount_points:
-            - /var/lib/openobserve
-            - /var/lib/docker-registry
-          match_type: strict
         include_fs_types:
           fs_types:
             - ext4

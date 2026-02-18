@@ -10,8 +10,8 @@
     {
       "id": "Panel_ID8767310",
       "type": "line",
-      "title": "Memory Usage: inactive",
-      "description": "",
+      "title": "Memory Usage: Cached",
+      "description": "Page cache.",
       "config": {
         "show_legends": true,
         "legends_position": null,
@@ -28,7 +28,7 @@
       "queryType": "promql",
       "queries": [
         {
-          "query": "system_memory_usage{state=~\"inactive\"}",
+          "query": "system_memory_usage{state=~\"cached\"}",
           "customQuery": true,
           "fields": {
             "stream": "system_memory_usage",
@@ -166,7 +166,7 @@
       "queryType": "promql",
       "queries": [
         {
-          "query": "system_filesystem_usage{state=\"free\",device!~\"/dev/loop.*\", device!~\"tmpfs | nsfs\"}",
+          "query": "system_filesystem_usage{state=\"free\",device!~\"/dev/loop.*\", device!~\"tmpfs|nsfs\"}",
           "customQuery": true,
           "fields": {
             "stream": "bytes_committed",
@@ -350,7 +350,7 @@
       "queryType": "promql",
       "queries": [
         {
-          "query": "irate(system_disk_io{device!~\"loop.*\", device!~\"tmpfs | nsfs\", direction=\"write\"}[5m])",
+          "query": "irate(system_disk_io{device!~\"loop.*\", device!~\"tmpfs|nsfs\", direction=\"write\"}[5m])",
           "customQuery": true,
           "fields": {
             "stream": "system_disk_io",
@@ -396,7 +396,7 @@
       "queryType": "promql",
       "queries": [
         {
-          "query": "irate(system_disk_io{device!~\"loop.*\", device!~\"tmpfs | nsfs\", direction=\"read\"}[5m])",
+          "query": "irate(system_disk_io{device!~\"loop.*\", device!~\"tmpfs|nsfs\", direction=\"read\"}[5m])",
           "customQuery": true,
           "fields": {
             "stream": "system_disk_io",

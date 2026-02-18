@@ -150,3 +150,20 @@
         status_code: [200, 201, 409]
       when: "'Host Metrics' not in (openobserve_existing_titles | default([]))"
       failed_when: false
+
+    - name: Read Docker Container Metrics dashboard JSON
+      ansible.builtin.set_fact:
+        openobserve_docker_dashboard_body: "{{ lookup('file', role_path + '/files/openobserve-docker-metrics.json') | from_json }}"
+
+    - name: Import Docker Container Metrics dashboard (skip if already exists)
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:5080/api/default/dashboards"
+        method: POST
+        headers:
+          Authorization: "Basic {{ openobserve_ingest_auth }}"
+          Content-Type: "application/json"
+        body_format: json
+        body: "{{ openobserve_docker_dashboard_body }}"
+        status_code: [200, 201, 409]
+      when: "'Docker Container Metrics' not in (openobserve_existing_titles | default([]))"
+      failed_when: false
