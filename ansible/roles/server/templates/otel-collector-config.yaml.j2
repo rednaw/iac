@@ -75,6 +75,25 @@ receivers:
       - /var/log/fail2ban.log.*
 
 processors:
+  # Minimal redaction: only the most critical secrets that should never be in logs
+  # This prevents secrets from ever reaching OpenObserve
+  transform/redact_basic:
+    log_statements:
+      - context: log
+        statements:
+          # Redact Authorization headers (Bearer tokens, Basic auth, etc.)
+          - set(body, replace_all_patterns(body, "(?i)Authorization\\s*:\\s*[^\\s]+", "Authorization: [REDACTED]"))
+          # Redact passwords in common formats (password=, pwd=, passwd=)
+          - set(body, replace_all_patterns(body, "(?i)(password|pwd|passwd|pass)\\s*[:=]\\s*[^\\s]+", "${1}=[REDACTED]"))
+          # Redact JWT tokens (eyJ...)
+          - set(body, replace_all_patterns(body, "eyJ[A-Za-z0-9\\-_=]+\\.[A-Za-z0-9\\-_=]+\\.[A-Za-z0-9\\-_=]*", "[JWT_REDACTED]"))
+          # Redact API keys in common formats (api_key=, apikey=, etc.)
+          - set(body, replace_all_patterns(body, "(?i)(api[_-]?key|apikey|access[_-]?key|secret[_-]?key)\\s*[:=]\\s*[A-Za-z0-9\\-_=]{20,}", "${1}=[REDACTED]"))
+          # Redact session tokens/cookies (session=, token=, cookie=)
+          - set(body, replace_all_patterns(body, "(?i)(session|token|cookie)\\s*[:=]\\s*[A-Za-z0-9\\-_=]{20,}", "${1}=[REDACTED]"))
+          # Redact database connection strings (postgres://user:pass@, mysql://user:pass@)
+          - set(body, replace_all_patterns(body, "([a-z]+)://[^:]+:[^@]+@", "${1}://[REDACTED]:[REDACTED]@"))
+
   # Set stream name per log source
   # OpenObserve creates streams based on resource attributes - using service.name as primary identifier
   resource/traefik:
@@ -148,21 +167,21 @@ service:
     # Logs pipelines: one per source so each gets its own stream in OpenObserve
     logs/traefik:
       receivers: [filelog/traefik]
-      processors: [resource/traefik, batch]
+      processors: [transform/redact_basic, resource/traefik, batch]
       exporters: [otlp_http]
     logs/docker:
       receivers: [filelog/docker]
-      processors: [resource/docker, batch]
+      processors: [transform/redact_basic, resource/docker, batch]
       exporters: [otlp_http]
     logs/syslog:
       receivers: [filelog/syslog]
-      processors: [resource/syslog, batch]
+      processors: [transform/redact_basic, resource/syslog, batch]
       exporters: [otlp_http]
     logs/auth:
       receivers: [filelog/auth]
-      processors: [resource/auth, batch]
+      processors: [transform/redact_basic, resource/auth, batch]
       exporters: [otlp_http]
     logs/fail2ban:
       receivers: [filelog/fail2ban]
-      processors: [resource/fail2ban, batch]
+      processors: [transform/redact_basic, resource/fail2ban, batch]
       exporters: [otlp_http]
