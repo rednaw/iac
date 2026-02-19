@@ -152,7 +152,6 @@ Not a final file list—more a target shape. Renames and splits can be done incr
 | `private.md` | Reference: local config files. Move "Known security risks" to separate doc or short section. | Join |
 | `troubleshooting.md` | Runbook-style: common failures, cause, fix. One place for connection, host key, secrets, deploy, registry. | Both |
 | `technologies.md` | Keep as "Tools and technologies" reference (link list). | Both |
-| `design-compose-files.md` | Concept: compose layout (single full-stack compose, devcontainer build). Useful when adding your app. | New project |
 | `upgrading.md` | Reference + short operations (Renovate, PRs). | Join |
 | `remote-vscode.md` | Short runbook: Run VS Code/Cursor on the server. | Join |
 | `code-analysis.md` | Reference: what runs, when (CI), how to run locally. | Join |

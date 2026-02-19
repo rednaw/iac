@@ -74,7 +74,6 @@ The IaC devcontainer mounts four files in your local application clone so you ca
 
 - [Application deployment](application-deployment.md) — Commands, app mount, records, implementation details
 - [Secrets](secrets.md) — File locations, editing, SOPS, app secrets
-- [Compose layout](design-compose-files.md) — How the full-stack compose and devcontainer fit together
 
 **Operations**
 
@@ -92,4 +91,4 @@ The IaC devcontainer mounts four files in your local application clone so you ca
 
 **Other**
 
-- [Contributing](../CONTRIBUTING.md) · [Backlog](Backlog.md) · [Documentation strategy](documentation-strategy.md)
+- [Contributing](../CONTRIBUTING.md) · [Documentation strategy](documentation-strategy.md)

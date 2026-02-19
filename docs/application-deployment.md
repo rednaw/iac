@@ -11,21 +11,21 @@ This guide is for **both**: if you **created the project** (new project), you ne
 ```mermaid
 flowchart LR
     subgraph LOCAL["IAC devcontainer"]
-        B["task app:versions"]
-        C["task app:deploy"]
+        B(task app:versions)
+        C(task app:deploy)
     end
 
     subgraph GITHUB["Application GitHub"]
-        A["Merge pull request"]
-        D["Test, build, tag & push image"]
+        A(Merge pull request)
+        D(Test, build, tag & push image)
     end
 
     subgraph REGISTRY["Registry"]
-      E["→ 8378ce7 important fix 706c88c first release"]
+      E(→ 8378ce7 important fix 706c88c first release)
     end
 
     subgraph SERVER["Server"]
-      F["Deployed app"]
+      F(Deployed app)
     end
 
     A -->|triggers| D
