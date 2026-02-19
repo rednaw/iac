@@ -1,8 +1,8 @@
 [**<---**](README.md)
 
-## Local Configuration Files
+# Private
 
-These files live in your **home directory**, are used by this project, and should **never** be committed to Git. The intended workflow is to use them from inside the **devcontainer**.
+Local configuration files in your home directory. These are used by this project and should never be committed to Git. Use them from inside the devcontainer.
 
 | File path | Purpose | Location | Created by (intended) |
 |-----------|---------|----------|------------------------|
@@ -14,46 +14,46 @@ These files live in your **home directory**, are used by this project, and shoul
 | `~/.terraform.d/credentials.tfrc.json` | Terraform Cloud authentication token | Devcontainer | Devcontainer startup script (from SOPS) |
 | `~/.docker/config.json` | Docker/crane/Trivy auth for private registry in the devcontainer | Devcontainer | Devcontainer startup script — see [Registry](registry.md#authentication-how-to-log-in) |
 
-### Details
+## Details
 
 **`~/.ssh/id_rsa*`**
-- **Relevance:** Your SSH key pair used to authenticate with Hetzner Cloud servers
+- **Purpose:** SSH key pair for authenticating with Hetzner Cloud servers
 - **Setup:** Add the public key (`~/.ssh/id_rsa.pub`) to Hetzner Cloud Console → Security → SSH keys
 - **Used by:** Ansible, direct SSH access, `task server:setup-remote-cursor`
 
 **`~/.ssh/known_hosts`**
-- **Relevance:** Prevents SSH warnings when connecting to known servers
+- **Purpose:** Prevents SSH warnings when connecting to known servers
 - **Setup:** Automatically managed by SSH client and Ansible
 - **Used by:** SSH client, Ansible (with `StrictHostKeyChecking=accept-new`)
 
 **`~/.ssh/config`**
-- **Relevance:** SSH client configuration for server aliases, connection settings, and Cursor Remote-SSH integration
+- **Purpose:** SSH client configuration for server aliases, connection settings, and Cursor Remote-SSH integration
 - **Setup:** Created/updated by `task server:setup-remote-cursor` (optional, for Cursor Remote-SSH)
 - **Used by:** SSH client, Cursor Remote-SSH extension
 - **Note:** Contains server host alias, IP address, user, and SSH options for easy server access
 
 **`~/.config/hcloud/cli.toml`**
-- **Relevance:** Stores your Hetzner Cloud API token for CLI operations in the devcontainer
+- **Purpose:** Hetzner Cloud API token for CLI operations in the devcontainer
 - **Setup:** Created from `hcloud_token` in `secrets/infrastructure-secrets.yml` by the devcontainer startup script
 - **Used by:** `hcloud` CLI inside the devcontainer, `task server:list-hetzner-keys`
 
 **`~/.config/sops/age/keys.txt`**
-- **Relevance:** Your private SOPS key for decrypting infrastructure secrets
+- **Purpose:** Private SOPS key for decrypting infrastructure secrets
 - **Setup:** Created by `task secrets:keygen` (stored outside repo for security)
 - **Used by:** VS Code SOPS extension, Terraform (via SOPS provider), Ansible (via shell)
 
 **`~/.terraform.d/credentials.tfrc.json`**
-- **Relevance:** Terraform Cloud authentication token for accessing shared state in the devcontainer
+- **Purpose:** Terraform Cloud authentication token for accessing shared state in the devcontainer
 - **Setup:** Created from `terraform_cloud_token` in `secrets/infrastructure-secrets.yml` by the devcontainer startup script
 - **Used by:** Terraform CLI inside the devcontainer to authenticate with Terraform Cloud backend
 
 **`~/.docker/config.json`**
-- **Relevance:** Docker/crane/Trivy auth for the private registry (overview, app deploys).
-- **Details:** See [Registry](registry.md#authentication-how-to-log-in).
+- **Purpose:** Docker/crane/Trivy auth for the private registry
+- **Details:** See [Registry](registry.md#authentication)
 
-## Known Security Risks
+## Security risks
 
-This section documents known security risks that have been reviewed and accepted for now.
+Known security risks that have been reviewed and accepted:
 
 | Risk | Severity | Status | Mitigations | Notes |
 |------|----------|--------|-------------|-------|
@@ -61,3 +61,9 @@ This section documents known security risks that have been reviewed and accepted
 | No Terraform state backup | LOW | Accepted | State stored in Terraform Cloud, can be restored via `terraform import` if lost | Infrastructure is reproducible from code |
 | No automated secret rotation | LOW | Accepted | Manual rotation process | Pragmatic tradeoff |
 | Passwordless sudo without restrictions | LOW | Accepted | IP-restricted SSH, key-based auth, fail2ban, audit logging | Pragmatic tradeoff |
+
+## Related
+
+- [Secrets](secrets.md) — SOPS key setup and management
+- [Registry](registry.md) — Docker registry authentication
+- [Launch the IaC devcontainer](launch-devcontainer.md) — How these files are used in the devcontainer

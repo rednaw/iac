@@ -1,7 +1,37 @@
 [**<---**](README.md)
-# Secrets Management
 
-All secrets are encrypted with [SOPS](https://github.com/getsops/sops) + [age](https://github.com/FiloSottile/age) and stored in Git.
+# Secrets
+
+Secrets are encrypted with [SOPS](https://github.com/getsops/sops) + [age](https://github.com/FiloSottile/age) and stored in Git. This doc covers file locations, editing, and setup for both infrastructure and app secrets.
+
+```mermaid
+flowchart LR
+    subgraph TEAM["Team members"]
+        direction LR
+        T1(Alice<br/>private key)
+        T2(Bob<br/>private key)
+        T3(CI<br/>private key)
+    end
+
+    subgraph GIT["Git repository"]
+        S@{ shape: lin-doc, label: "Encrypted secrets<br/>infrastructure-secrets.yml<br/>app/.env" }
+        P@{ shape: lin-doc, label: "Public keys<br/>sops-key-*.pub" }
+    end
+
+    subgraph USE["Used by"]
+        D(Devcontainer<br/>registry, terraform, hcloud)
+        G(GitHub Actions<br/>deploy, validate)
+        A(Apps<br/>deployment)
+    end
+
+    T1 --->|decrypt| S
+    T2 -->|decrypt| S
+    T3 -->|decrypt| S
+    S -->|decrypted| D
+    S -->|decrypted| G
+    S -->|decrypted| A
+    P -->|encrypt with| S
+```
 
 ## VS Code Integration
 
@@ -10,14 +40,8 @@ Install the **SOPS** extension (`signageos.signageos-vscode-sops`):
 1. Open VS Code Extensions (Cmd+Shift+X)
 2. Search for "SOPS" by SignageOS
 3. Install
-4. Configure the key file path:
-   - Open the extension settings
-   - Set `Sops > Defaults: Age Key File`, use an **absolute** path:
-     ```
-     /Users/<username>/.config/sops/age/keys.txt
-     ```
 
-With the extension installed and configured, encrypted files open transparently — edit and save as normal.
+With the extension installed, encrypted files open decrypted — edit and save as normal.
 
 ---
 
@@ -28,49 +52,42 @@ With the extension installed and configured, encrypted files open transparently 
 | Infrastructure | `iac/secrets/infrastructure-secrets.yml` | YAML |
 | Application | `<app>/.env` | dotenv |
 
-Both are encrypted at rest, committed to Git.
+Both are encrypted and committed to Git.
 
 ---
 
-## First-Time Setup
+## Adding a new person
 
-### 1. Generate your key pair
+When someone joins, they generate a key and get added to the keyring:
 
-```bash
-cd iac
-task secrets:keygen
-```
+1. **Generate your key pair:**
+   ```bash
+   cd iac
+   task secrets:keygen
+   ```
+   Creates `~/.config/sops/age/keys.txt` (private key, never share) and `iac/secrets/sops-key-<username>.pub` (public key, commit this).
 
-This creates:
-- `~/.config/sops/age/keys.txt` — Private key (never share)
-- `iac/secrets/sops-key-<username>.pub` — Public key (commit this)
+2. **Commit your public key:**
+   ```bash
+   git add secrets/sops-key-*.pub
+   git commit -m "Add SOPS public key for <username>"
+   git push
+   ```
 
-### 2. Commit your public key
+3. **Ask a teammate to add you:**
+   ```bash
+   # Teammate runs:
+   git pull
+   task secrets:generate-sops-config    # Updates .sops.yaml with your key
+   # Open secrets/infrastructure-secrets.yml in VS Code, save it
+   git add -A && git commit -m "Add <username> to secrets" && git push
+   ```
 
-```bash
-git add secrets/sops-key-*.pub
-git commit -m "Add SOPS public key for <username>"
-git push
-```
-
-### 3. Get added to existing secrets
-
-Ask a teammate to run:
-
-```bash
-git pull
-task secrets:generate-sops-config    # Updates .sops.yaml with your key
-# Open secrets/infrastructure-secrets.yml in VS Code, save it
-git add -A && git commit -m "Add <username> to secrets" && git push
-```
-
-### 4. Pull and verify
-
-```bash
-git pull
-```
-
-Open `secrets/infrastructure-secrets.yml` in VS Code — if it decrypts, you're set.
+4. **Pull and verify:**
+   ```bash
+   git pull
+   ```
+   Open `secrets/infrastructure-secrets.yml` in VS Code — if it decrypts, you're set.
 
 ---
 
@@ -92,23 +109,22 @@ SOPS_AGE_KEY_FILE=~/.config/sops/age/keys.txt sops <file>
 
 ---
 
-## Creating New App Secrets
+## Creating app secrets
 
 1. Create `.env` in your app directory (VS Code).
-2. Install the **dotenv** extension (`mikestead.dotenv`) so `.env` is recognized; in the IAC devcontainer it is preconfigured.
-3. Add your variables in dotenv format:
+2. Add your variables in dotenv format:
    ```
    DATABASE_URL=postgres://...
    API_KEY=sk-...
    ```
-4. Save — the SOPS extension encrypts automatically.
-5. Commit.
+3. Save — the SOPS extension encrypts automatically.
+4. Commit.
 
-That's it. Ensure the app's `.sops.yaml` has a `path_regex` that matches `.env` (e.g. `\.env$`). The IAC devcontainer includes the **dotenv** extension (`mikestead.dotenv`) and `files.associations` for `*.env`/`.env` so the SOPS extension can decrypt and you edit as dotenv. The deploy process uses the decrypted dotenv directly for docker-compose.
+The IAC devcontainer includes the **dotenv** extension (`mikestead.dotenv`) and `files.associations` so you edit `.env` as dotenv. Ensure the app's `.sops.yaml` has a `path_regex` that matches `.env` (e.g. `\.env$`). The deploy process uses the decrypted dotenv directly for docker-compose.
 
 ---
 
-## How It Works
+## How it works
 
 **Multi-key encryption:** Each team member has their own key pair. Secrets are encrypted with all public keys, so anyone can decrypt with their private key.
 
@@ -166,15 +182,15 @@ The file is encrypted. Install the VS Code SOPS extension to view it.
 ## CI/CD
 
 GitHub Actions uses:
-- **SOPS:** Public key `iac/secrets/sops-key-github-ci.pub` (committed); private key in secret `SOPS_AGE_KEY` (used for Terraform validation, deployment, and registry authentication).
-- **Private registry:** Credentials come from SOPS-decrypted `infrastructure-secrets.yml`; see [Registry](registry.md).
-- **OpenObserve:** `openobserve_username` and `openobserve_password` in `infrastructure-secrets.yml` (root login; the OTEL Collector auto-generates the ingest auth key from these; see [Monitoring](monitoring.md)).
+- **SOPS:** Public key `iac/secrets/sops-key-github-ci.pub` (committed); private key in secret `SOPS_AGE_KEY` (used for Terraform validation, deployment, and registry authentication)
+- **Private registry:** Credentials come from SOPS-decrypted `infrastructure-secrets.yml`; see [Registry](registry.md)
+- **OpenObserve:** `openobserve_username` and `openobserve_password` in `infrastructure-secrets.yml` (root login; the OTEL Collector auto-generates the ingest auth key from these); see [Monitoring](monitoring.md)
 
 ---
 
-## Security Notes
+## Security
 
-1. **Never share your private key** (`~/.config/sops/age/keys.txt`)
-2. **Back up your private key** in a password manager (ProtonPass, 1Password, etc.)
-3. **Rotate secrets if compromised** — edit and save to re-encrypt
-4. **Review before committing** — encrypted files show as changed even for whitespace
+- **Never share your private key** (`~/.config/sops/age/keys.txt`)
+- **Back up your private key** in a password manager (ProtonPass, 1Password, etc.)
+- **Rotate secrets if compromised** — edit and save to re-encrypt
+- **Review before committing** — encrypted files show as changed even for whitespace

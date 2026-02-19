@@ -1,37 +1,45 @@
 [**<---**](README.md)
 
-## Building on the shoulders of giants
+# Tools and technologies
 
-These are the main tools and technologies used by Rednaw IaC
+Main tools and technologies used in this project:
 
-#### Server provisioning
-- [Ansible](https://docs.ansible.com/) - Configuration management tool for server setup and automation
-- [hcloud](https://github.com/hetznercloud/cli/blob/main/README.md) - Hetzner Cloud CLI
-- [Terraform](https://developer.hashicorp.com/terraform) - Infrastructure as Code tool for provisioning cloud resources
+## Server provisioning
 
-#### Secrets management
-- [Age](https://github.com/FiloSottile/age/blob/main/README.md) - A simple, modern, and secure file encryption tool, using the age format
-- [Sops](https://getsops.io/) - Secrets management tool for encrypting sensitive files in Git
+- [Ansible](https://docs.ansible.com/) — Configuration management for server setup and automation
+- [hcloud](https://github.com/hetznercloud/cli/blob/main/README.md) — Hetzner Cloud CLI
+- [Terraform](https://developer.hashicorp.com/terraform) — Infrastructure as Code for provisioning cloud resources
 
-#### Task runner
-- [Task](https://taskfile.dev/) - Task runner for defining and executing build commands
+## Secrets management
 
-#### Version management
-- [Mise](https://mise.jdx.dev/) - Version manager for CLI tools
-- [Renovate](https://docs.renovatebot.com/) – Automated dependency update PRs, see [Upgrading dependencies](upgrading.md).
+- [Age](https://github.com/FiloSottile/age/blob/main/README.md) — File encryption tool using the age format
+- [Sops](https://getsops.io/) — Secrets management for encrypting sensitive files in Git
 
-#### Application deployment
-- [Crane](https://github.com/google/go-containerregistry/blob/main/cmd/crane/README.md) - Container registry CLI (digest, config, catalog)
-- [Docker](https://www.docker.com/) - Containerization platform for application deployment
-- [Docker Registry](https://distribution.github.io/distribution/) - a stateless, server side application that lets you store and distribute docker images.
+## Task runner
 
-#### Web server and TLS
-- [Traefik](https://doc.traefik.io/traefik/) - Reverse proxy with built-in Let's Encrypt (ACME) for TLS
+- [Task](https://taskfile.dev/) — Task runner for defining and executing build commands
 
-#### Server security
-- [Fail2ban](https://github.com/fail2ban/fail2ban/blob/master/README.md) - Intrusion prevention by banning IPs that show malicious behaviour (e.g. repeated failed SSH logins)
+## Version management
 
-#### Testing
-- [Ansible Lint](https://docs.ansible.com/projects/lint/) - Promotes best practices for Ansible
-- [ShellCheck](https://www.shellcheck.net/) - Finds bugs in shell scripts.
-- [TFsec](https://aquasecurity.github.io/tfsec/v1.20.0/) - A static analysis security scanner for Terraform code.
+- [Mise](https://mise.jdx.dev/) — Version manager for CLI tools
+- [Renovate](https://docs.renovatebot.com/) — Automated dependency update PRs; see [Upgrading](upgrading.md)
+
+## Application deployment
+
+- [Crane](https://github.com/google/go-containerregistry/blob/main/cmd/crane/README.md) — Container registry CLI (digest, config, catalog)
+- [Docker](https://www.docker.com/) — Containerization platform for application deployment
+- [Docker Registry](https://distribution.github.io/distribution/) — Stateless server application for storing and distributing Docker images
+
+## Web server and TLS
+
+- [Traefik](https://doc.traefik.io/traefik/) — Reverse proxy with built-in Let's Encrypt (ACME) for TLS
+
+## Server security
+
+- [Fail2ban](https://github.com/fail2ban/fail2ban/blob/master/README.md) — Intrusion prevention by banning IPs that show malicious behavior (e.g. repeated failed SSH logins)
+
+## Testing
+
+- [Ansible Lint](https://docs.ansible.com/projects/lint/) — Promotes best practices for Ansible
+- [ShellCheck](https://www.shellcheck.net/) — Finds bugs in shell scripts
+- [TFsec](https://aquasecurity.github.io/tfsec/v1.20.0/) — Static analysis security scanner for Terraform code
