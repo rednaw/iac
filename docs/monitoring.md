@@ -7,4 +7,4 @@ Open it at **https://observe.&lt;base_domain&gt;** (e.g. [https://observe.rednaw
 
 **Host Metrics** and **Docker Container Metrics** dashboards are imported from the repo when you run the server playbook (`ansible/roles/server/files/openobserve-host-metrics.json`, `openobserve-docker-metrics.json`). You can add or change dashboards in the UI, or edit those files and re-run the playbook.
 
-For setup (secrets, deploy), see [Getting started](getting-started.md) and [Secrets](secrets.md).
+For setup (secrets, deploy), see [Onboarding](onboarding.md) and [Secrets](secrets.md).

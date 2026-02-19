@@ -2,66 +2,94 @@
 
 # Documentation
 
-If you are here for the first time checkout the [Getting Started](getting-started.md) guide.
+This diagram shows the main pieces: the IaC devcontainer, your app repo, and the server. 
 
-<table>
-<tr>
-<td valign="top">
+```mermaid
+graph TB
+    subgraph IAC[IaC Devcontainer]
+        TASK(Taskfile<br/>Automation)
+        SOPS(SOPS<br/>Secrets Management)
+        TF(Terraform)
+        ANS(Ansible)
+        INFRA_SECRETS@{ shape: lin-doc, label: "infrastructure-secrets.yml" }
+    end
 
-- [Secrets management](secrets.md)
-- [Application deployment](application-deployment.md)
-- [Upgrading dependencies](upgrading.md)
-- [Monitoring](monitoring.md)
-- [Code analysis](code-analysis.md)
+    subgraph SERVER[Ubuntu Server]
+      TRAEFIK(Traefik<br/>Reverse Proxy + TLS)
+      subgraph DOCKER[App Docker Compose]
+        SUPPORTING_SERVICES@{ shape: cyl, label: "Supporting Services<br/>Postgres, Redis, ..." }
+        APP_SERVICE(Application Service)
+      end
+      OBSERVE(OpenObserve<br/>Monitors system health)
+      REGISTRY(Docker Registry)
+      SEC(Security hardening<br/>Fail2ban, SSH, AbuseIPDB)
+    end
 
-</td>
-<td width="80"></td>
-<td valign="top">
+    subgraph APP[Application Devcontainer]
+      COMPOSE@{ shape: lin-doc, label: "docker-compose.yml<br/>Application services" }
+      IAC_YML@{ shape: lin-doc, label: "iac.yml<br/>IaC configuration" }
+      PUSH@{ shape: subproc, label: "Github workflow<br/>Build and push" }
+      APP_SECRETS@{ shape: lin-doc, label: ".env<br/>Application secrets" }
+      SOPS_CONFIG@{ shape: lin-doc, label: ".sops.yml<br/>SOPS configuration" }
+    end
 
-- [Tools and technologies used](technologies.md)
-- [Traefik](traefik.md)
-- [Private](private.md)
-- [Troubleshooting](troubleshooting.md)
-- [Remote VS Code / Cursor](remote-vscode.md)
-- [Container Registry](registry.md)
+    IAC -->|mount 4 files| APP
+    
+    TASK -->|orchestrate| TF
+    TASK -->|orchestrate| ANS
 
+    SOPS -->|read| INFRA_SECRETS
+        
+    TF -->|provision| SERVER
+    TF -->|read| SOPS
+    
+    ANS -->|provision| SERVER
+    ANS -->|read| SOPS
 
-</td>
-</tr>
-</table>
-
-
+    APP_SERVICE -->|pull application image| REGISTRY
+    PUSH --->|push application image| REGISTRY 
+    
+    APP_SERVICE -->|proxy| TRAEFIK
 ```
-Infrastructure as Code
 
-Terraform commands:
-  task terraform:init    -- <workspace>  # Initialize workspace (dev or prod)
-  task terraform:plan    -- <workspace>  # Plan changes (dev or prod)
-  task terraform:apply   -- <workspace>  # Apply changes (dev or prod)
-  task terraform:destroy -- <workspace>  # Destroy resources (dev or prod)
-  task terraform:output  -- <workspace>  # Show outputs (dev or prod)
+The IaC devcontainer mounts four files in your local application clone so you can deploy without installing tools like Task, Ansible or Terraform on your local machine or application Devcontainer.
 
-Ansible commands:
-  task ansible:install                   # Install required collections
-  task ansible:bootstrap -- <workspace>  # One-time bootstrap as root (dev or prod)
-  task ansible:run       -- <workspace>  # Configure server (Docker, Traefik, security)
+---
 
-Testing:
-  task test:run                          # Run all tests (validate, format check, security scan)
+## Onboarding
 
-Secrets Management (SOPS):
-  task secrets:keygen                    # Generate age key pair
-  task secrets:generate-sops-config      # Generate .sops.yaml
+[**Onboarding**](onboarding.md) — Choose your path: create a new project or join an existing one.
 
-Application Deployment:
-  task app:deploy   -- <env> <sha>
-  task app:versions -- <env>
+---
 
-Registry:
-  task registry:overview                 # List tags (TAG, CREATED, DESCRIPTION) for all repos
+## Reference
 
-Utilities:
-  task server:check-status               # Check if servers are up (checks both dev and prod)
-  task server:list-hetzner-keys          # List Hetzner SSH keys with IDs
-  task server:setup-remote-cursor        # Add server to ~/.ssh/config for Cursor Remote-SSH
-```
+**Infrastructure**
+
+- [Traefik](traefik.md) — Reverse proxy, TLS, operations, adding apps
+- [Registry](registry.md) — Auth, commands, operations
+- [Monitoring](monitoring.md) — OpenObserve, dashboards, logs
+
+**Application**
+
+- [Application deployment](application-deployment.md) — Commands, app mount, records, implementation details
+- [Secrets](secrets.md) — File locations, editing, SOPS, app secrets
+- [Compose layout](design-compose-files.md) — How the full-stack compose and devcontainer fit together
+
+**Operations**
+
+- [Troubleshooting](troubleshooting.md) — Common issues and fixes
+- [Upgrading dependencies](upgrading.md) — Renovate, PRs
+- [Remote VS Code / Cursor](remote-vscode.md) — Run VS Code/Cursor on the server
+
+**Meta**
+
+- [Private (local config)](private.md) — Local config files
+- [Code analysis](code-analysis.md) — What runs, when (CI), how to run locally
+- [Tools and technologies](technologies.md) — Link list
+
+---
+
+**Other**
+
+- [Contributing](../CONTRIBUTING.md) · [Backlog](Backlog.md) · [Documentation strategy](documentation-strategy.md)

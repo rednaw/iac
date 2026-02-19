@@ -1,9 +1,8 @@
 [**<---**](README.md)
-# Application Deployment (Operations Guide)
 
-**Audience:** Infrastructure operators working in the IAC repository
+# Application Deployment
 
-This guide explains how to **deploy and inspect applications** from the infrastructure perspective. Use this when managing deployments, troubleshooting, or understanding the deployment system internals.
+This guide is for **both**: if you **created the project** (new project), you need the app mount, app config (iac.yml, compose, Traefik), and deploy commands; if you **joined** an existing project, you need the same commands plus deployment records and implementation details.
 
 ---
 
@@ -30,35 +29,20 @@ flowchart LR
     end
 
     A -->|triggers| D
-    B -->|queries| E
-    C -->|deploys to| F
+    B -->|lists| E
+    C -->|deploys| F
     D -->|pushes| E
     F -->|pulls| E
 ```
 
-The deployment system provides two commands:
+From the IaC devcontainer you run:
 
-- `task app:deploy -- <env> <sha>` — Deploy an application version
 - `task app:versions -- <env>` — List available versions
+- `task app:deploy -- <env> <sha>` — Deploy an application version
 
-Four app files must be mounted at `/workspaces/iac/app`: `iac.yml`, `docker-compose.yml`, `.env`, `.sops.yaml` (see [App mount](#app-mount) below).
+## Set which app you're working on
 
-The `versions` command is implemented as a Python script (`scripts/application_versions.py`). The `deploy` command runs an Ansible playbook that orchestrates the entire deployment.
-
----
-
-## App mount
-
-
-The devcontainer mounts four files from your app repo at `/workspaces/iac/app`: `iac.yml`, `docker-compose.yml`, `.env`, `.sops.yaml`. This lets you run `app:deploy` and `app:versions` from the IAC repo without installing Task or Ansible on your machine. The mount uses **`APP_HOST_PATH`** from the environment of the process that opens the workspace (e.g. Cursor or VS Code).
-
-**Required files** — Each app must have all four. `.env` can be minimal (e.g. empty or a comment) if the app has no secrets; it must exist. `.sops.yaml` is the SOPS config for the app (used when decrypting `.env`). The IAC devcontainer includes the **dotenv** extension and `files.associations` so SOPS-decrypted `.env` files are edited as dotenv.
-
-**Traefik (routing)** — The app's `docker-compose.yml` must attach the app service to the external `traefik` network and add Traefik labels so the reverse proxy routes traffic. See [Traefik documentation](traefik.md#adding-a-new-application) for details: add `networks: [ default, traefik ]`, `networks.traefik.external: true`, and labels for the router rule (e.g. `Host(\`dev.rednaw.nl\`) || Host(\`prod.rednaw.nl\`)`), entrypoints, TLS cert resolver, and loadbalancer server port.
-
-### Set which app you're working on
-
-Run the setup script from the host (once per machine, and again whenever you switch to a different app):
+Run the setup script from the host (run again whenever you switch to a different app):
 
 ```bash
 ./scripts/setup-app-path.sh /path/to/your/app
@@ -68,32 +52,18 @@ If you omit the path, the script will prompt you. The script:
 
 1. **Validates** that the app has `iac.yml`, `docker-compose.yml`, `.env`, and `.sops.yaml`
 2. Adds or updates **`export APP_HOST_PATH=/path/to/app`** in your profile (`~/.zprofile` on macOS, `~/.profile` on Linux)
-3. On macOS: runs `launchctl setenv APP_HOST_PATH ...` so the current session gets it without re-login
 
-After running it, open `iac.code-workspace` (or **Reopen in Container** if already open) so the devcontainer picks up the mount. To work on a different app later, run the script again with the other app's path.
+After running it, open `iac.code-workspace` (or **Reopen in Container** if already open) so the devcontainer picks up the mount.
 
----
+## App mount
+
+The devcontainer mounts four files from your app repo at /app: `iac.yml`, `docker-compose.yml`, `.env` and `.sops.yaml`. This lets you run **app:versions** and **app:deploy** from the IAC Devcontainer without installing and configuring lots of tools on your machine or application devcontainer. The mount uses **`APP_HOST_PATH`** from the environment of the process that opens the workspace (e.g. Cursor or VS Code).
+
+**Required files** — Each app must have all four. `.env` can be minimal (e.g. empty or a comment) if the app has no secrets; it must exist. `.sops.yaml` is the SOPS config for the app (used when decrypting `.env`). The IAC devcontainer includes the **dotenv** extension and `files.associations` so SOPS-decrypted `.env` files are edited as dotenv.
+
+**Traefik (routing)** — The app's `docker-compose.yml` must attach the app service to the external `traefik` network and add Traefik labels so the reverse proxy routes traffic. See [Traefik documentation](traefik.md#adding-a-new-application) for details: add `networks: [ default, traefik ]`, `networks.traefik.external: true`, and labels for the router rule (e.g. `Host(\`dev.rednaw.nl\`) || Host(\`prod.rednaw.nl\`)`), entrypoints, TLS cert resolver, and loadbalancer server port.
 
 ## Commands
-
-### `task app:deploy`
-
-Deploy an application version (run from IAC devcontainer):
-
-```bash
-task app:deploy -- <environment> <sha>
-```
-
-**Arguments:**
-- `<environment>`: `dev` or `prod`
-- `<sha>`: Short commit SHA (7 characters) of the image tag to deploy
-
-**Examples:**
-```bash
-task app:deploy -- dev 706c88c
-task app:deploy -- prod abc1234
-```
-
 
 ### `task app:versions`
 
@@ -116,9 +86,28 @@ IMAGE: rednaw/tientje-ketama
   →  4359642          2026-01-26 16:45:50  restore labels                          
 ```
 
+
+### `task app:deploy`
+
+Deploy an application version (run from IAC devcontainer):
+
+```bash
+task app:deploy -- <environment> <sha>
+```
+
+**Arguments:**
+- `<environment>`: `dev` or `prod`
+- `<sha>`: Short commit SHA (7 characters) of the image tag to deploy
+
+**Examples:**
+```bash
+task app:deploy -- dev 706c88c
+task app:deploy -- prod abc1234
+```
+
 ---
 
-## Application Configuration
+## Application Configuration (if you created the project)
 
 Applications declare deployment settings in an **`iac.yml`** file in the app repository root:
 
@@ -133,17 +122,19 @@ IMAGE_NAME: rednaw/tientje-ketama
 
 **Required files in app directory (mounted at `/workspaces/iac/app`):**
 - `iac.yml`: Registry and image name (as above)
-- `docker-compose.yml`: Single compose file that defines the **full stack** (app, database, and any other services). The app service must use `image: ${IMAGE}`. Deploy copies only this file (plus `.env`) to the server; no other compose files are copied.
+- `docker-compose.yml`: Single compose file that defines the **full stack** (app, database, and any other services).
 - `.env`: SOPS-encrypted environment variables (dotenv format); can be minimal if no secrets
 - `.sops.yaml`: SOPS config for the app (used when decrypting `.env`)
 
+ The app service must use `image: ${IMAGE}`. 
+
 ### App development workflow
 
-App development is **devcontainer-first**. The app repo’s devcontainer uses the same `docker-compose.yml`, with a **minimal** override under `.devcontainer/` that overrides the app service with `build: .` and an `image:` tag so the app container is built from source when the devcontainer starts. Running the stack locally outside the devcontainer (e.g. `docker compose up` on the host) is optional; apps can add a `docker-compose.override.yml` later if they want.
+App development is **devcontainer-first**. The app repo’s devcontainer uses the same `docker-compose.yml`, with a **minimal** override under `.devcontainer/` that overrides the app service with `build: .` and an `image:` tag so the app container is built from source when the devcontainer starts. Running the stack locally outside the devcontainer (e.g. `docker compose up` on the host) is still possible by adding a `docker-compose.override.yml` with `build: .`.
 
 ---
 
-## Deployment Records
+## Deployment Records (if you joined)
 
 ### `deploy-info.yml`
 
@@ -195,7 +186,7 @@ deployment:
 
 ---
 
-## Implementation Details
+## Implementation Details (if you joined)
 
 ### Taskfile
 
