@@ -1,9 +1,31 @@
 [**<---**](README.md)
-# Self-Hosted Docker Registry
 
-This document describes the private Docker registry used to store container images for deployment. **To interact with the registry (list images, run crane, deploy), use the devcontainer** — registry auth and tools (crane, Docker, jq) are configured automatically there. It covers infrastructure, authentication in each environment, commands, and troubleshooting.
+# Registry
 
----
+Private Docker registry for container images. **Use the devcontainer to interact with the registry** — registry auth and tools (crane, Docker, jq) are configured automatically there.
+
+```mermaid
+flowchart LR
+    subgraph GITHUB["GitHub Actions"]
+        A(Build & push<br/>images)
+    end
+    
+    subgraph REGISTRY["Registry<br/>registry.rednaw.nl"]
+        B(Store images<br/>rednaw/tientje-ketama<br/>iac/iac-dev)
+    end
+    
+    subgraph DEVCONTAINER["Devcontainer"]
+        C(crane ls<br/>task registry:overview)
+    end
+    
+    subgraph SERVER["Server"]
+        D(Pull images<br/>for deployment)
+    end
+    
+    A -->|push| B
+    C -->|list/inspect| B
+    D -->|pull| B
+```
 
 ## Overview
 
@@ -35,39 +57,39 @@ Credentials and domain are taken from SOPS-decrypted `secrets/infrastructure-sec
 
 ---
 
-## Authentication (How to Log In)
+## Authentication
 
-All environments use the **same credential source**: SOPS-decrypted `secrets/infrastructure-secrets.yml` (`registry_username`, `registry_password`). No manual `docker login` is required.
+All environments use the same credential source: SOPS-decrypted `secrets/infrastructure-secrets.yml` (`registry_username`, `registry_password`). No manual `docker login` is required.
 
-### DevContainer
+### Devcontainer
 
-- **Trigger:** `postCreateCommand` runs `.devcontainer/devcontainer-setup.sh` on container creation.
-- **Effect:** The script writes to `~/.docker/config.json` inside the devcontainer so `docker`, `crane`, and `trivy` can access the private registry without manual `docker login`.
-- **When:** Automatic; no manual steps. No `DOCKER_CONFIG` env var needed.
-- **Tools:** Registry-related tools (e.g. **crane**, Docker CLI, jq) are automatically installed in the devcontainer via [mise](https://mise.jdx.dev/) and the image build; you can run `task registry:overview`, `crane ls`, etc. from inside the devcontainer.
+- **Trigger:** `postCreateCommand` runs `.devcontainer/devcontainer-setup.sh` on container creation
+- **Effect:** The script writes to `~/.docker/config.json` inside the devcontainer so `docker`, `crane`, and `trivy` can access the private registry without manual `docker login`
+- **When:** Automatic; no manual steps. No `DOCKER_CONFIG` env var needed
+- **Tools:** Registry-related tools (e.g. **crane**, Docker CLI, jq) are automatically installed in the devcontainer via [mise](https://mise.jdx.dev/) and the image build; you can run `task registry:overview`, `crane ls`, etc. from inside the devcontainer
 
 ### GitHub Actions
 
-- **Method:** Workflows install SOPS and yq, decrypt `secrets/infrastructure-secrets.yml`, extract `registry_username` and `registry_password`, and pass them to `docker/login-action@v3`.
-- **When:** Automatic in `static-code-analysis.yml` and `promote-image.yml`. Only `SOPS_AGE_KEY` is required as a repository secret.
+- **Method:** Workflows install SOPS and yq, decrypt `secrets/infrastructure-secrets.yml`, extract `registry_username` and `registry_password`, and pass them to `docker/login-action@v3`
+- **When:** Automatic in `static-code-analysis.yml` and `promote-image.yml`. Only `SOPS_AGE_KEY` is required as a repository secret
 
 ### Server – ubuntu user
 
-- **Method:** Ansible writes `~/.docker/config.json` during server setup (`ansible/roles/server/tasks/registry.yml`).
-- **When:** Automatic when the server role runs.
+- **Method:** Ansible writes `~/.docker/config.json` during server setup (`ansible/roles/server/tasks/registry.yml`)
+- **When:** Automatic when the server role runs
 
 ### Server – deploy user
 
-- **Method:** Ansible writes `/opt/deploy/.docker/config.json` during server setup (`ansible/roles/server/tasks/deploy-user.yml`).
-- **When:** Automatic when the server role runs. Used to pull images during application deployment.
+- **Method:** Ansible writes `/opt/deploy/.docker/config.json` during server setup (`ansible/roles/server/tasks/deploy-user.yml`)
+- **When:** Automatic when the server role runs. Used to pull images during application deployment
 
 ---
 
-## Commands and Tasks
+## Commands
 
 ### `task registry:overview`
 
-Lists all repositories and their tags (TAG, CREATED, DESCRIPTION) in the registry.
+Lists all repositories and their tags (TAG, CREATED, DESCRIPTION) in the registry:
 
 ```bash
 task registry:overview
@@ -77,9 +99,9 @@ If you see "No repositories found (or access denied)", see [Troubleshooting](#tr
 
 ---
 
-## Crane and Docker Reference
+## Reference
 
-### Crane (registry API)
+### Crane
 
 | Task | Command |
 |------|--------|
@@ -92,7 +114,7 @@ If you see "No repositories found (or access denied)", see [Troubleshooting](#tr
 Filter SHA-like tags (e.g. for pruning):  
 `crane ls registry.rednaw.nl/<image> | grep -E '^[0-9a-f]{7}$'`
 
-### Docker (server / local)
+### Docker
 
 | Task | Command |
 |------|--------|
@@ -100,7 +122,7 @@ Filter SHA-like tags (e.g. for pruning):
 | Disk usage | `docker system df` |
 | List running containers | `docker ps` |
 
-### Registry host (on server)
+### Registry host
 
 | Task | Command |
 |------|--------|
@@ -110,7 +132,7 @@ Filter SHA-like tags (e.g. for pruning):
 
 ```bash
 crane ls registry.rednaw.nl/rednaw/tientje-ketama | grep -E '^[0-9a-f]{7}$'
-# Then delete if safe, e.g.:
+# Then delete if safe:
 # crane delete registry.rednaw.nl/rednaw/tientje-ketama:<sha>
 ```
 
@@ -127,7 +149,7 @@ crane ls registry.rednaw.nl/rednaw/tientje-ketama | grep -E '^[0-9a-f]{7}$'
 
 ---
 
-## Related Documentation
+## Related
 
 - [Application deployment](application-deployment.md) — How apps are deployed and how they use the registry
 - [Secrets](secrets.md) — Where registry credentials are stored (SOPS)

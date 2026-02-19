@@ -1,17 +1,16 @@
 [**<---**](README.md)
 
-# Install: new project (bootstrapping from scratch)
+# New project (bootstrapping from scratch)
 
-Use this path when you are creating new infrastructure and there is no `infrastructure-secrets.yml` yet. You will create the secrets file once, encrypt it with SOPS, and from then on the devcontainer will use it to configure registry, Terraform Cloud, and hcloud automatically.
+Create the platform. Use this when you are creating new infrastructure and there is no `infrastructure-secrets.yml` yet. You will create the secrets file once, encrypt it with SOPS, and from then on the devcontainer will use it to configure registry, Terraform Cloud, and hcloud automatically.
 
 ## 1. Development environment
 
 1. Install [Docker](https://docs.docker.com/get-docker/), [VS Code](https://code.visualstudio.com/) or [Cursor](https://cursor.com/), and the [Dev Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) extension.
-2. Clone the repo, run **`./scripts/setup-app-path.sh /path/to/your/app`** on the host (the app must have `iac.yml`, `docker-compose.yml`, `.env`, `.sops.yaml`).
-3. Open the workspace: **File → Open Workspace from File...** → select `iac.code-workspace` in the repo root.
-4. When prompted, choose **Reopen in Container**. Wait for the image to build.
+2. Clone the repo.
+3. On the host, run **`./scripts/setup-app-path.sh /path/to/your/app`** (the app must have `iac.yml`, `docker-compose.yml`, `.env`, `.sops.yaml`). You'll open the devcontainer after creating secrets in the steps below.
 
-Until you have created and encrypted `infrastructure-secrets.yml`, the devcontainer cannot configure Terraform Cloud, hcloud, or registry auth from secrets. You will create that file in the steps below; after that, every time you open the container it will decrypt the file and write `~/.docker/config.json`, `~/.terraform.d/credentials.tfrc.json`, and `~/.config/hcloud/cli.toml` for you.
+Until you have created and encrypted `infrastructure-secrets.yml`, the devcontainer cannot configure Terraform Cloud, hcloud, or registry auth. Create the secrets file (steps 2–4), then open the workspace and launch the devcontainer—see [Launch the IaC devcontainer](launch-devcontainer.md).
 
 ## 2. SOPS key and config
 
@@ -71,16 +70,11 @@ git commit -m "Add encrypted infrastructure secrets (bootstrap)"
 git push
 ```
 
-## 5. Use the devcontainer
+## 5. Launch the devcontainer
 
-Close and reopen the container (or run the devcontainer’s postStart script if you need to refresh config without reopening). The devcontainer will:
+Open the workspace and start the devcontainer so it can decrypt secrets and configure your credentials. Close and reopen the container if you already had it open.
 
-- Decrypt `secrets/infrastructure-secrets.yml` (using your mounted `~/.config/sops/age/keys.txt`)
-- Write `~/.docker/config.json` for registry auth
-- Write `~/.terraform.d/credentials.tfrc.json` for Terraform Cloud
-- Write `~/.config/hcloud/cli.toml` for the hcloud CLI
-
-No need to run `task terraform:login` or `hcloud context create`; they are populated from the secrets file.
+See [Launch the IaC devcontainer](launch-devcontainer.md) for the steps (open workspace, Reopen in Container) and what happens on startup (decrypt, write registry/Terraform/hcloud config).
 
 ## 6. Terraform Cloud (one-time)
 
@@ -112,4 +106,4 @@ Get the server IP with `task terraform:output -- dev`. Use `prod` instead of `de
 
 ## 8. Adding more people later
 
-When someone joins, they follow [Install: joining an existing project](joining.md). You add their SOPS public key to `.sops.yaml` and re-encrypt `secrets/infrastructure-secrets.yml` so they can decrypt it; after that, their devcontainer will also configure registry, Terraform, and hcloud from the same file. See [secrets.md](secrets.md) for the exact steps.
+When someone joins, they follow [Joining](joining.md). You add their SOPS public key to `.sops.yaml` and re-encrypt `secrets/infrastructure-secrets.yml` so they can decrypt it; after that, their devcontainer will also configure registry, Terraform, and hcloud from the same file. See [secrets.md](secrets.md) for the exact steps.
