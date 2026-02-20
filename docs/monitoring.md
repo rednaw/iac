@@ -26,11 +26,14 @@ flowchart LR
 
 ## Access
 
-Open **https://observe.&lt;base_domain&gt;** (e.g. [https://observe.rednaw.nl](https://observe.rednaw.nl)). Log in with `openobserve_username@observe.local` and the password from `secrets/infrastructure-secrets.yml`.
+OpenObserve is not exposed publicly (no DNS). Use an SSH tunnel to the server, then open **http://localhost:5080** in your browser. See [Remote VS Code / Cursor](remote-vscode.md) for setting up SSH and port forwarding. Log in with `openobserve_username@observe.local` and the password from `secrets/infrastructure-secrets.yml`.
 
 ## Dashboards
 
 **Host Metrics** and **Docker Container Metrics** dashboards are imported when you run the server playbook (`ansible/roles/server/files/openobserve-host-metrics.json`, `openobserve-docker-metrics.json`). Add or change dashboards in the UI, or edit those files and re-run the playbook.
+## Logs
+
+Logs are sent from the server by the OTEL Collector into the **default** org. In OpenObserve, open **Logs** and choose a **stream**: `traefik-access`, `docker-containers`, `syslog`, `auth`, `fail2ban`. If you see no data, on the server check that the OTEL Collector is running and has read access to `/var/log` and Docker’s container log files.
 
 ## Related
 

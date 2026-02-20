@@ -28,7 +28,7 @@ flowchart LR
 
 ## Quick Reference
 
-**Dashboard:** `https://traefik.rednaw.nl` (basic auth required)  
+**Dashboard:** Via SSH tunnel only — see [Remote VS Code / Cursor](remote-vscode.md) (admin access).  
 **Configuration:** Managed by Ansible (`ansible/roles/server/tasks/traefik.yml`)  
 **Logs:** `/var/log/traefik/access.log` (common format for fail2ban)
 
@@ -99,9 +99,7 @@ ssh ubuntu@dev.rednaw.nl 'sudo docker network inspect traefik'
 
 ### Access Dashboard
 
-1. Visit `https://traefik.rednaw.nl`
-2. Authenticate with basic auth credentials (stored in `/etc/traefik/auth/htpasswd`)
-3. View routers, services, and middlewares
+The Traefik dashboard is not exposed publicly (no DNS). Use an SSH tunnel to the server, then open **http://localhost:8080** in your browser. See [Remote VS Code / Cursor](remote-vscode.md) for setting up SSH and port forwarding. On the server the API/dashboard listens on port 8080 (internal).
 
 ---
 
