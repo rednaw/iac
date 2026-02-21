@@ -1,8 +1,9 @@
 # Traefik static configuration
-# Dashboard on traefik.{{ base_domain }} (see dynamic/dashboard.yml)
+# Dashboard: via tunnel use port 8080 (api.insecure); public exposure was removed (no DNS).
 
 api:
   dashboard: true
+  insecure: true
 
 global:
   checkNewVersion: false

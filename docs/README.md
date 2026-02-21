@@ -79,7 +79,7 @@ The IaC devcontainer mounts four files in your local application clone so you ca
 
 - [Troubleshooting](troubleshooting.md) — Common issues and fixes
 - [Upgrading dependencies](upgrading.md) — Renovate, PRs
-- [Remote VS Code / Cursor](remote-vscode.md) — Run VS Code/Cursor on the server
+- [Remote-SSH](remote-ssh.md) — Connect to the server via Remote-SSH (tunnel, dashboards)
 
 **Meta**
 

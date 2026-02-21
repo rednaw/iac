@@ -8,18 +8,18 @@ Local configuration files in your home directory. These are used by this project
 |-----------|---------|----------|------------------------|
 | `~/.ssh/id_rsa` | SSH private key for authenticating with servers | Host | `ssh-keygen` (if not already exists) |
 | `~/.ssh/known_hosts` | SSH host keys for servers you've connected to | Host | SSH client (automatically) |
-| `~/.ssh/config` | SSH client configuration for server aliases and connection settings | Host | `task server:setup-remote-cursor` (optional) |
+| `~/.ssh/config` | SSH client configuration for server aliases and connection settings | Host | Written by devcontainer setup |
 | `~/.config/sops/age/keys.txt` | SOPS private key for decrypting secrets | Host | `task secrets:keygen` |
 | `~/.config/hcloud/cli.toml` | Hetzner Cloud CLI configuration and API token | Devcontainer | Devcontainer startup script (from SOPS) |
 | `~/.terraform.d/credentials.tfrc.json` | Terraform Cloud authentication token | Devcontainer | Devcontainer startup script (from SOPS) |
-| `~/.docker/config.json` | Docker/crane/Trivy auth for private registry in the devcontainer | Devcontainer | Devcontainer startup script — see [Registry](registry.md#authentication-how-to-log-in) |
+| `~/.docker/config.json` | Docker/crane/Trivy auth for private registry in the devcontainer | Devcontainer | Devcontainer startup script — see [Registry](registry.md#authentication) |
 
 ## Details
 
 **`~/.ssh/id_rsa*`**
 - **Purpose:** SSH key pair for authenticating with Hetzner Cloud servers
 - **Setup:** Add the public key (`~/.ssh/id_rsa.pub`) to Hetzner Cloud Console → Security → SSH keys
-- **Used by:** Ansible, direct SSH access, `task server:setup-remote-cursor`
+- **Used by:** Ansible, direct SSH access, Remote-SSH
 
 **`~/.ssh/known_hosts`**
 - **Purpose:** Prevents SSH warnings when connecting to known servers
@@ -27,9 +27,9 @@ Local configuration files in your home directory. These are used by this project
 - **Used by:** SSH client, Ansible (with `StrictHostKeyChecking=accept-new`)
 
 **`~/.ssh/config`**
-- **Purpose:** SSH client configuration for server aliases, connection settings, and Cursor Remote-SSH integration
-- **Setup:** Created/updated by `task server:setup-remote-cursor` (optional, for Cursor Remote-SSH)
-- **Used by:** SSH client, Cursor Remote-SSH extension
+- **Purpose:** SSH client configuration for server aliases, connection settings, and Remote-SSH integration
+- **Setup:** Add `Include config.d/iac-admin`; devcontainer setup writes `~/.ssh/config.d/iac-admin` (optional, for Remote-SSH)
+- **Used by:** SSH client, Remote-SSH extension (VS Code/Cursor)
 - **Note:** Contains server host alias, IP address, user, and SSH options for easy server access
 
 **`~/.config/hcloud/cli.toml`**
@@ -49,7 +49,7 @@ Local configuration files in your home directory. These are used by this project
 
 **`~/.docker/config.json`**
 - **Purpose:** Docker/crane/Trivy auth for the private registry
-- **Details:** See [Registry](registry.md#authentication)
+- **Details:** See [Registry](registry.md#authentication) for how to log in
 
 ## Security risks
 

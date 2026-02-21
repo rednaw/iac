@@ -2,6 +2,7 @@
 # DevContainer setup script:
 # - Trust mise tools (user-specific, must run as vscode user)
 # - Configure credentials from SOPS (Docker registry, hcloud, Terraform Cloud)
+# - Write host SSH config for dev/prod (used by Remote-SSH to server)
 # Requires SOPS key and secrets/infrastructure-secrets.yml in repo.
 set -euo pipefail
 
@@ -101,4 +102,12 @@ if [ -n "$TFC_TOKEN" ]; then
 else
   echo "terraform_cloud_token not found in $SECRETS_FILE, skipping Terraform Cloud credentials."
 fi
+
+########################################
+# SSH config for Remote-SSH to server (dev/prod)
+# Writes to host ~/.ssh (mounted) so Remote-SSH → dev|prod works
+########################################
+
+cd /workspaces/iac || exit 1
+bash .devcontainer/setup-remote-ssh.sh
 

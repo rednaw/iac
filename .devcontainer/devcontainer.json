@@ -46,7 +46,9 @@
   "remoteUser": "vscode",
   
   "postCreateCommand": "bash .devcontainer/devcontainer-setup.sh",
-
+  
+  "postStartCommand": "bash .devcontainer/tunnel-start.sh",
+  
   "features": {
     "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
   }
