@@ -25,11 +25,11 @@ graph TB
       SEC(Security hardening<br/>Fail2ban, SSH, AbuseIPDB)
     end
 
-    subgraph APP[Application Devcontainer]
+    subgraph APP[Your application repo]
       COMPOSE@{ shape: lin-doc, label: "docker-compose.yml<br/>Application services" }
       IAC_YML@{ shape: lin-doc, label: "iac.yml<br/>IaC configuration" }
       PUSH@{ shape: subproc, label: "Github workflow<br/>Build and push" }
-      APP_SECRETS@{ shape: lin-doc, label: ".env<br/>Application secrets" }
+      APP_SECRETS@{ shape: lin-doc, label: ".env<br/>Encrypted secrets" }
       SOPS_CONFIG@{ shape: lin-doc, label: ".sops.yml<br/>SOPS configuration" }
     end
 

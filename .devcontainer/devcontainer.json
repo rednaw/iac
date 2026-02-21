@@ -17,6 +17,7 @@
   "customizations": {
     "vscode": {
       "extensions": [
+        "bierner.markdown-mermaid",
         "signageos.signageos-vscode-sops",
         "redhat.vscode-yaml",
         "redhat.ansible",
