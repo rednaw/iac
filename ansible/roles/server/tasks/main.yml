@@ -2,29 +2,29 @@
 # Server role: complete server configuration
 # Configures all server components in the correct order
 
-- name: Configure base system
-  ansible.builtin.import_tasks: base.yml
+# - name: Configure base system
+#   ansible.builtin.import_tasks: base.yml
 
-- name: Configure unattended upgrades
-  ansible.builtin.import_tasks: unattended-upgrades.yml
+# - name: Configure unattended upgrades
+#   ansible.builtin.import_tasks: unattended-upgrades.yml
 
-- name: Harden SSH
-  ansible.builtin.import_tasks: ssh.yml
+# - name: Harden SSH
+#   ansible.builtin.import_tasks: ssh.yml
 
-- name: Configure fail2ban
-  ansible.builtin.import_tasks: fail2ban.yml
+# - name: Configure fail2ban
+#   ansible.builtin.import_tasks: fail2ban.yml
 
-- name: Install Docker
-  ansible.builtin.import_tasks: docker.yml
+# - name: Install Docker
+#   ansible.builtin.import_tasks: docker.yml
 
-- name: Install and configure Traefik
-  ansible.builtin.import_tasks: traefik.yml
+# - name: Install and configure Traefik
+#   ansible.builtin.import_tasks: traefik.yml
 
-- name: Create deploy user
-  ansible.builtin.import_tasks: deploy-user.yml
+# - name: Create deploy user
+#   ansible.builtin.import_tasks: deploy-user.yml
 
-- name: Configure registry
-  ansible.builtin.import_tasks: registry.yml
+# - name: Configure registry
+#   ansible.builtin.import_tasks: registry.yml
 
 - name: Configure OpenObserve
   ansible.builtin.import_tasks: openobserve.yml
