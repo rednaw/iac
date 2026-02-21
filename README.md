@@ -47,6 +47,6 @@ Everything is code. Everything is versioned. Nothing is magic.
 
 **Single server, done well.** Many projects don't need a cluster. They need one reliable server, properly configured.
 
-**Developer experience matters.** Open `iac.code-workspace` (File → Open Workspace from File...) and Reopen in Container; edit encrypted secrets in VS Code; run commands through Taskfile. No context-switching to web consoles.
+**One place to work.** Open the workspace, Reopen in Container, all tooling and services are wired to work together, ready when you are.
 
 
