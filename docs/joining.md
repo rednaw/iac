@@ -63,9 +63,9 @@ To log in to servers for maintenance, troubleshooting, and running Ansible you n
 
 If your IP changes later (e.g. new network or VPN), update `allowed_ssh_ips` and run `task terraform:apply -- <workspace>` again. Remember the `--` separator (e.g. `task terraform:apply -- dev`).
 
-## 4. Optional: Run VS Code or Cursor on the server
+## 4. Optional: Connect via Remote-SSH (work on the server)
 
-See [Remote VS Code / Cursor](remote-vscode.md).
+See [Remote-SSH](remote-ssh.md).
 
 ## 5. Verify
 

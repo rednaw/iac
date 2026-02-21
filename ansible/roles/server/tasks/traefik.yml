@@ -28,6 +28,7 @@
     src: traefik.yml.j2
     dest: /etc/traefik/traefik.yml
     mode: '0644'
+  notify: Restart Traefik
 
 - name: Deploy Traefik dynamic redirects
   ansible.builtin.template:
@@ -39,12 +40,6 @@
   ansible.builtin.template:
     src: traefik-dynamic-redirects-http.yml.j2
     dest: /etc/traefik/dynamic/redirects-http.yml
-    mode: '0644'
-
-- name: Deploy Traefik dynamic dashboard (hostname + auth)
-  ansible.builtin.template:
-    src: traefik-dynamic-dashboard.yml.j2
-    dest: /etc/traefik/dynamic/dashboard.yml
     mode: '0644'
 
 - name: Deploy logrotate config for Traefik logs

@@ -75,24 +75,16 @@ receivers:
       - /var/log/fail2ban.log.*
 
 processors:
-  # Minimal redaction: only the most critical secrets that should never be in logs
-  # This prevents secrets from ever reaching OpenObserve
+  # Redact sensitive data in log bodies before sending to OpenObserve (OTTL replace_pattern on log.body.string)
   transform/redact_basic:
+    error_mode: ignore
     log_statements:
-      - context: log
-        statements:
-          # Redact Authorization headers (Bearer tokens, Basic auth, etc.)
-          - set(body, replace_all_patterns(body, "(?i)Authorization\\s*:\\s*[^\\s]+", "Authorization: [REDACTED]"))
-          # Redact passwords in common formats (password=, pwd=, passwd=)
-          - set(body, replace_all_patterns(body, "(?i)(password|pwd|passwd|pass)\\s*[:=]\\s*[^\\s]+", "${1}=[REDACTED]"))
-          # Redact JWT tokens (eyJ...)
-          - set(body, replace_all_patterns(body, "eyJ[A-Za-z0-9\\-_=]+\\.[A-Za-z0-9\\-_=]+\\.[A-Za-z0-9\\-_=]*", "[JWT_REDACTED]"))
-          # Redact API keys in common formats (api_key=, apikey=, etc.)
-          - set(body, replace_all_patterns(body, "(?i)(api[_-]?key|apikey|access[_-]?key|secret[_-]?key)\\s*[:=]\\s*[A-Za-z0-9\\-_=]{20,}", "${1}=[REDACTED]"))
-          # Redact session tokens/cookies (session=, token=, cookie=)
-          - set(body, replace_all_patterns(body, "(?i)(session|token|cookie)\\s*[:=]\\s*[A-Za-z0-9\\-_=]{20,}", "${1}=[REDACTED]"))
-          # Redact database connection strings (postgres://user:pass@, mysql://user:pass@)
-          - set(body, replace_all_patterns(body, "([a-z]+)://[^:]+:[^@]+@", "${1}://[REDACTED]:[REDACTED]@"))
+      - 'replace_pattern(log.body.string, "(?i)Authorization\\s*:\\s*[^\\s]+", "Authorization: [REDACTED]")'
+      - 'replace_pattern(log.body.string, "(?i)(password|pwd|passwd|pass)\\s*[:=]\\s*[^\\s]+", "[REDACTED]")'
+      - 'replace_pattern(log.body.string, "eyJ[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]*", "[JWT_REDACTED]")'
+      - 'replace_pattern(log.body.string, "(?i)(api_key|apikey|access_key|secret_key)\\s*[:=]\\s*[A-Za-z0-9_-]{20,}", "[REDACTED]")'
+      - 'replace_pattern(log.body.string, "(?i)(session|token|cookie)\\s*[:=]\\s*[A-Za-z0-9_-]{20,}", "[REDACTED]")'
+      - 'replace_pattern(log.body.string, "([a-z]+)://[^:]+:[^@]+@", "[REDACTED]://[REDACTED]:[REDACTED]@")'
 
   # Set stream name per log source
   # OpenObserve creates streams based on resource attributes - using service.name as primary identifier
@@ -148,7 +140,7 @@ exporters:
     headers:
       Authorization: "Basic {{ openobserve_ingest_auth }}"
 
-  # Send Traefik metrics via Prometheus remote write so metric names are preserved for PromQL
+  # Send all metrics via Prometheus remote write (OTLP->Prometheus conversion gives dashboard-ready names)
   prometheusremotewrite:
     endpoint: http://openobserve:5080/api/default/prometheus/api/v1/write
     headers:
@@ -156,14 +148,10 @@ exporters:
 
 service:
   pipelines:
-    # Host + Docker metrics via OTLP
+    # Host + Docker + Traefik metrics: Prometheus remote write (for PromQL/dashboards) and OTLP (OpenObserve native)
     metrics:
-      receivers: [hostmetrics, docker_stats]
-      exporters: [otlp_http]
-    # Traefik metrics via Prometheus remote write (preserves traefik_* names for dashboard)
-    metrics/traefik:
-      receivers: [prometheus]
-      exporters: [prometheusremotewrite]
+      receivers: [hostmetrics, docker_stats, prometheus]
+      exporters: [prometheusremotewrite, otlp_http]
     # Logs pipelines: one per source so each gets its own stream in OpenObserve
     logs/traefik:
       receivers: [filelog/traefik]

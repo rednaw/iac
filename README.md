@@ -1,6 +1,6 @@
 # Infrastructure as Code
 
-**TL;DR** Bring me to the [documentation](docs/README.md)
+**TL;DR** Bring me to the [documentation](docs/README.md).
 
 ## Introduction
 

@@ -153,7 +153,7 @@ Not a final file list—more a target shape. Renames and splits can be done incr
 | `troubleshooting.md` | Runbook-style: common failures, cause, fix. One place for connection, host key, secrets, deploy, registry. | Both |
 | `technologies.md` | Keep as "Tools and technologies" reference (link list). | Both |
 | `upgrading.md` | Reference + short operations (Renovate, PRs). | Join |
-| `remote-vscode.md` | Short runbook: Run VS Code/Cursor on the server. | Join |
+| `remote-ssh.md` | Short runbook: Remote-SSH to the server (tunnel, dashboards). | Join |
 | `code-analysis.md` | Reference: what runs, when (CI), how to run locally. | Join |
 | `CONTRIBUTING.md` | Unchanged; linked from index. | Contributors |
 
