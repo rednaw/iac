@@ -34,13 +34,9 @@ tasks:
         echo ""
         echo "💡 Use the 'ID' column for secrets/infrastructure-secrets.yml (ssh_keys: [\"ID\", ...])"
 
-  setup-remote-cursor:
-    desc: "Write dev and prod to ~/.ssh/config.d/iac-admin (fully managed). Add Include config.d/iac-admin to ~/.ssh/config to use."
-    cmds:
-      - bash scripts/setup-remote-cursor.sh
-
   tunnel-start:
     desc: "Start SSH tunnel to workspace for admin UIs. Use: task server:tunnel-start -- dev|prod"
+    silent: true
     vars:
       WORKSPACE: "{{.CLI_ARGS}}"
     preconditions:
@@ -54,19 +50,18 @@ tasks:
         if pgrep -f "ssh.*-L 5080:localhost:5080.*ubuntu@$HOSTNAME" >/dev/null 2>&1; then
           echo "Tunnel to {{.WORKSPACE}} already running."
           echo "  Traefik Dashboard: http://localhost:8080/dashboard/"
-          echo "  OpenObserve:        http://localhost:5080/"
-          echo "  Registry:           http://localhost:5000"
+          echo "  OpenObserve:       http://localhost:5080/"
           exit 0
         fi
-        ssh -f -N -L 5080:localhost:5080 -L 5000:localhost:5000 -L 8080:localhost:8080 -o StrictHostKeyChecking=accept-new "ubuntu@$HOSTNAME" || { echo "Failed to start tunnel. Run 'task server:setup-remote-cursor' first?"; exit 1; }
+        ssh -f -N -L 5080:localhost:5080 -L 8080:localhost:8080 -o StrictHostKeyChecking=accept-new "ubuntu@$HOSTNAME" || { echo "Failed to start tunnel."; exit 1; }
         echo "Tunnel to {{.WORKSPACE}} started."
         echo "  Traefik Dashboard: http://localhost:8080/dashboard/"
-        echo "  OpenObserve:        http://localhost:5080/"
-        echo "  Registry:           http://localhost:5000"
-        echo "Stop: task server:tunnel-stop -- {{.WORKSPACE}}"
+        echo "  OpenObserve:       http://localhost:5080/"
+        echo "  Stop: task server:tunnel-stop -- {{.WORKSPACE}}"
 
   tunnel-stop:
     desc: "Stop SSH tunnel for workspace. Use: task server:tunnel-stop -- dev|prod"
+    silent: true
     vars:
       WORKSPACE: "{{.CLI_ARGS}}"
     preconditions:
