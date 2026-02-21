@@ -75,6 +75,17 @@ receivers:
       - /var/log/fail2ban.log.*
 
 processors:
+  # Redact sensitive data in log bodies before sending to OpenObserve (OTTL replace_pattern on log.body.string)
+  transform/redact_basic:
+    error_mode: ignore
+    log_statements:
+      - 'replace_pattern(log.body.string, "(?i)Authorization\\s*:\\s*[^\\s]+", "Authorization: [REDACTED]")'
+      - 'replace_pattern(log.body.string, "(?i)(password|pwd|passwd|pass)\\s*[:=]\\s*[^\\s]+", "[REDACTED]")'
+      - 'replace_pattern(log.body.string, "eyJ[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]*", "[JWT_REDACTED]")'
+      - 'replace_pattern(log.body.string, "(?i)(api_key|apikey|access_key|secret_key)\\s*[:=]\\s*[A-Za-z0-9_-]{20,}", "[REDACTED]")'
+      - 'replace_pattern(log.body.string, "(?i)(session|token|cookie)\\s*[:=]\\s*[A-Za-z0-9_-]{20,}", "[REDACTED]")'
+      - 'replace_pattern(log.body.string, "([a-z]+)://[^:]+:[^@]+@", "[REDACTED]://[REDACTED]:[REDACTED]@")'
+
   # Set stream name per log source
   # OpenObserve creates streams based on resource attributes - using service.name as primary identifier
   resource/traefik:
@@ -144,21 +155,21 @@ service:
     # Logs pipelines: one per source so each gets its own stream in OpenObserve
     logs/traefik:
       receivers: [filelog/traefik]
-      processors: [resource/traefik, batch]
+      processors: [transform/redact_basic, resource/traefik, batch]
       exporters: [otlp_http]
     logs/docker:
       receivers: [filelog/docker]
-      processors: [resource/docker, batch]
+      processors: [transform/redact_basic, resource/docker, batch]
       exporters: [otlp_http]
     logs/syslog:
       receivers: [filelog/syslog]
-      processors: [resource/syslog, batch]
+      processors: [transform/redact_basic, resource/syslog, batch]
       exporters: [otlp_http]
     logs/auth:
       receivers: [filelog/auth]
-      processors: [resource/auth, batch]
+      processors: [transform/redact_basic, resource/auth, batch]
       exporters: [otlp_http]
     logs/fail2ban:
       receivers: [filelog/fail2ban]
-      processors: [resource/fail2ban, batch]
+      processors: [transform/redact_basic, resource/fail2ban, batch]
       exporters: [otlp_http]
