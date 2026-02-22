@@ -77,6 +77,7 @@ The IaC devcontainer mounts four files in your local application clone so you ca
 
 **Operations**
 
+- [Backups](backups.md) — Hetzner automated backups (Terraform, 7 restore points).
 - [Troubleshooting](troubleshooting.md) — Common issues and fixes
 - [Upgrading dependencies](upgrading.md) — Renovate, PRs
 - [Remote-SSH](remote-ssh.md) — Connect to the server via Remote-SSH (tunnel, dashboards)
