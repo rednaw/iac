@@ -57,8 +57,8 @@ Known security risks that have been reviewed and accepted:
 
 | Risk | Severity | Status | Mitigations | Notes |
 |------|----------|--------|-------------|-------|
-| No backup | MEDIUM | Accepted | Infrastructure can be recreated via Terraform | Will be added before production data |
-| No Terraform state backup | LOW | Accepted | State stored in Terraform Cloud, can be restored via `terraform import` if lost | Infrastructure is reproducible from code |
+| No off-site backup | LOW | Accepted | Hetzner automatic backups enabled (7 restore points) | Pragmatic tradeoff |
+| No Terraform state backup | LOW | Accepted | Can be restored via `terraform import` if lost | Infrastructure is reproducible from code |
 | No automated secret rotation | LOW | Accepted | Manual rotation process | Pragmatic tradeoff |
 | Passwordless sudo without restrictions | LOW | Accepted | IP-restricted SSH, key-based auth, fail2ban, audit logging | Pragmatic tradeoff |
 

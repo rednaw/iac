@@ -1,0 +1,54 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+version: '3'
+
+# Hetzner backup tasks. Use: task backup:list -- dev|prod, task backup:restore -- dev|prod <image-id>, etc.
+# Server name in Hetzner = platform-<workspace> (e.g. platform-dev, platform-prod).
+
+tasks:
+  list:
+    desc: "List Hetzner backup images for workspace. Use: task backup:list -- dev|prod"
+    silent: true
+    vars:
+      WORKSPACE: "{{.CLI_ARGS}}"
+      SERVER_NAME: "platform-{{.CLI_ARGS}}"
+    preconditions:
+      - sh: '[ -n "{{.WORKSPACE}}" ]'
+        msg: "Workspace required. Usage: task backup:list -- <dev|prod>"
+      - sh: '[ "{{.WORKSPACE}}" = "dev" ] || [ "{{.WORKSPACE}}" = "prod" ]'
+        msg: "Invalid workspace. Use: dev or prod"
+    cmds:
+      - |
+        echo "Backups for server {{.SERVER_NAME}}:"
+        echo ""
+        hcloud image list --type backup -o columns=id,created,created_from,description
+
+  restore:
+    desc: "Restore server from a backup image (DESTRUCTIVE). Use: task backup:restore -- dev|prod <image-id>"
+    dir: "{{.TASK_DIR}}"
+    cmds:
+      - "../scripts/backup-restore.sh {{.CLI_ARGS | join \" \"}}"
+
+  restore-latest:
+    desc: "Restore server from the most recent backup (DESTRUCTIVE). Use: task backup:restore-latest -- dev|prod"
+    silent: true
+    vars:
+      WORKSPACE: "{{.CLI_ARGS}}"
+      SERVER_NAME: "platform-{{.CLI_ARGS}}"
+    preconditions:
+      - sh: '[ -n "{{.WORKSPACE}}" ]'
+        msg: "Usage: task backup:restore-latest -- <dev|prod>"
+      - sh: '[ "{{.WORKSPACE}}" = "dev" ] || [ "{{.WORKSPACE}}" = "prod" ]'
+        msg: "Invalid workspace. Use: dev or prod"
+    cmds:
+      - |
+        IMAGE_ID=$(hcloud image list --type backup -o json | jq -r --arg s "{{.SERVER_NAME}}" '[.[] | select(.created_from.name == $s)] | sort_by(.created) | reverse | .[0].id // empty')
+        if [ -z "$IMAGE_ID" ]; then
+          echo "No backup found for {{.SERVER_NAME}}."
+          exit 1
+        fi
+        echo "Latest backup for {{.SERVER_NAME}}: image ID $IMAGE_ID"
+        echo "⚠️  This will REPLACE the server disk. All current data will be lost."
+        echo ""
+        read -r -p "Type 'yes' to continue: " confirm
+        [ "$confirm" = "yes" ] || { echo "Aborted."; exit 1; }
+        hcloud server rebuild "{{.SERVER_NAME}}" --image "$IMAGE_ID"

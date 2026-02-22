@@ -16,6 +16,7 @@ includes:
   secrets: tasks/Taskfile.secrets.yml
   ansible: tasks/Taskfile.ansible.yml
   server: tasks/Taskfile.server.yml
+  backup: tasks/Taskfile.backup.yml
   test: tasks/Taskfile.test.yml
   registry: tasks/Taskfile.registry.yml
   app: tasks/Taskfile.app.yml
@@ -62,6 +63,11 @@ tasks:
         echo "Utilities:"
         echo "  task server:check-status               # Check if servers are up (checks both dev and prod)"
         echo "  task server:list-hetzner-keys          # List Hetzner SSH keys with IDs"
+        echo ""
+        echo "Backups (Hetzner):"
+        echo "  task backup:list           -- <dev|prod>   # List backup images"
+        echo "  task backup:restore       -- <dev|prod> <image-id>   # Restore from backup (destructive)"
+        echo "  task backup:restore-latest -- <dev|prod>   # Restore from latest backup (destructive)"
 
   # Internal validation tasks - used by other tasks via deps or direct calls
   _check:sops-key:
