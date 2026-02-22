@@ -35,10 +35,10 @@ jobs:
 
       - name: Install SOPS and yq
         run: |
-          # Install SOPS
-          curl -LO https://github.com/getsops/sops/releases/latest/download/sops-v3.11.0.linux.amd64
-          chmod +x sops-v3.11.0.linux.amd64
-          sudo mv sops-v3.11.0.linux.amd64 /usr/local/bin/sops
+          # Install SOPS (pin version: latest/download with old filename 404s when release is newer)
+          curl -sSLo sops https://github.com/getsops/sops/releases/download/v3.12.1/sops-v3.12.1.linux.amd64
+          chmod +x sops
+          sudo mv sops /usr/local/bin/sops
           # Install yq
           sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
           sudo chmod +x /usr/local/bin/yq
@@ -122,10 +122,10 @@ jobs:
 
       - name: Install SOPS and yq
         run: |
-          # Install SOPS
-          curl -LO https://github.com/getsops/sops/releases/latest/download/sops-v3.11.0.linux.amd64
-          chmod +x sops-v3.11.0.linux.amd64
-          sudo mv sops-v3.11.0.linux.amd64 /usr/local/bin/sops
+          # Install SOPS (pin version: latest/download with old filename 404s when release is newer)
+          curl -sSLo sops https://github.com/getsops/sops/releases/download/v3.12.1/sops-v3.12.1.linux.amd64
+          chmod +x sops
+          sudo mv sops /usr/local/bin/sops
           # Install yq
           sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
           sudo chmod +x /usr/local/bin/yq
