@@ -25,6 +25,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
+      - name: Get SOPS version from mise.toml
+        id: sops-version
+        run: echo "version=$(sed -n 's/^[[:space:]]*sops[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' mise.toml)" >> "$GITHUB_OUTPUT"
+
       - name: Setup SOPS key
         env:
           SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
@@ -35,8 +39,8 @@ jobs:
 
       - name: Install SOPS and yq
         run: |
-          # Install SOPS (pin version: latest/download with old filename 404s when release is newer)
-          curl -sSLo sops https://github.com/getsops/sops/releases/download/v3.12.1/sops-v3.12.1.linux.amd64
+          SOPS_VER="${{ steps.sops-version.outputs.version }}"
+          curl -sSLo sops "https://github.com/getsops/sops/releases/download/v${SOPS_VER}/sops-v${SOPS_VER}.linux.amd64"
           chmod +x sops
           sudo mv sops /usr/local/bin/sops
           # Install yq
@@ -112,6 +116,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
+      - name: Get SOPS version from mise.toml
+        id: sops-version
+        run: echo "version=$(sed -n 's/^[[:space:]]*sops[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' mise.toml)" >> "$GITHUB_OUTPUT"
+
       - name: Setup SOPS key
         env:
           SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
@@ -122,8 +130,8 @@ jobs:
 
       - name: Install SOPS and yq
         run: |
-          # Install SOPS (pin version: latest/download with old filename 404s when release is newer)
-          curl -sSLo sops https://github.com/getsops/sops/releases/download/v3.12.1/sops-v3.12.1.linux.amd64
+          SOPS_VER="${{ steps.sops-version.outputs.version }}"
+          curl -sSLo sops "https://github.com/getsops/sops/releases/download/v${SOPS_VER}/sops-v${SOPS_VER}.linux.amd64"
           chmod +x sops
           sudo mv sops /usr/local/bin/sops
           # Install yq
