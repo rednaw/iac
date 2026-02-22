@@ -7,7 +7,7 @@
 
 [tools]
 terraform  = "1.14.5"
-sops       = "3.11.0"
+sops       = "3.12.1"
 age        = "1.3.1"    # FiloSottile/age
 yq         = "4.52.4"
 task       = "3.48.0"   # go-task/task
