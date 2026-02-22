@@ -62,6 +62,7 @@ resource "hcloud_server" "platform" {
   location     = var.server_location
   ssh_keys     = local.ssh_keys
   firewall_ids = [hcloud_firewall.platform.id]
+  backups      = true
 
   labels = {
     environment = local.environment

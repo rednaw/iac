@@ -126,6 +126,8 @@ IMAGE_NAME: rednaw/tientje-ketama
 - `.env`: SOPS-encrypted environment variables (dotenv format); can be minimal if no secrets
 - `.sops.yaml`: SOPS config for the app (used when decrypting `.env`)
 
+**Note — `restart: unless-stopped`:** Add `restart: unless-stopped` to each service in `docker-compose.yml` (app, db, and any other services). Without it, when the server reboots or is restored from a backup, only the platform (Traefik, registry, OpenObserve) restarts; your app containers stay stopped and the site will be unavailable until you start them manually or redeploy. See [Backups](backups.md#after-an-in-place-restore) for context.
+
  The app service must use `image: ${IMAGE}`. 
 
 ### App development workflow
