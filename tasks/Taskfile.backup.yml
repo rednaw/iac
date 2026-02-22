@@ -49,6 +49,6 @@ tasks:
         echo "Latest backup for {{.SERVER_NAME}}: image ID $IMAGE_ID"
         echo "⚠️  This will REPLACE the server disk. All current data will be lost."
         echo ""
-        read -p "Type 'yes' to continue: " confirm
+        read -r -p "Type 'yes' to continue: " confirm
         [ "$confirm" = "yes" ] || { echo "Aborted."; exit 1; }
         hcloud server rebuild "{{.SERVER_NAME}}" --image "$IMAGE_ID"
