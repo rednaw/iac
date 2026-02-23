@@ -57,7 +57,7 @@ To expose an application through Traefik, add the following to your app's `docke
          - traefik
        labels:
          - traefik.enable=true
-         - traefik.http.routers.app.rule=Host(`dev.rednaw.nl`) || Host(`prod.rednaw.nl`)
+         - traefik.http.routers.app.rule=Host(`dev.<base_domain>`) || Host(`prod.<base_domain>`)   # e.g. rednaw.nl
          - traefik.http.routers.app.entrypoints=websecure
          - traefik.http.routers.app.tls.certresolver=letsencrypt
          - traefik.http.services.app.loadbalancer.server.port=3000  # Your app's internal port
@@ -80,21 +80,21 @@ Defined in `ansible/roles/server/templates/traefik-dynamic-middlewares.yml.j2`.
 ### Restart Traefik
 
 ```bash
-ssh ubuntu@dev.rednaw.nl 'sudo docker restart traefik'
+ssh ubuntu@dev.<base_domain> 'sudo docker restart traefik'   # e.g. dev.rednaw.nl
 ```
 
 ### View Logs
 
 ```bash
-ssh ubuntu@dev.rednaw.nl 'sudo docker logs traefik'
-ssh ubuntu@dev.rednaw.nl 'sudo tail -f /var/log/traefik/access.log'
+ssh ubuntu@dev.<base_domain> 'sudo docker logs traefik'   # e.g. dev.rednaw.nl
+ssh ubuntu@dev.<base_domain> 'sudo tail -f /var/log/traefik/access.log'
 ```
 
 ### Check Status
 
 ```bash
-ssh ubuntu@dev.rednaw.nl 'sudo docker ps | grep traefik'
-ssh ubuntu@dev.rednaw.nl 'sudo docker network inspect traefik'
+ssh ubuntu@dev.<base_domain> 'sudo docker ps | grep traefik'   # e.g. dev.rednaw.nl
+ssh ubuntu@dev.<base_domain> 'sudo docker network inspect traefik'
 ```
 
 ### Access Dashboard
@@ -122,7 +122,7 @@ Traefik access logs are monitored by fail2ban for:
 
 Check status:
 ```bash
-ssh ubuntu@dev.rednaw.nl 'sudo fail2ban-client status traefik-auth'
+ssh ubuntu@dev.<base_domain> 'sudo fail2ban-client status traefik-auth'   # e.g. dev.rednaw.nl
 ```
 
 ---

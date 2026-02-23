@@ -9,7 +9,7 @@ tasks:
       - |
         set -euo pipefail
 
-        REGISTRY="registry.rednaw.nl"
+        REGISTRY="${REGISTRY:?REGISTRY must be set by devcontainer (from base_domain in secrets)}"
         REPOS=$(crane catalog "$REGISTRY" 2>/dev/null || true)
         if [ -z "$REPOS" ]; then
           echo "⚠️  No repositories found (or access denied)"

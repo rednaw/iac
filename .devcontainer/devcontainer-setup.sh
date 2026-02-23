@@ -16,7 +16,6 @@ mise trust -a
 # Decrypt secrets once
 ########################################
 
-REGISTRY="${REGISTRY:-registry.rednaw.nl}"
 DOCKER_CONFIG="${HOME}/.docker/config.json"
 HCLOUD_CONFIG_DIR="${HOME}/.config/hcloud"
 HCLOUD_CONFIG_FILE="${HCLOUD_CONFIG_DIR}/cli.toml"
@@ -24,6 +23,18 @@ SOPS_KEY_FILE="${HOME}/.config/sops/age/keys.txt"
 SECRETS_FILE="${1:-secrets/infrastructure-secrets.yml}"
 
 DECRYPTED=$(SOPS_AGE_KEY_FILE="$SOPS_KEY_FILE" sops -d "$SECRETS_FILE")
+
+# Base domain and registry (parameterization: one value drives all hostnames)
+BASE_DOMAIN=$(echo "$DECRYPTED" | yq -r '.base_domain // "rednaw.nl"')
+REGISTRY="registry.${BASE_DOMAIN}"
+export BASE_DOMAIN REGISTRY
+
+# Persist for future shells (task, etc.)
+for profile in "${HOME}/.bashrc" "${HOME}/.zshrc"; do
+  [ -f "$profile" ] && ! grep -q "BASE_DOMAIN=" "$profile" 2>/dev/null && \
+    echo "export BASE_DOMAIN=\"$BASE_DOMAIN\"" >> "$profile" && \
+    echo "export REGISTRY=\"$REGISTRY\"" >> "$profile"
+done
 
 ########################################
 # Docker Registry (~/.docker/config.json)

@@ -5,7 +5,7 @@
 - name: Set Traefik facts (base_domain, app_environment)
   ansible.builtin.set_fact:
     app_environment: "{{ 'dev' if 'dev' in inventory_hostname else 'prod' }}"
-    base_domain: "{{ base_domain | default('rednaw.nl') }}"
+    base_domain: "{{ infrastructure_secrets.base_domain | default('rednaw.nl') }}"
 
 - name: Set Traefik redirect target
   ansible.builtin.set_fact:

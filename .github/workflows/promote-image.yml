@@ -11,7 +11,6 @@ permissions:
   contents: read
 
 env:
-  REGISTRY: registry.rednaw.nl
   IMAGE_REPO: iac/iac-dev
   DOCKER_BUILDKIT: 1
 
@@ -47,7 +46,7 @@ jobs:
           sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
           sudo chmod +x /usr/local/bin/yq
 
-      - name: Extract registry credentials from SOPS
+      - name: Extract registry credentials and base_domain from SOPS
         id: registry-creds
         env:
           SOPS_AGE_KEY_FILE: ~/.config/sops/age/keys.txt
@@ -55,13 +54,16 @@ jobs:
           DECRYPTED=$(sops -d secrets/infrastructure-secrets.yml)
           REGISTRY_USERNAME=$(echo "$DECRYPTED" | yq -r '.registry_username')
           REGISTRY_PASSWORD=$(echo "$DECRYPTED" | yq -r '.registry_password')
+          BASE_DOMAIN=$(echo "$DECRYPTED" | yq -r '.base_domain // "rednaw.nl"')
+          REGISTRY="registry.${BASE_DOMAIN}"
           echo "username=$REGISTRY_USERNAME" >> "$GITHUB_OUTPUT"
           echo "password=$REGISTRY_PASSWORD" >> "$GITHUB_OUTPUT"
+          echo "registry=$REGISTRY" >> "$GITHUB_OUTPUT"
 
       - name: Login to private registry
         uses: docker/login-action@v3
         with:
-          registry: ${{ env.REGISTRY }}
+          registry: ${{ steps.registry-creds.outputs.registry }}
           username: ${{ steps.registry-creds.outputs.username }}
           password: ${{ steps.registry-creds.outputs.password }}
 
@@ -69,9 +71,9 @@ jobs:
       - name: Promote existing image to latest
         id: promote
         run: |
-          if docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_REPO }}:${{ github.sha }} 2>/dev/null; then
-            docker tag ${{ env.REGISTRY }}/${{ env.IMAGE_REPO }}:${{ github.sha }} ${{ env.REGISTRY }}/${{ env.IMAGE_REPO }}:latest
-            docker push ${{ env.REGISTRY }}/${{ env.IMAGE_REPO }}:latest
+          if docker pull ${{ steps.registry-creds.outputs.registry }}/${{ env.IMAGE_REPO }}:${{ github.sha }} 2>/dev/null; then
+            docker tag ${{ steps.registry-creds.outputs.registry }}/${{ env.IMAGE_REPO }}:${{ github.sha }} ${{ steps.registry-creds.outputs.registry }}/${{ env.IMAGE_REPO }}:latest
+            docker push ${{ steps.registry-creds.outputs.registry }}/${{ env.IMAGE_REPO }}:latest
             echo "promoted=true" >> "$GITHUB_OUTPUT"
           else
             echo "promoted=false" >> "$GITHUB_OUTPUT"
@@ -89,7 +91,7 @@ jobs:
           context: .
           push: false
           load: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_REPO }}:latest
+          tags: ${{ steps.registry-creds.outputs.registry }}/${{ env.IMAGE_REPO }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
@@ -102,7 +104,7 @@ jobs:
           docker run --rm \
             -v ${{ github.workspace }}:/workspace \
             -w /workspace \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_REPO }}:latest \
+            ${{ steps.registry-creds.outputs.registry }}/${{ env.IMAGE_REPO }}:latest \
             sh -c "mise trust -a && task test:terraform:security"
 
       - name: Terraform validation
@@ -114,7 +116,7 @@ jobs:
             -w /workspace \
             -e SOPS_AGE_KEY_FILE=/home/vscode/.config/sops/age/keys.txt \
             -e TF_DATA_DIR=/tmp/terraform-validate \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_REPO }}:latest \
+            ${{ steps.registry-creds.outputs.registry }}/${{ env.IMAGE_REPO }}:latest \
             sh -c "mise trust -a && task test:terraform:validate"
 
       - name: Ansible lint
@@ -123,7 +125,7 @@ jobs:
           docker run --rm \
             -v ${{ github.workspace }}:/workspace \
             -w /workspace \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_REPO }}:latest \
+            ${{ steps.registry-creds.outputs.registry }}/${{ env.IMAGE_REPO }}:latest \
             sh -c "mise trust -a && task test:ansible:lint"
 
       - name: Ansible collections and syntax
@@ -132,7 +134,7 @@ jobs:
           docker run --rm \
             -v ${{ github.workspace }}:/workspace \
             -w /workspace \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_REPO }}:latest \
+            ${{ steps.registry-creds.outputs.registry }}/${{ env.IMAGE_REPO }}:latest \
             sh -c "mise trust -a && ansible-galaxy collection install -r ansible/requirements.yml && task test:ansible:syntax"
 
       - name: Taskfile validation
@@ -141,9 +143,9 @@ jobs:
           docker run --rm \
             -v ${{ github.workspace }}:/workspace \
             -w /workspace \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_REPO }}:latest \
+            ${{ steps.registry-creds.outputs.registry }}/${{ env.IMAGE_REPO }}:latest \
             sh -c "mise trust -a && task test:taskfiles"
 
       - name: Push image to registry (no existing image)
         if: steps.promote.outputs.promoted != 'true'
-        run: docker push ${{ env.REGISTRY }}/${{ env.IMAGE_REPO }}:latest
+        run: docker push ${{ steps.registry-creds.outputs.registry }}/${{ env.IMAGE_REPO }}:latest
