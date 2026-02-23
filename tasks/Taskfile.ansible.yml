@@ -41,4 +41,5 @@ tasks:
     cmds:
       - |
         echo "⚙️  Running full Ansible playbook for workspace: {{.WORKSPACE}}..."
-        ansible-playbook -i "inventory/{{.WORKSPACE}}.ini" playbooks/server.yml
+        HOSTNAME=$(task hostkeys:hostname -- "{{.WORKSPACE}}")
+        ansible-playbook -i "${HOSTNAME}," playbooks/server.yml

@@ -61,7 +61,7 @@ The devcontainer mounts four files from your app repo at /app: `iac.yml`, `docke
 
 **Required files** — Each app must have all four. `.env` can be minimal (e.g. empty or a comment) if the app has no secrets; it must exist. `.sops.yaml` is the SOPS config for the app (used when decrypting `.env`). The IAC devcontainer includes the **dotenv** extension and `files.associations` so SOPS-decrypted `.env` files are edited as dotenv.
 
-**Traefik (routing)** — The app's `docker-compose.yml` must attach the app service to the external `traefik` network and add Traefik labels so the reverse proxy routes traffic. See [Traefik documentation](traefik.md#adding-an-application) for details: add `networks: [ default, traefik ]`, `networks.traefik.external: true`, and labels for the router rule (e.g. `Host(\`dev.rednaw.nl\`) || Host(\`prod.rednaw.nl\`)`), entrypoints, TLS cert resolver, and loadbalancer server port.
+**Traefik (routing)** — The app's `docker-compose.yml` must attach the app service to the external `traefik` network and add Traefik labels so the reverse proxy routes traffic. See [Traefik documentation](traefik.md#adding-an-application) for details: add `networks: [ default, traefik ]`, `networks.traefik.external: true`, and labels for the router rule (e.g. `Host(\`dev.<base_domain>\`) || Host(\`prod.<base_domain>\`)` — e.g. rednaw.nl), entrypoints, TLS cert resolver, and loadbalancer server port.
 
 ## Commands
 
@@ -112,12 +112,12 @@ task app:deploy -- prod abc1234
 Applications declare deployment settings in an **`iac.yml`** file in the app repository root:
 
 ```yaml
-REGISTRY_NAME: registry.rednaw.nl
+REGISTRY_NAME: registry.<base_domain>   # e.g. registry.rednaw.nl
 IMAGE_NAME: rednaw/tientje-ketama
 ```
 
 **Required keys:**
-- `REGISTRY_NAME`: Docker registry hostname
+- `REGISTRY_NAME`: Docker registry hostname (matches your platform's base domain, e.g. `registry.rednaw.nl`)
 - `IMAGE_NAME`: Image name in the registry
 
 **Required files in app directory (mounted at `/workspaces/iac/app`):**
@@ -148,7 +148,7 @@ app: tientje-ketama
 workspace: prod
 
 image:
-  repo: registry.rednaw.nl/rednaw/tientje-ketama
+  repo: registry.<base_domain>/rednaw/tientje-ketama   # e.g. registry.rednaw.nl
   tag: 706c88c
   digest: sha256:99f9385b2f625e7d656aaff2c8eb5ef73c2e2913626ba162428473ec09241928
   description: "add healthcheck + fix proxy header"

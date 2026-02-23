@@ -41,7 +41,7 @@
     content: |
       {
         "auths": {
-          "{{ infrastructure_secrets.registry_domain }}": {
+          "registry.{{ base_domain }}": {
             "auth": "{{ (infrastructure_secrets.registry_username + ':' + infrastructure_secrets.registry_password) | b64encode }}"
           }
         }
