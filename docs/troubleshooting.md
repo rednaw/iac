@@ -10,7 +10,7 @@
 - If you are running Terraform **outside** the devcontainer, run `terraform login` or create `~/.terraform.d/credentials.tfrc.json` with your token.
 
 **Connection timeout**
-- Check hostname: `task server:check-status`. Ensure `dev.rednaw.nl` / `prod.rednaw.nl` resolve and point at the server.
+- Check hostname: `task server:check-status`. Ensure `dev.<base_domain>` / `prod.<base_domain>` (e.g. `dev.rednaw.nl` / `prod.rednaw.nl`) resolve and point at the server.
 - Server may need 30-60 seconds to boot after `terraform apply`
 
 **"Module not found" (Ansible)**

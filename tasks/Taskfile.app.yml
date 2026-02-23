@@ -46,9 +46,10 @@ tasks:
         IMAGE_NAME=$(yq -r '.IMAGE_NAME' "{{.APP_ROOT}}/iac.yml")
         
         # Run Ansible deployment
+        HOSTNAME=$(task hostkeys:hostname -- "{{.WORKSPACE}}")
         ANSIBLE_CONFIG="{{.IAC_ROOT}}/ansible/ansible.cfg" \
         ansible-playbook \
-          -i "{{.IAC_ROOT}}/ansible/inventory/{{.WORKSPACE}}.ini" \
+          -i "${HOSTNAME}," \
           "{{.IAC_ROOT}}/ansible/playbooks/deploy-app.yml" \
           -e "app_root={{.APP_ROOT}}" \
           -e "workspace={{.WORKSPACE}}" \

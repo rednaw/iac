@@ -2,6 +2,7 @@
 version: '3'
 
 # Workspace → hostname mapping (single source of truth).
+# BASE_DOMAIN is set by devcontainer-setup.sh from secrets.
 
 tasks:
   hostname:
@@ -14,11 +15,13 @@ tasks:
         msg: "Workspace required. Usage: task hostkeys:hostname -- <dev|prod>"
       - sh: '[ "{{.WORKSPACE}}" = "dev" ] || [ "{{.WORKSPACE}}" = "prod" ]'
         msg: "Invalid workspace '{{.WORKSPACE}}'. Use: dev or prod"
+      - sh: '[ -n "${BASE_DOMAIN:-}" ]'
+        msg: "BASE_DOMAIN must be set by devcontainer (from base_domain in secrets)"
     cmds:
       - |
         case "{{.WORKSPACE}}" in
-          dev)  echo "dev.rednaw.nl" ;;
-          prod) echo "prod.rednaw.nl" ;;
+          dev)  echo "dev.${BASE_DOMAIN}" ;;
+          prod) echo "prod.${BASE_DOMAIN}" ;;
         esac
 
   prepare:
@@ -31,17 +34,18 @@ tasks:
         msg: "Workspace required. Usage: task hostkeys:prepare -- <dev|prod>"
       - sh: '[ "{{.WORKSPACE}}" = "dev" ] || [ "{{.WORKSPACE}}" = "prod" ]'
         msg: "Invalid workspace '{{.WORKSPACE}}'. Use: dev or prod"
+      - sh: '[ -n "${BASE_DOMAIN:-}" ]'
+        msg: "BASE_DOMAIN must be set by devcontainer (from base_domain in secrets)"
     cmds:
       - |
         case "{{.WORKSPACE}}" in
-          dev)  HOSTNAME="dev.rednaw.nl" ;;
-          prod) HOSTNAME="prod.rednaw.nl" ;;
+          dev)  HOSTNAME="dev.${BASE_DOMAIN}" ;;
+          prod) HOSTNAME="prod.${BASE_DOMAIN}" ;;
         esac
-        # Extract domain by removing workspace prefix (e.g., dev.rednaw.nl -> rednaw.nl)
+        # Extract domain by removing workspace prefix (e.g., dev.<base_domain> -> <base_domain>)
         DOMAIN="${HOSTNAME#*.}"
         KEYFILE="${HOME}/.ssh/known_hosts"
         [ ! -f "$KEYFILE" ] && exit 0
-        # Remove all variants: dev.rednaw.nl, rednaw.nl, [dev.rednaw.nl]:22, [rednaw.nl]:22
         for name in "$HOSTNAME" "$DOMAIN" "[${HOSTNAME}]:22" "[${DOMAIN}]:22"; do
           ssh-keygen -R "$name" -f "$KEYFILE" -q 2>/dev/null || true
         done

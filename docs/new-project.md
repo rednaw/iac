@@ -50,7 +50,7 @@ Create `secrets/infrastructure-secrets.yml` (plain YAML) with at least:
 - `hcloud_token` — Hetzner Cloud API token
 - `ssh_keys` — list of Hetzner SSH key IDs, e.g. `["12345678"]`
 - `allowed_ssh_ips` — list of CIDRs allowed to SSH, e.g. `["203.0.113.50/32"]`
-- `registry_username`, `registry_password`, `registry_domain`, `registry_http_secret` — registry auth and config
+- `registry_username`, `registry_password`, `base_domain`, `registry_http_secret` — registry auth and config (registry hostname is `registry.<base_domain>`)
 - `terraform_cloud_token` — Terraform Cloud API token (used by the devcontainer to write `~/.terraform.d/credentials.tfrc.json`)
 
 The devcontainer reads `hcloud_token` and `terraform_cloud_token` from this file at startup and writes hcloud and Terraform credentials so you do not need to run `hcloud context create` or `task terraform:login` manually.

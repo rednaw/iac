@@ -56,6 +56,20 @@ Both are encrypted and committed to Git.
 
 ---
 
+## Platform parameterization (base_domain)
+
+The infrastructure secrets file must include `base_domain` (e.g. `rednaw.nl`). Registry and hostnames are derived from it: `registry.<base_domain>`, `dev.<base_domain>`, `prod.<base_domain>`.
+
+**Migrating from `registry_domain`:** If your secrets file still has `registry_domain` instead of `base_domain`, run from the IaC repo root (inside the devcontainer):
+
+```bash
+./scripts/migrate-secrets-parameterization.sh
+```
+
+This adds `base_domain` (derived from `registry_domain` or default `rednaw.nl`) and removes `registry_domain`. Re-encrypts in place.
+
+---
+
 ## Adding a new person
 
 When someone joins, they generate a key and get added to the keyring:

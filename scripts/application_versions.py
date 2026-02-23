@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import sys
+import os
 import subprocess
 import yaml
 import json
@@ -30,13 +31,12 @@ def die(message: str):
 # ------------------------------------------------------------
 
 def get_hostname(workspace: str) -> str:
-    hostnames = {
-        "dev": "dev.rednaw.nl",
-        "prod": "prod.rednaw.nl",
-    }
-    if workspace not in hostnames:
+    if workspace not in ("dev", "prod"):
         die(f"Invalid workspace '{workspace}'. Use: dev or prod")
-    return hostnames[workspace]
+    base_domain = os.environ.get("BASE_DOMAIN")
+    if not base_domain:
+        die("BASE_DOMAIN must be set by devcontainer (from base_domain in secrets)")
+    return f"{workspace}.{base_domain}"
 
 
 def read_remote_file(hostname: str, path: str) -> str:

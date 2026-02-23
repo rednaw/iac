@@ -24,7 +24,7 @@ tasks:
           echo "Workspace 'platform-{{.WORKSPACE}}' not found in Terraform Cloud"
           echo ""
           echo "Create the workspace first in Terraform Cloud:"
-          echo "  1. Go to Terraform Cloud → Organization 'rednaw'"
+          echo "  1. Go to Terraform Cloud → your organization"
           echo "  2. Create workspace: 'platform-{{.WORKSPACE}}'"
           echo ""
           echo "See README.md for detailed setup instructions."
