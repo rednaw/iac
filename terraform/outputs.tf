@@ -10,11 +10,6 @@ output "server_ipv6" {
 
 output "ssh_command" {
   description = "Command to SSH into the server (as ubuntu user for manual admin work)"
-  value       = "ssh ubuntu@${hcloud_server.platform.ipv4_address}"
-}
-
-output "server_name" {
-  description = "Name of the server (for SSH config host alias)"
-  value       = var.server_name
+  value       = nonsensitive("ssh ubuntu@${local.environment}.${local.base_domain}")
 }
 
