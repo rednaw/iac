@@ -1,9 +1,9 @@
 ---
 # Docker Registry v3 installation, configuration and authentication setup
 
-- name: Install apache2-utils for htpasswd
+- name: Install Python passlib for htpasswd module
   ansible.builtin.apt:
-    name: apache2-utils
+    name: python3-passlib
     state: present
     update_cache: true
 
@@ -23,22 +23,15 @@
     group: root
     mode: '0755'
 
-- name: Generate htpasswd file for Traefik
-  ansible.builtin.command: >
-    htpasswd -Bbn
-    {{ infrastructure_secrets.registry_username }}
-    {{ infrastructure_secrets.registry_password }}
-  register: htpasswd_output
-  changed_when: true
-  no_log: true
-
-- name: Write htpasswd to Traefik auth directory
-  ansible.builtin.copy:
-    content: "{{ htpasswd_output.stdout }}\n"
-    dest: /etc/traefik/auth/htpasswd
-    mode: '0644'
+- name: Create htpasswd file for Traefik registry auth
+  community.general.htpasswd:
+    path: /etc/traefik/auth/htpasswd
+    name: "{{ infrastructure_secrets.registry_username }}"
+    password: "{{ infrastructure_secrets.registry_password }}"
+    hash_scheme: bcrypt
     owner: root
     group: root
+    mode: '0644'
   no_log: true
 
 - name: Generate registry config file
