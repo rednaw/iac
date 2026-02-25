@@ -7,15 +7,25 @@
     state: directory
     mode: '0755'
 
-- name: Import Docker GPG key to keyring
-  ansible.builtin.shell: |
-    set -o pipefail
-    rm -f /usr/share/keyrings/docker-archive-keyring.gpg
-    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
-    chmod 644 /usr/share/keyrings/docker-archive-keyring.gpg
-  args:
+- name: Check if Docker keyring exists
+  ansible.builtin.stat:
+    path: /usr/share/keyrings/docker-archive-keyring.gpg
+  register: docker_keyring_stat
+
+- name: Download Docker GPG key (raw)
+  ansible.builtin.get_url:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    dest: /usr/share/keyrings/docker-archive-keyring.asc
+    mode: '0644'
+  when: not docker_keyring_stat.stat.exists
+
+- name: Dearmor Docker GPG key to keyring
+  ansible.builtin.shell:
+    cmd: |
+      gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg /usr/share/keyrings/docker-archive-keyring.asc
+      chmod 644 /usr/share/keyrings/docker-archive-keyring.gpg
     executable: /bin/bash
-  changed_when: false
+    creates: /usr/share/keyrings/docker-archive-keyring.gpg
 
 - name: Add Docker repository
   ansible.builtin.apt_repository:
