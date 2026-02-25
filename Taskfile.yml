@@ -16,6 +16,7 @@ includes:
   secrets: tasks/Taskfile.secrets.yml
   ansible: tasks/Taskfile.ansible.yml
   server: tasks/Taskfile.server.yml
+  tunnel: tasks/Taskfile.tunnel.yml
   backup: tasks/Taskfile.backup.yml
   test: tasks/Taskfile.test.yml
   registry: tasks/Taskfile.registry.yml
@@ -46,16 +47,20 @@ tasks:
         echo "  task ansible:bootstrap -- <workspace>  # One-time bootstrap as root (dev or prod)"
         echo "  task ansible:run       -- <workspace>  # Configure server (Docker, Traefik, security)"
         echo ""
+        echo "Application Deployment:"
+        echo "  task app:deploy   -- <env> <sha>       # Deploy application to dev or prod"
+        echo "  task app:versions -- <env>             # List available image versions"
+        echo ""
         echo "Testing:"
         echo "  task test:run                          # Run all tests (validate, format check, security scan)"
+        echo ""
+        echo "SSH Tunnel:"
+        echo "  task tunnel:start -- <workspace>       # Start SSH tunnel (dev or prod)"
+        echo "  task tunnel:stop  -- <workspace>       # Stop SSH tunnel (dev or prod)"
         echo ""
         echo "Secrets Management (SOPS):"
         echo "  task secrets:keygen                    # Generate age key pair"
         echo "  task secrets:generate-sops-config      # Generate .sops.yaml"
-        echo ""
-        echo "Application Deployment:"
-        echo "  task app:deploy   -- <env> <sha>"
-        echo "  task app:versions -- <env>"
         echo ""
         echo "Registry:"
         echo "  task registry:overview                 # List tags (TAG, CREATED, DESCRIPTION) for all repos"
@@ -65,18 +70,20 @@ tasks:
         echo "  task server:list-hetzner-keys          # List Hetzner SSH keys with IDs"
         echo ""
         echo "Backups (Hetzner):"
-        echo "  task backup:list           -- <dev|prod>   # List backup images"
-        echo "  task backup:restore       -- <dev|prod> <image-id>   # Restore from backup (destructive)"
-        echo "  task backup:restore-latest -- <dev|prod>   # Restore from latest backup (destructive)"
+        echo "  task backup:list           -- <dev|prod>             # List backup images"
+        echo "  task backup:restore        -- <dev|prod> <image-id>  # Restore from backup (destructive)"
+        echo "  task backup:restore-latest -- <dev|prod>             # Restore from latest backup (destructive)"
 
   # Internal validation tasks - used by other tasks via deps or direct calls
   _check:sops-key:
+    desc: "(internal) Ensure SOPS key exists"
     internal: true
     preconditions:
       - sh: test -f "{{.SOPS_KEY_FILE}}"
         msg: "SOPS key file not found. Run 'task secrets:keygen' first."
 
   _check:workspace:
+    desc: "(internal) Validate workspace argument (dev|prod)"
     internal: true
     preconditions:
       - sh: '[ -n "{{.WORKSPACE}}" ]'
