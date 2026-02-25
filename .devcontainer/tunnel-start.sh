@@ -22,11 +22,11 @@ RETRIES=3
 INTERVAL=3
 
 for i in $(seq 1 "$RETRIES"); do
-    if task server:tunnel-start -- "$WORKSPACE" > "$LOG" 2>&1; then
+    if task tunnel:start -- "$WORKSPACE" > "$LOG" 2>&1; then
         echo "✅ Tunnel to $WORKSPACE is running."
         echo ""
         echo "📊 Dashboards: http://localhost:8080/dashboard/ (Traefik), http://localhost:5080/ (OpenObserve)"
-        echo "💡 Stop: task server:tunnel-stop -- $WORKSPACE"
+        echo "💡 Stop: task tunnel:stop -- $WORKSPACE"
         exit 0
     fi
     if [[ $i -lt $RETRIES ]]; then
@@ -36,7 +36,7 @@ for i in $(seq 1 "$RETRIES"); do
 done
 
 echo "⚠️  Tunnel could not be started after $RETRIES attempts (server down or unreachable)."
-echo "   Devcontainer is ready. To retry: task server:tunnel-start -- $WORKSPACE"
+echo "   Devcontainer is ready. To retry: task tunnel:start -- $WORKSPACE"
 echo "   Details: $LOG"
 cat "$LOG"
 exit 0

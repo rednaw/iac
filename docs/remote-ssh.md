@@ -24,17 +24,16 @@ flowchart LR
 
 ---
 
-## Option 1: Devcontainer tunnel (default)
+## Option 1: SSH tunnel
 
-Open this repo in the devcontainer. A tunnel to the server starts automatically (with retries).
+Open this repo in the devcontainer. When you need the admin UIs, start the tunnel manually: `task tunnel:start -- dev` (or `prod`).
 
 | What | URL |
 |------|-----|
 | Traefik dashboard (internal) | http://localhost:8080/dashboard/ |
 | OpenObserve (internal) | http://localhost:5080/ |
 
-- **Server down?** The devcontainer still opens. Start the tunnel later: `task server:tunnel-start -- dev` (or `prod`).
-- **Tunnel to prod by default?** Set `AUTO_START_TUNNEL=prod` in your environment.
+Close the tunnel again with: `task tunnel:stop -- dev` (or `prod`).
 
 ---
 
@@ -67,6 +66,6 @@ Traefik and OpenObserve are internal only (no public DNS); use the tunnel URLs. 
 | Traefik dashboard | http://localhost:8080/dashboard/ | Basic auth (see `/etc/traefik/auth/htpasswd` on server) |
 | OpenObserve | http://localhost:5080/ | `openobserve_username@observe.local`, password from `secrets/infrastructure-secrets.yml` |
 
-**Traefik or OpenObserve not loading?** The tunnel may have dropped (e.g. after a reboot). Run `task server:tunnel-start -- dev` (or `prod`) again.
+**Traefik or OpenObserve not loading?** The tunnel may have dropped (e.g. after a reboot). Run `task tunnel:start -- dev` (or `prod`) again.
 
 ---
