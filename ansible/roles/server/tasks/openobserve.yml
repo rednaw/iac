@@ -39,13 +39,13 @@
 
 - name: Pull OpenObserve image
   community.docker.docker_image:
-    name: openobserve/openobserve:latest
+    name: openobserve/openobserve:v0.60.0
     source: pull
 
 - name: Ensure OpenObserve container is running
   community.docker.docker_container:
     name: openobserve
-    image: openobserve/openobserve:latest
+    image: openobserve/openobserve:v0.60.0
     state: started
     restart_policy: unless-stopped
     log_driver: json-file
@@ -73,13 +73,13 @@
 
 - name: Pull OpenTelemetry Collector image
   community.docker.docker_image:
-    name: otel/opentelemetry-collector-contrib:latest
+    name: otel/opentelemetry-collector-contrib:0.146.1
     source: pull
 
 - name: Ensure OTEL Collector container is running (Linux host metrics + Docker + logs -> OpenObserve)
   community.docker.docker_container:
     name: otel-collector
-    image: otel/opentelemetry-collector-contrib:latest
+    image: otel/opentelemetry-collector-contrib:0.146.1
     state: started
     restart_policy: unless-stopped
     log_driver: json-file

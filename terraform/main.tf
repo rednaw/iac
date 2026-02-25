@@ -52,8 +52,8 @@ resource "hcloud_server" "platform" {
       error_message = "Invalid SSH key IDs found. All SSH key IDs must be numeric. Please check your infrastructure-secrets.yml file."
     }
     precondition {
-      condition     = contains(["dev", "prod"], local.env)
-      error_message = "Invalid environment '${local.env}'. Use: dev or prod"
+      condition     = contains(["dev", "prod"], local.environment)
+      error_message = "Invalid environment '${local.environment}'. Use: dev or prod"
     }
   }
   name         = local.server_name

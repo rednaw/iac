@@ -52,4 +52,9 @@ locals {
     ip if !can(cidrhost(length(regexall("/", ip)) > 0 ? ip : "${ip}/32", 0))
   ]
   allowed_ssh_ips = local.allowed_ssh_ips_list_validated
+
+  base_domain = try(
+    local.secrets["base_domain"],
+    error("base_domain is required in infrastructure-secrets.yml but was not found")
+  )
 }

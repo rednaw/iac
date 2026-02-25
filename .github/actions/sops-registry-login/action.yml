@@ -1,0 +1,61 @@
+# Composite action: decrypt infrastructure secrets with SOPS and log in to the private Docker registry.
+# Credentials are used only inside this action for docker login; only the registry hostname is output.
+
+name: 'SOPS decrypt and registry login'
+description: 'Decrypt infrastructure-secrets.yml with SOPS and log in to the private Docker registry. Outputs registry hostname only.'
+
+inputs:
+  sops_age_key:
+    description: 'SOPS AGE key for decrypting the secrets file'
+    required: true
+  secrets_file:
+    description: 'Path to SOPS-encrypted secrets file (relative to repo root)'
+    default: 'secrets/infrastructure-secrets.yml'
+
+outputs:
+  registry:
+    description: 'Docker registry hostname (e.g. registry.example.com)'
+    value: ${{ steps.login.outputs.registry }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Get SOPS version from mise.toml
+      id: sops-version
+      shell: bash
+      run: |
+        version=$(sed -n 's/^[[:space:]]*sops[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' mise.toml)
+        echo "version=$version" >> "$GITHUB_OUTPUT"
+
+    - name: Setup SOPS key
+      shell: bash
+      env:
+        SOPS_AGE_KEY: ${{ inputs.sops_age_key }}
+      run: |
+        mkdir -p ~/.config/sops/age
+        echo "$SOPS_AGE_KEY" > ~/.config/sops/age/keys.txt
+        chmod 600 ~/.config/sops/age/keys.txt
+
+    - name: Install SOPS and yq
+      shell: bash
+      run: |
+        SOPS_VER="${{ steps.sops-version.outputs.version }}"
+        curl -sSLo sops "https://github.com/getsops/sops/releases/download/v${SOPS_VER}/sops-v${SOPS_VER}.linux.amd64"
+        chmod +x sops
+        sudo mv sops /usr/local/bin/sops
+        sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+        sudo chmod +x /usr/local/bin/yq
+
+    - name: Decrypt and log in to registry
+      id: login
+      shell: bash
+      env:
+        SOPS_AGE_KEY_FILE: ~/.config/sops/age/keys.txt
+      run: |
+        DECRYPTED=$(sops -d "${{ inputs.secrets_file }}")
+        REGISTRY_USERNAME=$(echo "$DECRYPTED" | yq -r '.registry_username')
+        REGISTRY_PASSWORD=$(echo "$DECRYPTED" | yq -r '.registry_password')
+        BASE_DOMAIN=$(echo "$DECRYPTED" | yq -r '.base_domain // "rednaw.nl"')
+        REGISTRY="registry.${BASE_DOMAIN}"
+        echo "registry=$REGISTRY" >> "$GITHUB_OUTPUT"
+        echo "$REGISTRY_PASSWORD" | docker login "$REGISTRY" -u "$REGISTRY_USERNAME" --password-stdin
