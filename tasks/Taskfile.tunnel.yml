@@ -1,0 +1,51 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+version: '3'
+
+# SSH tunnel for admin UIs (Traefik, OpenObserve). Run manually when needed.
+
+tasks:
+  start:
+    desc: "Start SSH tunnel to workspace for admin UIs. Use: task tunnel:start -- dev|prod"
+    silent: true
+    vars:
+      WORKSPACE: "{{.CLI_ARGS}}"
+    preconditions:
+      - sh: '[ -n "{{.WORKSPACE}}" ]'
+        msg: "Workspace required. Usage: task tunnel:start -- <dev|prod>"
+      - sh: '[ "{{.WORKSPACE}}" = "dev" ] || [ "{{.WORKSPACE}}" = "prod" ]'
+        msg: "Invalid workspace. Use: dev or prod"
+    cmds:
+      - |
+        HOSTNAME=$(task hostkeys:hostname -- "{{.WORKSPACE}}")
+        if pgrep -f "ssh.*-L 5080:localhost:5080.*ubuntu@$HOSTNAME" >/dev/null 2>&1; then
+          echo "Tunnel to {{.WORKSPACE}} already running."
+          echo "  Traefik Dashboard: http://localhost:8080/dashboard/"
+          echo "  OpenObserve:       http://localhost:5080/"
+          exit 0
+        fi
+        ssh -f -N -L 5080:localhost:5080 -L 8080:localhost:8080 -o StrictHostKeyChecking=accept-new "ubuntu@$HOSTNAME" || { echo "Failed to start tunnel."; exit 1; }
+        echo "Tunnel to {{.WORKSPACE}} started."
+        echo "  Traefik Dashboard: http://localhost:8080/dashboard/"
+        echo "  OpenObserve:       http://localhost:5080/"
+        echo "  Stop: task tunnel:stop -- {{.WORKSPACE}}"
+
+  stop:
+    desc: "Stop SSH tunnel for workspace. Use: task tunnel:stop -- dev|prod"
+    silent: true
+    vars:
+      WORKSPACE: "{{.CLI_ARGS}}"
+    preconditions:
+      - sh: '[ -n "{{.WORKSPACE}}" ]'
+        msg: "Workspace required. Usage: task tunnel:stop -- <dev|prod>"
+      - sh: '[ "{{.WORKSPACE}}" = "dev" ] || [ "{{.WORKSPACE}}" = "prod" ]'
+        msg: "Invalid workspace. Use: dev or prod"
+    cmds:
+      - |
+        HOSTNAME=$(task hostkeys:hostname -- "{{.WORKSPACE}}")
+        PIDS=$(pgrep -f "ssh.*-L 5080:localhost:5080.*ubuntu@$HOSTNAME" 2>/dev/null) || true
+        if [ -z "$PIDS" ]; then
+          echo "No tunnel to {{.WORKSPACE}} running."
+        else
+          echo "$PIDS" | xargs kill 2>/dev/null || true
+          echo "Tunnel to {{.WORKSPACE}} stopped."
+        fi
