@@ -1,5 +1,5 @@
 # Python CLI tools and script deps for the devcontainer / CI image.
 # Install with: pip install -r requirements.txt (in a venv)
-ansible == 13.3.0
+ansible ==13.4.0
 ansible-lint == 26.1.1
 PyYAML == 6.0.3
