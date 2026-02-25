@@ -55,7 +55,7 @@ runs:
         DECRYPTED=$(sops -d "${{ inputs.secrets_file }}")
         REGISTRY_USERNAME=$(echo "$DECRYPTED" | yq -r '.registry_username')
         REGISTRY_PASSWORD=$(echo "$DECRYPTED" | yq -r '.registry_password')
-        BASE_DOMAIN=$(echo "$DECRYPTED" | yq -r '.base_domain // "aapnoot.nl"')
+        BASE_DOMAIN=$(echo "$DECRYPTED" | yq -r '.base_domain // "rednaw.nl"')
         REGISTRY="registry.${BASE_DOMAIN}"
         echo "registry=$REGISTRY" >> "$GITHUB_OUTPUT"
         echo "$REGISTRY_PASSWORD" | docker login "$REGISTRY" -u "$REGISTRY_USERNAME" --password-stdin
