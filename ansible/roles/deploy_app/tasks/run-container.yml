@@ -7,14 +7,6 @@
 # Outputs:
 #   deploy_result: Docker Compose deployment result
 
-- name: Remove existing containers
-  community.docker.docker_compose_v2:
-    project_src: "{{ deploy_target }}"
-    state: absent
-  become: true
-  become_user: deploy
-  failed_when: false  # OK to fail if no containers exist yet
-
 - name: Start application containers
   community.docker.docker_compose_v2:
     project_src: "{{ deploy_target }}"
