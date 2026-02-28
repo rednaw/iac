@@ -45,7 +45,7 @@
 - name: Ensure OpenObserve container is running
   community.docker.docker_container:
     name: openobserve
-    image: openobserve/openobserve:v0.60.1
+    image: openobserve/openobserve:v0.60.2
     state: started
     restart_policy: unless-stopped
     log_driver: json-file
