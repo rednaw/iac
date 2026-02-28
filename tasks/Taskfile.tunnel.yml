@@ -16,15 +16,14 @@ tasks:
         msg: "Invalid workspace. Use: dev or prod"
     cmds:
       - |
-        HOSTNAME=$(task hostkeys:hostname -- "{{.WORKSPACE}}")
-        if pgrep -f "ssh.*-L 5080:localhost:5080.*ubuntu@$HOSTNAME" >/dev/null 2>&1; then
+        if pgrep -f "ssh.*-f.*-N.*{{.WORKSPACE}}" >/dev/null 2>&1; then
           echo "Tunnel to {{.WORKSPACE}} already running."
           echo "  Traefik Dashboard: http://localhost:8080/dashboard/"
           echo "  OpenObserve:       http://localhost:5080/"
           exit 0
         fi
-        ssh -f -N -L 5080:localhost:5080 -L 8080:localhost:8080 -o StrictHostKeyChecking=accept-new "ubuntu@$HOSTNAME" || { echo "Failed to start tunnel."; exit 1; }
-        echo "Tunnel to {{.WORKSPACE}} started."
+        ssh -f -N {{.WORKSPACE}} || { echo "Failed to start tunnel."; exit 1; }
+        echo "Tunnel to {{.WORKSPACE}} started (uses Host {{.WORKSPACE}} from SSH config)."
         echo "  Traefik Dashboard: http://localhost:8080/dashboard/"
         echo "  OpenObserve:       http://localhost:5080/"
         echo "  Stop: task tunnel:stop -- {{.WORKSPACE}}"
@@ -41,8 +40,7 @@ tasks:
         msg: "Invalid workspace. Use: dev or prod"
     cmds:
       - |
-        HOSTNAME=$(task hostkeys:hostname -- "{{.WORKSPACE}}")
-        PIDS=$(pgrep -f "ssh.*-L 5080:localhost:5080.*ubuntu@$HOSTNAME" 2>/dev/null) || true
+        PIDS=$(pgrep -f "ssh.*-f.*-N.*{{.WORKSPACE}}" 2>/dev/null) || true
         if [ -z "$PIDS" ]; then
           echo "No tunnel to {{.WORKSPACE}} running."
         else

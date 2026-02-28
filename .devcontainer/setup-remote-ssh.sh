@@ -32,6 +32,21 @@ Host prod
   StrictHostKeyChecking accept-new
   LocalForward 5080 localhost:5080
   LocalForward 8080 localhost:8080
+
+# Same host as dev/prod, User observer, no port forwards (avoids conflict when tunnel is up)
+Host dev-observer
+  HostName $DEV_HOSTNAME
+  User observer
+  IdentityFile ~/.ssh/id_rsa
+  IdentitiesOnly yes
+  StrictHostKeyChecking accept-new
+
+Host prod-observer
+  HostName $PROD_HOSTNAME
+  User observer
+  IdentityFile ~/.ssh/id_rsa
+  IdentitiesOnly yes
+  StrictHostKeyChecking accept-new
 EOF
 
 chmod 600 "$FILE"

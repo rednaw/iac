@@ -1,0 +1,67 @@
+# observer-run allowlist: one entry per line. Add a line to allow a new command; no need to edit the script.
+# Format: "docker:sub" or "docker:sub:sub2", "systemctl:sub", or plain command basename (e.g. cat, journalctl).
+# Lines starting with # and blank lines are ignored.
+
+# docker (read-only subcommands)
+docker:ps
+docker:logs
+docker:inspect
+docker:stats
+docker:images
+docker:version
+docker:info
+docker:events
+docker:top
+docker:port
+docker:system:df
+docker:volume:ls
+docker:image:ls
+docker:container:ls
+
+# systemctl (read-only subcommands)
+systemctl:status
+systemctl:show
+systemctl:list-units
+systemctl:list-unit-files
+systemctl:cat
+systemctl:list-dependencies
+systemctl:is-active
+systemctl:is-enabled
+
+# general (command basename)
+journalctl
+cat
+ls
+head
+tail
+less
+grep
+find
+readlink
+stat
+file
+df
+free
+id
+whoami
+uname
+hostname
+date
+diff
+basename
+dirname
+realpath
+awk
+sed
+cut
+tr
+sort
+uniq
+wc
+zcat
+zgrep
+jq
+column
+env
+printenv
+which

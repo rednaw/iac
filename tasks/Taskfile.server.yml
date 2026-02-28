@@ -2,6 +2,21 @@
 version: '3'
 
 tasks:
+  observe:
+    desc: Run a read-only command on the server (observer channel). Use this for all server investigation.
+    vars:
+      WORKSPACE:
+        sh: echo "{{.CLI_ARGS}}" | awk '{print $1}'
+      CMD:
+        sh: echo "{{.CLI_ARGS}}" | awk '{$1=""; print substr($0,2)}'
+    preconditions:
+      - sh: '[ "{{.WORKSPACE}}" = "dev" ] || [ "{{.WORKSPACE}}" = "prod" ]'
+        msg: "Usage: task server:observe -- <dev|prod> <command>"
+      - sh: '[ -n "{{.CMD}}" ]'
+        msg: "Usage: task server:observe -- <dev|prod> <command>"
+    cmds:
+      - ssh "{{.WORKSPACE}}-observer" "sudo observer-run {{.CMD}}"
+
   check-status:
     desc: Check if servers are up and accessible (checks both dev and prod)
     silent: true
