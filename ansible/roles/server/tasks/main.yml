@@ -28,3 +28,6 @@
 
 - name: Configure OpenObserve
   ansible.builtin.import_tasks: openobserve.yml
+
+- name: Configure observer (read-only server access for agent)
+  ansible.builtin.import_tasks: observer.yml
