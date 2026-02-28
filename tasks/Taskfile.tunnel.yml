@@ -22,7 +22,7 @@ tasks:
           echo "  OpenObserve:       http://localhost:5080/"
           exit 0
         fi
-        ssh -f -N {{.WORKSPACE}} || { echo "Failed to start tunnel."; exit 1; }
+        ssh -f -N "{{.WORKSPACE}}" || { echo "Failed to start tunnel."; exit 1; }
         echo "Tunnel to {{.WORKSPACE}} started (uses Host {{.WORKSPACE}} from SSH config)."
         echo "  Traefik Dashboard: http://localhost:8080/dashboard/"
         echo "  OpenObserve:       http://localhost:5080/"
