@@ -35,7 +35,7 @@
     {
       "description": "Automerge testing tools if they have successfully ran the tests",
       "groupName": "testing tools",
-      "matchPackageNames": ["tfsec", "trivy", "shellcheck", "ansible-lint", "PyYAML"],
+      "matchPackageNames": ["tfsec", "shellcheck", "ansible-lint", "PyYAML"],
       "automerge": true
     },
     {

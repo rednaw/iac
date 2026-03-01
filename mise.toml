@@ -14,5 +14,6 @@ task       = "3.48.0"   # go-task/task
 crane = "0.21.1"  # google/go-containerregistry
 hcloud     = "1.61.0"   # hetznercloud/cli
 tfsec      = "1.28.14"
-trivy      = "0.69.1"
+# trivy omitted: aquasecurity/trivy GitHub repository is empty (??).
+# trivy      = "0.69.1"
 shellcheck = "0.11.0"

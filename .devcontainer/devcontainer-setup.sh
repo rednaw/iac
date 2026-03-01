@@ -122,3 +122,8 @@ fi
 cd /workspaces/iac || exit 1
 bash .devcontainer/setup-remote-ssh.sh
 
+########################################
+# Cursor state directory
+########################################
+sudo chown -R vscode:vscode /home/vscode/.cursor 2>/dev/null || true
+
