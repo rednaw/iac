@@ -66,11 +66,6 @@
     name: openobserve-network
     state: present
 
-- name: Pull Traefik image
-  community.docker.docker_image:
-    name: traefik:v3.6.8
-    source: pull
-
 - name: Ensure Traefik container is running
   community.docker.docker_container:
     name: traefik

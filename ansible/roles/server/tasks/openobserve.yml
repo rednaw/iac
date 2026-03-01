@@ -37,11 +37,6 @@
     driver: bridge
     state: present
 
-- name: Pull OpenObserve image
-  community.docker.docker_image:
-    name: openobserve/openobserve:v0.60.0
-    source: pull
-
 - name: Ensure OpenObserve container is running
   community.docker.docker_container:
     name: openobserve
@@ -70,11 +65,6 @@
       timeout: 5s
       retries: 3
       start_period: 30s
-
-- name: Pull OpenTelemetry Collector image
-  community.docker.docker_image:
-    name: otel/opentelemetry-collector-contrib:0.146.1
-    source: pull
 
 - name: Ensure OTEL Collector container is running (Linux host metrics + Docker + logs -> OpenObserve)
   community.docker.docker_container:
