@@ -1,0 +1,102 @@
+---
+# Observer: read-only server access for the agent (replaces cursor.yml).
+# Create observer user and observer-run wrapper for diagnostics-only SSH.
+# See docs/cursor-agent-observer.md.
+
+# --- Observer user and SSH ---
+
+- name: Create observer user
+  ansible.builtin.user:
+    name: observer
+    shell: /bin/bash
+    create_home: true
+    home: /home/observer
+    system: false
+
+- name: Ensure observer .ssh directory exists
+  ansible.builtin.file:
+    path: /home/observer/.ssh
+    state: directory
+    owner: observer
+    group: observer
+    mode: '0700'
+
+- name: Copy ubuntu authorized_keys to observer (same SSH key access)
+  ansible.builtin.slurp:
+    src: /home/ubuntu/.ssh/authorized_keys
+  register: ubuntu_authorized_keys_slurp
+  changed_when: false
+  failed_when: false
+
+- name: Set observer authorized_keys from ubuntu
+  ansible.builtin.copy:
+    content: "{{ ubuntu_authorized_keys_slurp.content | b64decode }}"
+    dest: /home/observer/.ssh/authorized_keys
+    owner: observer
+    group: observer
+    mode: '0600'
+  when: (ubuntu_authorized_keys_slurp.content | default('') | length) > 0
+
+# --- observer-run: sudo wrapper so observer can run "observer-run" without typing sudo ---
+
+- name: Ensure observer bin directory exists
+  ansible.builtin.file:
+    path: /home/observer/bin
+    state: directory
+    owner: observer
+    group: observer
+    mode: '0755'
+
+- name: Install observer-run wrapper (observer-run without sudo)
+  ansible.builtin.copy:
+    content: |
+      #!/bin/sh
+      exec sudo /usr/local/bin/observer-run "$@"
+    dest: /home/observer/bin/observer-run
+    owner: observer
+    group: observer
+    mode: '0755'
+
+- name: Add ~/bin to observer PATH in .profile
+  ansible.builtin.lineinfile:
+    path: /home/observer/.profile
+    line: 'export PATH="$HOME/bin:$PATH"'
+    create: true
+    owner: observer
+    group: observer
+    mode: '0644'
+
+# --- observer-run (real script) and sudo ---
+
+- name: Install bubblewrap (bwrap) for observer read-only sandbox
+  ansible.builtin.apt:
+    name: bubblewrap
+    state: present
+    update_cache: true
+
+- name: Install observer allowlist
+  ansible.builtin.copy:
+    src: observer-allowed-commands.list
+    dest: /etc/observer-allowed-commands
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Install observer-run script
+  ansible.builtin.copy:
+    src: observer-run.sh
+    dest: /usr/local/bin/observer-run
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Configure sudo for observer (only observer-run)
+  ansible.builtin.copy:
+    content: |
+      # Observer: read-only diagnostics. Only observer-run is allowed.
+      # See docs/cursor-agent-observer.md.
+      observer ALL=(ALL) NOPASSWD: /usr/local/bin/observer-run *
+      Defaults:observer !requiretty
+    dest: /etc/sudoers.d/90-observer
+    mode: '0440'
+    validate: 'visudo -cf %s'
