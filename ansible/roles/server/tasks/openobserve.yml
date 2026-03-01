@@ -107,6 +107,13 @@
   delay: 5
   ignore_errors: true
 
+- name: Set dashboard definitions
+  ansible.builtin.set_fact:
+    openobserve_dashboards:
+      - { title: 'Host Metrics', file: 'openobserve-host-metrics.json' }
+      - { title: 'Docker Container Metrics', file: 'openobserve-docker-metrics.json' }
+      - { title: 'Traefik Metrics', file: 'openobserve-traefik-metrics.json' }
+
 # List returns { "dashboards": [ { "dashboard_id", "title", ... } ] }. Match by title and use dashboard_id for PUT.
 # OpenObserve dashboard PUT (update) can return 500 (hash validation issues); we accept it so the playbook does not fail.
 - name: Get existing OpenObserve dashboards list
@@ -119,126 +126,52 @@
   register: openobserve_dashboards_list
   when: openobserve_health.status in [200, 401]
 
-# Resolve dashboard id from list (support top-level title/dashboard_id or v8.title/v8.dashboardId)
-- name: Set dashboard id by title from list (Host Metrics)
+- name: Build dashboard id map by title
   ansible.builtin.set_fact:
-    openobserve_host_id: "{{ item.dashboard_id | default(item.id) | default((item.v8 | default({})).dashboardId) | default('') }}"
+    openobserve_dashboard_ids: "{{ openobserve_dashboard_ids | default({}) | combine({_title: _id}) }}"
   loop: "{{ openobserve_dashboards_list.json.dashboards | default([]) }}"
+  vars:
+    _title: "{{ item.title | default((item.v8 | default({})).title) | default('') }}"
+    _id: "{{ item.dashboard_id | default(item.id) | default((item.v8 | default({})).dashboardId) | default('') }}"
   when:
     - openobserve_health.status in [200, 401]
     - openobserve_dashboards_list.json is defined
-    - (item.title | default((item.v8 | default({})).title) | default('')) == 'Host Metrics'
-    - (openobserve_host_id | default('')) == ''
+    - _title != ''
   loop_control:
-    label: "Host Metrics"
+    label: "{{ _title }}"
 
-- name: Set dashboard id by title from list (Docker Container Metrics)
-  ansible.builtin.set_fact:
-    openobserve_docker_id: "{{ item.dashboard_id | default(item.id) | default((item.v8 | default({})).dashboardId) | default('') }}"
-  loop: "{{ openobserve_dashboards_list.json.dashboards | default([]) }}"
+- name: Create OpenObserve dashboard (when missing)
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:5080/api/default/dashboards"
+    method: POST
+    headers:
+      Authorization: "Basic {{ openobserve_ingest_auth }}"
+      Content-Type: "application/json"
+    body_format: json
+    body: "{{ lookup('file', role_path + '/files/' + item.file) | from_json }}"
+    status_code: [200, 201, 409]
   when:
     - openobserve_health.status in [200, 401]
-    - openobserve_dashboards_list.json is defined
-    - (item.title | default((item.v8 | default({})).title) | default('')) == 'Docker Container Metrics'
-    - (openobserve_docker_id | default('')) == ''
+    - (openobserve_dashboard_ids[item.title] | default('')) == ''
+  failed_when: false
+  loop: "{{ openobserve_dashboards }}"
   loop_control:
-    label: "Docker Container Metrics"
+    label: "{{ item.title }}"
 
-- name: Set dashboard id by title from list (Traefik Metrics)
-  ansible.builtin.set_fact:
-    openobserve_traefik_id: "{{ item.dashboard_id | default(item.id) | default((item.v8 | default({})).dashboardId) | default('') }}"
-  loop: "{{ openobserve_dashboards_list.json.dashboards | default([]) }}"
+- name: Update OpenObserve dashboard in place
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:5080/api/default/dashboards/{{ openobserve_dashboard_ids[item.title] }}"
+    method: PUT
+    headers:
+      Authorization: "Basic {{ openobserve_ingest_auth }}"
+      Content-Type: "application/json"
+    body_format: json
+    body: "{{ lookup('file', role_path + '/files/' + item.file) | from_json }}"
+    status_code: [200, 201, 500]
   when:
     - openobserve_health.status in [200, 401]
-    - openobserve_dashboards_list.json is defined
-    - (item.title | default((item.v8 | default({})).title) | default('')) == 'Traefik Metrics'
-    - (openobserve_traefik_id | default('')) == ''
+    - (openobserve_dashboard_ids[item.title] | default('')) != ''
+  failed_when: false
+  loop: "{{ openobserve_dashboards }}"
   loop_control:
-    label: "Traefik Metrics"
-
-- name: Ensure Host Metrics dashboard (create or update in place)
-  when: openobserve_health.status in [200, 401]
-  block:
-    - name: Create Host Metrics dashboard
-      ansible.builtin.uri:
-        url: "http://127.0.0.1:5080/api/default/dashboards"
-        method: POST
-        headers:
-          Authorization: "Basic {{ openobserve_ingest_auth }}"
-          Content-Type: "application/json"
-        body_format: json
-        body: "{{ lookup('file', role_path + '/files/openobserve-host-metrics.json') | from_json }}"
-        status_code: [200, 201, 409]
-      when: (openobserve_host_id | default('')) == ''
-      failed_when: false
-
-    - name: Update Host Metrics dashboard in place
-      ansible.builtin.uri:
-        url: "http://127.0.0.1:5080/api/default/dashboards/{{ openobserve_host_id }}"
-        method: PUT
-        headers:
-          Authorization: "Basic {{ openobserve_ingest_auth }}"
-          Content-Type: "application/json"
-        body_format: json
-        body: "{{ lookup('file', role_path + '/files/openobserve-host-metrics.json') | from_json }}"
-        status_code: [200, 201, 500]
-      when: (openobserve_host_id | default('')) != ''
-      failed_when: false
-
-- name: Ensure Docker Container Metrics dashboard (create or update in place)
-  when: openobserve_health.status in [200, 401]
-  block:
-    - name: Create Docker Container Metrics dashboard
-      ansible.builtin.uri:
-        url: "http://127.0.0.1:5080/api/default/dashboards"
-        method: POST
-        headers:
-          Authorization: "Basic {{ openobserve_ingest_auth }}"
-          Content-Type: "application/json"
-        body_format: json
-        body: "{{ lookup('file', role_path + '/files/openobserve-docker-metrics.json') | from_json }}"
-        status_code: [200, 201, 409]
-      when: (openobserve_docker_id | default('')) == ''
-      failed_when: false
-
-    - name: Update Docker Container Metrics dashboard in place
-      ansible.builtin.uri:
-        url: "http://127.0.0.1:5080/api/default/dashboards/{{ openobserve_docker_id }}"
-        method: PUT
-        headers:
-          Authorization: "Basic {{ openobserve_ingest_auth }}"
-          Content-Type: "application/json"
-        body_format: json
-        body: "{{ lookup('file', role_path + '/files/openobserve-docker-metrics.json') | from_json }}"
-        status_code: [200, 201, 500]
-      when: (openobserve_docker_id | default('')) != ''
-      failed_when: false
-
-- name: Ensure Traefik Metrics dashboard (create or update in place)
-  when: openobserve_health.status in [200, 401]
-  block:
-    - name: Create Traefik Metrics dashboard
-      ansible.builtin.uri:
-        url: "http://127.0.0.1:5080/api/default/dashboards"
-        method: POST
-        headers:
-          Authorization: "Basic {{ openobserve_ingest_auth }}"
-          Content-Type: "application/json"
-        body_format: json
-        body: "{{ lookup('file', role_path + '/files/openobserve-traefik-metrics.json') | from_json }}"
-        status_code: [200, 201, 409]
-      when: (openobserve_traefik_id | default('')) == ''
-      failed_when: false
-
-    - name: Update Traefik Metrics dashboard in place
-      ansible.builtin.uri:
-        url: "http://127.0.0.1:5080/api/default/dashboards/{{ openobserve_traefik_id }}"
-        method: PUT
-        headers:
-          Authorization: "Basic {{ openobserve_ingest_auth }}"
-          Content-Type: "application/json"
-        body_format: json
-        body: "{{ lookup('file', role_path + '/files/openobserve-traefik-metrics.json') | from_json }}"
-        status_code: [200, 201, 500]
-      when: (openobserve_traefik_id | default('')) != ''
-      failed_when: false
+    label: "{{ item.title }}"
