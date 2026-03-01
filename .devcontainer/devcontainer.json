@@ -11,7 +11,8 @@
     "source=${localEnv:APP_HOST_PATH}/iac.yml,target=/workspaces/iac/app/iac.yml,type=bind,readonly",
     "source=${localEnv:APP_HOST_PATH}/docker-compose.yml,target=/workspaces/iac/app/docker-compose.yml,type=bind,readonly",
     "source=${localEnv:APP_HOST_PATH}/.env,target=/workspaces/iac/app/.env,type=bind,readonly",
-    "source=${localEnv:APP_HOST_PATH}/.sops.yaml,target=/workspaces/iac/app/.sops.yaml,type=bind,readonly"
+    "source=${localEnv:APP_HOST_PATH}/.sops.yaml,target=/workspaces/iac/app/.sops.yaml,type=bind,readonly",
+    "source=iac-cursor-state,target=/home/vscode/.cursor,type=volume"
   ],
 
   "customizations": {
