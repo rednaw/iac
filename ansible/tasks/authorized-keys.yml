@@ -30,7 +30,7 @@
     state: present
     key: "{{ item }}"
   loop: "{{ ssh_public_keys | default([]) }}"
-  when: 
+  when:
     - ssh_public_keys is defined
     - ssh_public_keys | length > 0
 
