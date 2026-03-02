@@ -1,9 +1,6 @@
 {
   "name": "IaC Development",
-  "build": {
-    "context": "..",
-    "dockerfile": "../Dockerfile"
-  },
+  "image": "ghcr.io/rednaw/iac-dev:latest",
 
   "mounts": [
     "source=${localEnv:HOME}/.ssh,target=/home/vscode/.ssh,type=bind",
