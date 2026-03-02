@@ -1,5 +1,5 @@
 # Reusable workflow: run IAC test suite inside a Docker image.
-# Callers pass the image ref and must pass SOPS_AGE_KEY for registry auth.
+# Callers pass the image ref and must pass SOPS_AGE_KEY for the Terraform validate test step.
 
 name: Run IAC tests
 
@@ -7,12 +7,16 @@ on:
   workflow_call:
     inputs:
       image:
-        description: "Docker image to run tests in (e.g. registry/iac/iac-dev:latest)"
+        description: "Docker image to run tests in (e.g. ghcr.io/rednaw/iac-dev:latest)"
         required: true
         type: string
     secrets:
       SOPS_AGE_KEY:
         required: true
+
+permissions:
+  contents: read
+  packages: read
 
 jobs:
   test:
@@ -22,8 +26,15 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
-      - name: SOPS decrypt and registry login
-        uses: ./.github/actions/sops-registry-login
+      - name: Log in to ghcr.io
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: SOPS setup
+        uses: ./.github/actions/sops-setup
         with:
           sops_age_key: ${{ secrets.SOPS_AGE_KEY }}
 
