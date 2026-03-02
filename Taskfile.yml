@@ -70,9 +70,8 @@ tasks:
         echo "  task server:list-hetzner-keys          # List Hetzner SSH keys with IDs"
         echo ""
         echo "Backups (Hetzner):"
-        echo "  task backup:list           -- <dev|prod>             # List backup images"
-        echo "  task backup:restore        -- <dev|prod> <image-id>  # Restore from backup (destructive)"
-        echo "  task backup:restore-latest -- <dev|prod>             # Restore from latest backup (destructive)"
+        echo "  task backup:list    -- <workspace>             # List backup images"
+        echo "  task backup:restore -- <workspace> <image-id>  # Restore from backup (destructive)"
 
   # Internal validation tasks - used by other tasks via deps or direct calls
   _check:sops-key:
@@ -83,11 +82,11 @@ tasks:
         msg: "SOPS key file not found. Run 'task secrets:keygen' first."
 
   _check:workspace:
-    desc: "(internal) Validate workspace argument (dev|prod)"
+    desc: "(internal) Validate CLI_ARGS first word is dev or prod"
     internal: true
     preconditions:
-      - sh: '[ -n "{{.WORKSPACE}}" ]'
-        msg: "Workspace required. Usage: task {{.TASK_NAME}} -- <dev|prod>"
-      - sh: '[ "{{.WORKSPACE}}" = "dev" ] || [ "{{.WORKSPACE}}" = "prod" ]'
-        msg: "Invalid workspace '{{.WORKSPACE}}'. Use: dev or prod"
+      - sh: '[ -n "{{.CLI_ARGS}}" ]'
+        msg: "Workspace required. Pass dev or prod after -- (e.g. task ansible:run -- dev)"
+      - sh: 'W=$(echo "{{.CLI_ARGS}}" | awk "{print \$1}"); [ "$W" = "dev" ] || [ "$W" = "prod" ]'
+        msg: "Invalid workspace. Use: dev or prod after --"
 

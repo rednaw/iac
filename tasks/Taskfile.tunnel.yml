@@ -9,11 +9,7 @@ tasks:
     silent: true
     vars:
       WORKSPACE: "{{.CLI_ARGS}}"
-    preconditions:
-      - sh: '[ -n "{{.WORKSPACE}}" ]'
-        msg: "Workspace required. Usage: task tunnel:start -- <dev|prod>"
-      - sh: '[ "{{.WORKSPACE}}" = "dev" ] || [ "{{.WORKSPACE}}" = "prod" ]'
-        msg: "Invalid workspace. Use: dev or prod"
+    deps: [":_check:workspace"]
     cmds:
       - |
         HOSTNAME=$(task hostkeys:hostname -- "{{.WORKSPACE}}")
@@ -34,11 +30,7 @@ tasks:
     silent: true
     vars:
       WORKSPACE: "{{.CLI_ARGS}}"
-    preconditions:
-      - sh: '[ -n "{{.WORKSPACE}}" ]'
-        msg: "Workspace required. Usage: task tunnel:stop -- <dev|prod>"
-      - sh: '[ "{{.WORKSPACE}}" = "dev" ] || [ "{{.WORKSPACE}}" = "prod" ]'
-        msg: "Invalid workspace. Use: dev or prod"
+    deps: [":_check:workspace"]
     cmds:
       - |
         HOSTNAME=$(task hostkeys:hostname -- "{{.WORKSPACE}}")

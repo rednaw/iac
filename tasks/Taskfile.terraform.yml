@@ -8,13 +8,7 @@ tasks:
     silent: true
     vars:
       WORKSPACE: "{{.CLI_ARGS}}"
-    preconditions:
-      - sh: '[ -n "{{.WORKSPACE}}" ]'
-        msg: "Workspace required. Usage: task terraform:init -- <dev|prod>"
-      - sh: '[ "{{.WORKSPACE}}" = "dev" ] || [ "{{.WORKSPACE}}" = "prod" ]'
-        msg: "Invalid workspace '{{.WORKSPACE}}'. Use: dev or prod"
-      - sh: test -f "{{.SOPS_KEY_FILE}}"
-        msg: "SOPS key file not found. Run 'task secrets:keygen' first."
+    deps: [":_check:sops-key", ":_check:workspace"]
     cmds:
       - |
         echo "🚀 Initializing Terraform for workspace: platform-{{.WORKSPACE}}..."
@@ -37,13 +31,7 @@ tasks:
     silent: true
     vars:
       WORKSPACE: "{{.CLI_ARGS}}"
-    preconditions:
-      - sh: '[ -n "{{.WORKSPACE}}" ]'
-        msg: "Workspace required. Usage: task terraform:plan -- <dev|prod>"
-      - sh: '[ "{{.WORKSPACE}}" = "dev" ] || [ "{{.WORKSPACE}}" = "prod" ]'
-        msg: "Invalid workspace '{{.WORKSPACE}}'. Use: dev or prod"
-      - sh: test -f "{{.SOPS_KEY_FILE}}"
-        msg: "SOPS key file not found. Run 'task secrets:keygen' first."
+    deps: [":_check:sops-key", ":_check:workspace"]
     cmds:
       - |
         echo "📋 Planning Terraform changes for workspace: platform-{{.WORKSPACE}}..."
@@ -56,13 +44,7 @@ tasks:
     silent: true
     vars:
       WORKSPACE: "{{.CLI_ARGS}}"
-    preconditions:
-      - sh: '[ -n "{{.WORKSPACE}}" ]'
-        msg: "Workspace required. Usage: task terraform:apply -- <dev|prod>"
-      - sh: '[ "{{.WORKSPACE}}" = "dev" ] || [ "{{.WORKSPACE}}" = "prod" ]'
-        msg: "Invalid workspace '{{.WORKSPACE}}'. Use: dev or prod"
-      - sh: test -f "{{.SOPS_KEY_FILE}}"
-        msg: "SOPS key file not found. Run 'task secrets:keygen' first."
+    deps: [":_check:sops-key", ":_check:workspace"]
     cmds:
       - |
         echo "✨ Applying Terraform changes to workspace: platform-{{.WORKSPACE}}"
@@ -80,13 +62,7 @@ tasks:
     silent: true
     vars:
       WORKSPACE: "{{.CLI_ARGS}}"
-    preconditions:
-      - sh: '[ -n "{{.WORKSPACE}}" ]'
-        msg: "Workspace required. Usage: task terraform:destroy -- <dev|prod>"
-      - sh: '[ "{{.WORKSPACE}}" = "dev" ] || [ "{{.WORKSPACE}}" = "prod" ]'
-        msg: "Invalid workspace '{{.WORKSPACE}}'. Use: dev or prod"
-      - sh: test -f "{{.SOPS_KEY_FILE}}"
-        msg: "SOPS key file not found. Run 'task secrets:keygen' first."
+    deps: [":_check:sops-key", ":_check:workspace"]
     cmds:
       - |
         echo "⚠️  WARNING: This will DESTROY all resources in workspace: platform-{{.WORKSPACE}}"
@@ -103,11 +79,7 @@ tasks:
     dir: terraform
     vars:
       WORKSPACE: "{{.CLI_ARGS}}"
-    preconditions:
-      - sh: '[ -n "{{.WORKSPACE}}" ]'
-        msg: "Workspace required. Usage: task terraform:output -- <dev|prod>"
-      - sh: '[ "{{.WORKSPACE}}" = "dev" ] || [ "{{.WORKSPACE}}" = "prod" ]'
-        msg: "Invalid workspace '{{.WORKSPACE}}'. Use: dev or prod"
+    deps: [":_check:workspace"]
     cmds:
       - |
         terraform workspace select "{{.WORKSPACE}}"

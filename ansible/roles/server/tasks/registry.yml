@@ -73,11 +73,6 @@
     driver: bridge
     state: present
 
-- name: Pull registry image
-  community.docker.docker_image:
-    name: registry:3
-    source: pull
-
 - name: Ensure registry container is running
   community.docker.docker_container:
     name: registry
