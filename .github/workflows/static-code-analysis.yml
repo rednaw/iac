@@ -31,10 +31,11 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # Renovate PR: build and push as <sha> (promoted to latest on merge)
       - name: Set up Docker Buildx
+        if: github.event_name == 'pull_request' && startsWith(github.head_ref, 'renovate-bot/')
         uses: docker/setup-buildx-action@v3
 
-      # Renovate PR: build and push as <sha> (promoted to latest on merge)
       - name: Build and push (Renovate PR)
         if: github.event_name == 'pull_request' && startsWith(github.head_ref, 'renovate-bot/')
         uses: docker/build-push-action@v6
@@ -46,20 +47,6 @@ jobs:
           cache-to: type=gha,mode=max
           build-args: |
             GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
-
-      # Other PR / dispatch: use latest; bootstrap build if missing
-      - name: Ensure latest image exists
-        if: github.event_name != 'pull_request' || !startsWith(github.head_ref, 'renovate-bot/')
-        run: |
-          if ! docker pull ${{ env.IMAGE }}:latest 2>/dev/null; then
-            echo "No latest image found, building bootstrap..."
-            docker buildx build \
-              --push \
-              --build-arg GITHUB_TOKEN="${{ secrets.GITHUB_TOKEN }}" \
-              -t ${{ env.IMAGE }}:latest \
-              --cache-from type=gha --cache-to type=gha,mode=max \
-              .
-          fi
 
       - name: Set image output
         id: set-output
