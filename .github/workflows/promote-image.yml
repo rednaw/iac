@@ -12,7 +12,7 @@ permissions:
   packages: write
 
 env:
-  IMAGE_REPO: iac/iac-dev
+  IMAGE: ghcr.io/${{ github.repository_owner }}/iac-dev
   DOCKER_BUILDKIT: 1
 
 jobs:
@@ -26,26 +26,26 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
-      - name: SOPS decrypt and registry login
-        id: sops-registry
-        uses: ./.github/actions/sops-registry-login
+      - name: Log in to ghcr.io
+        uses: docker/login-action@v3
         with:
-          sops_age_key: ${{ secrets.SOPS_AGE_KEY }}
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       # If image for this commit exists (e.g. from merged Renovate PR), re-tag as latest
       - name: Promote existing image to latest
         id: promote
         run: |
-          REGISTRY="${{ steps.sops-registry.outputs.registry }}"
-          IMG="$REGISTRY/${{ env.IMAGE_REPO }}:${{ github.sha }}"
+          IMG="${{ env.IMAGE }}:${{ github.sha }}"
           if docker pull "$IMG" 2>/dev/null; then
-            docker tag "$IMG" "$REGISTRY/${{ env.IMAGE_REPO }}:latest"
-            docker push "$REGISTRY/${{ env.IMAGE_REPO }}:latest"
+            docker tag "$IMG" "${{ env.IMAGE }}:latest"
+            docker push "${{ env.IMAGE }}:latest"
             echo "promoted=true" >> "$GITHUB_OUTPUT"
           else
             echo "promoted=false" >> "$GITHUB_OUTPUT"
           fi
-          echo "image=$REGISTRY/${{ env.IMAGE_REPO }}:${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          echo "image=${{ env.IMAGE }}:${{ github.sha }}" >> "$GITHUB_OUTPUT"
 
       - name: Set up Docker Buildx
         if: steps.promote.outputs.promoted != 'true'
@@ -58,7 +58,7 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ steps.sops-registry.outputs.registry }}/${{ env.IMAGE_REPO }}:${{ github.sha }}
+          tags: ${{ env.IMAGE }}:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
@@ -80,14 +80,15 @@ jobs:
     needs: [promote-or-build, test]
     runs-on: ubuntu-latest
     steps:
-      - name: SOPS decrypt and registry login
-        id: sops-registry
-        uses: ./.github/actions/sops-registry-login
+      - name: Log in to ghcr.io
+        uses: docker/login-action@v3
         with:
-          sops_age_key: ${{ secrets.SOPS_AGE_KEY }}
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Tag and push as latest
         run: |
           docker pull ${{ needs.promote-or-build.outputs.image }}
-          docker tag ${{ needs.promote-or-build.outputs.image }} ${{ steps.sops-registry.outputs.registry }}/${{ env.IMAGE_REPO }}:latest
-          docker push ${{ steps.sops-registry.outputs.registry }}/${{ env.IMAGE_REPO }}:latest
+          docker tag ${{ needs.promote-or-build.outputs.image }} ${{ env.IMAGE }}:latest
+          docker push ${{ env.IMAGE }}:latest
