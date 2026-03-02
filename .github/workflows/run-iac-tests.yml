@@ -1,0 +1,71 @@
+# Reusable workflow: run IAC test suite inside a Docker image.
+# Callers pass the image ref and must pass SOPS_AGE_KEY for registry auth.
+
+name: Run IAC tests
+
+on:
+  workflow_call:
+    inputs:
+      image:
+        description: "Docker image to run tests in (e.g. registry/iac/iac-dev:latest)"
+        required: true
+        type: string
+    secrets:
+      SOPS_AGE_KEY:
+        required: true
+
+jobs:
+  test:
+    name: Run all checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: SOPS decrypt and registry login
+        uses: ./.github/actions/sops-registry-login
+        with:
+          sops_age_key: ${{ secrets.SOPS_AGE_KEY }}
+
+      - name: Terraform security (tfsec)
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}:/workspace \
+            -w /workspace \
+            ${{ inputs.image }} \
+            sh -c "mise trust -a && task test:terraform:security"
+
+      - name: Terraform validation
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}:/workspace \
+            -v ~/.config/sops:/home/vscode/.config/sops:ro \
+            -w /workspace \
+            -e SOPS_AGE_KEY_FILE=/home/vscode/.config/sops/age/keys.txt \
+            -e TF_DATA_DIR=/tmp/terraform-validate \
+            ${{ inputs.image }} \
+            sh -c "mise trust -a && task test:terraform:validate"
+
+      - name: Ansible lint
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}:/workspace \
+            -w /workspace \
+            ${{ inputs.image }} \
+            sh -c "mise trust -a && task test:ansible:lint"
+
+      - name: Ansible collections and syntax
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}:/workspace \
+            -w /workspace \
+            ${{ inputs.image }} \
+            sh -c "mise trust -a && ansible-galaxy collection install -r ansible/requirements.yml && task test:ansible:syntax"
+
+      - name: Taskfile validation
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}:/workspace \
+            -w /workspace \
+            ${{ inputs.image }} \
+            sh -c "mise trust -a && task test:taskfiles"

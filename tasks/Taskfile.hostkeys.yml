@@ -10,11 +10,8 @@ tasks:
     silent: true
     vars:
       WORKSPACE: "{{.CLI_ARGS}}"
+    deps: [":_check:workspace"]
     preconditions:
-      - sh: '[ -n "{{.WORKSPACE}}" ]'
-        msg: "Workspace required. Usage: task hostkeys:hostname -- <dev|prod>"
-      - sh: '[ "{{.WORKSPACE}}" = "dev" ] || [ "{{.WORKSPACE}}" = "prod" ]'
-        msg: "Invalid workspace '{{.WORKSPACE}}'. Use: dev or prod"
       - sh: '[ -n "${BASE_DOMAIN:-}" ]'
         msg: "BASE_DOMAIN must be set by devcontainer (from base_domain in secrets)"
     cmds:
@@ -29,11 +26,8 @@ tasks:
     silent: true
     vars:
       WORKSPACE: "{{.CLI_ARGS}}"
+    deps: [":_check:workspace"]
     preconditions:
-      - sh: '[ -n "{{.WORKSPACE}}" ]'
-        msg: "Workspace required. Usage: task hostkeys:prepare -- <dev|prod>"
-      - sh: '[ "{{.WORKSPACE}}" = "dev" ] || [ "{{.WORKSPACE}}" = "prod" ]'
-        msg: "Invalid workspace '{{.WORKSPACE}}'. Use: dev or prod"
       - sh: '[ -n "${BASE_DOMAIN:-}" ]'
         msg: "BASE_DOMAIN must be set by devcontainer (from base_domain in secrets)"
     cmds:

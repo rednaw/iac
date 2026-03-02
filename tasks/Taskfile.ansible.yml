@@ -16,11 +16,7 @@ tasks:
     silent: true
     vars:
       WORKSPACE: "{{.CLI_ARGS}}"
-    preconditions:
-      - sh: '[ -n "{{.WORKSPACE}}" ]'
-        msg: "Workspace required. Usage: task ansible:bootstrap -- <dev|prod>"
-      - sh: '[ "{{.WORKSPACE}}" = "dev" ] || [ "{{.WORKSPACE}}" = "prod" ]'
-        msg: "Invalid workspace '{{.WORKSPACE}}'. Use: dev or prod"
+    deps: [":_check:workspace"]
     cmds:
       - |
         echo "NOTE: This step connects as root using your Hetzner SSH key to set up the ubuntu user."
@@ -33,11 +29,7 @@ tasks:
     silent: true
     vars:
       WORKSPACE: "{{.CLI_ARGS}}"
-    preconditions:
-      - sh: '[ -n "{{.WORKSPACE}}" ]'
-        msg: "Workspace required. Usage: task ansible:run -- <dev|prod>"
-      - sh: '[ "{{.WORKSPACE}}" = "dev" ] || [ "{{.WORKSPACE}}" = "prod" ]'
-        msg: "Invalid workspace '{{.WORKSPACE}}'. Use: dev or prod"
+    deps: [":_check:workspace"]
     cmds:
       - |
         echo "⚙️  Running full Ansible playbook for workspace: {{.WORKSPACE}}..."
