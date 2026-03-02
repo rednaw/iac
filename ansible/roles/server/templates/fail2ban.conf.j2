@@ -40,6 +40,7 @@ findtime = 600
 # Traefik: auth failures (dashboard, registry, etc.)
 [traefik-auth]
 enabled = true
+backend = polling
 port = http,https
 logpath = /var/log/traefik/access.log
 maxretry = 6
@@ -50,6 +51,7 @@ failregex = ^<HOST> -.*"(GET|POST).*HTTP.*" (401|403) .*$
 # Traefik: failed app login attempts (/api/auth/login 401|403) – filter in filter.d/traefik-login-attempts.conf
 [traefik-login-attempts]
 enabled = true
+backend = polling
 port = http,https
 logpath = /var/log/traefik/access.log
 maxretry = 8
@@ -59,6 +61,7 @@ findtime = 600
 # Traefik: repeated 403 Forbidden – filter in filter.d/traefik-forbidden.conf
 [traefik-forbidden]
 enabled = true
+backend = polling
 port = http,https
 logpath = /var/log/traefik/access.log
 maxretry = 5
@@ -68,6 +71,7 @@ findtime = 600
 # Traefik: known bad/scanner paths – filter in filter.d/traefik-badbots.conf
 [traefik-badbots]
 enabled = true
+backend = polling
 port = http,https
 logpath = /var/log/traefik/access.log
 maxretry = 3

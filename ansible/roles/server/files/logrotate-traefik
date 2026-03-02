@@ -5,9 +5,5 @@
     delaycompress
     notifempty
     missingok
-    create 644 root root
-    postrotate
-        # Traefik will continue writing to the same file after rotation
-        # No need to signal Traefik as it handles log rotation automatically
-    endscript
+    copytruncate
 }
