@@ -120,11 +120,9 @@ tasks:
       - python3 scripts/validate-taskfiles.py
 
   trivy:image:
-    desc: Run Trivy vulnerability scan on the dev/CI image (MEDIUM+ fail). Override with IMAGE=.... Run from devcontainer (registry auth is automatic). Trivy is not installed by default; install manually if needed (see mise.toml).
+    desc: Run Trivy vulnerability scan on the dev/CI image (MEDIUM+ fail).
     silent: true
     preconditions:
-      - sh: 'command -v trivy >/dev/null 2>&1'
-        msg: "trivy not found. Install manually (e.g. from GitHub aquasecurity/trivy); it is omitted from mise in this repo due to 404s from the registry."
       - sh: '[ -n "${REGISTRY:-}" ]'
         msg: "REGISTRY must be set by devcontainer (from base_domain in secrets)"
     cmds:
