@@ -1,0 +1,21 @@
+name: Cleanup untagged ghcr.io images
+
+on:
+  schedule:
+    - cron: '0 3 * * 0'  # weekly, Sunday 03:00 UTC
+  workflow_dispatch:
+
+permissions:
+  packages: write
+
+jobs:
+  cleanup:
+    name: Delete untagged iac-dev versions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/delete-package-versions@v5
+        with:
+          package-name: iac-dev
+          package-type: container
+          delete-only-untagged-versions: 'true'
+          min-versions-to-keep: 0
