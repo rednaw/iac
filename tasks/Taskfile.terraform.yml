@@ -3,25 +3,15 @@ version: '3'
 
 tasks:
   init:
-    desc: "Initialize Terraform (use: task terraform:init -- dev or -- prod)"
+    desc: "Initialize Terraform backend (runs automatically; call manually to re-initialize)"
     dir: terraform
     silent: true
-    vars:
-      WORKSPACE: "{{.CLI_ARGS}}"
-    deps: [":_check:sops-key", ":_check:workspace"]
+    deps: [":_check:sops-key"]
     cmds:
       - |
-        echo "🚀 Initializing Terraform for workspace: platform-{{.WORKSPACE}}..."
-        SOPS_AGE_KEY_FILE="{{.SOPS_KEY_FILE}}" terraform init -reconfigure
-        if ! terraform workspace select "{{.WORKSPACE}}" 2>/dev/null; then
-          echo ""
-          echo "Workspace 'platform-{{.WORKSPACE}}' not found in Terraform Cloud"
-          echo ""
-          echo "Create the workspace first in Terraform Cloud:"
-          echo "  1. Go to Terraform Cloud → your organization"
-          echo "  2. Create workspace: 'platform-{{.WORKSPACE}}'"
-          echo ""
-          echo "See README.md for detailed setup instructions."
+        TFC_ORG=$(SOPS_AGE_KEY_FILE="{{.SOPS_KEY_FILE}}" sops -d ../secrets/infrastructure-secrets.yml | yq -r '.terraform_cloud_organization')
+        if ! output=$(SOPS_AGE_KEY_FILE="{{.SOPS_KEY_FILE}}" terraform init -backend-config="organization=${TFC_ORG}" 2>&1); then
+          echo "$output"
           exit 1
         fi
 
@@ -33,6 +23,7 @@ tasks:
       WORKSPACE: "{{.CLI_ARGS}}"
     deps: [":_check:sops-key", ":_check:workspace"]
     cmds:
+      - task: init
       - |
         echo "📋 Planning Terraform changes for workspace: platform-{{.WORKSPACE}}..."
         terraform workspace select "{{.WORKSPACE}}"
@@ -46,6 +37,7 @@ tasks:
       WORKSPACE: "{{.CLI_ARGS}}"
     deps: [":_check:sops-key", ":_check:workspace"]
     cmds:
+      - task: init
       - |
         echo "✨ Applying Terraform changes to workspace: platform-{{.WORKSPACE}}"
         terraform workspace select "{{.WORKSPACE}}"
@@ -64,6 +56,7 @@ tasks:
       WORKSPACE: "{{.CLI_ARGS}}"
     deps: [":_check:sops-key", ":_check:workspace"]
     cmds:
+      - task: init
       - |
         echo "⚠️  WARNING: This will DESTROY all resources in workspace: platform-{{.WORKSPACE}}"
         echo "Terraform will ask for confirmation..."
@@ -81,6 +74,7 @@ tasks:
       WORKSPACE: "{{.CLI_ARGS}}"
     deps: [":_check:workspace"]
     cmds:
+      - task: init
       - |
         terraform workspace select "{{.WORKSPACE}}"
         echo "📤 Getting Terraform outputs for workspace: platform-{{.WORKSPACE}}..."
