@@ -21,7 +21,8 @@ Host dev
   IdentityFile ~/.ssh/id_rsa
   IdentitiesOnly yes
   StrictHostKeyChecking accept-new
-  LocalForward 5080 localhost:5080
+  # Keep in sync with forwardPorts in devcontainer.json.
+  LocalForward 5081 localhost:5080
   LocalForward 8080 localhost:8080
 
 Host prod
@@ -30,13 +31,14 @@ Host prod
   IdentityFile ~/.ssh/id_rsa
   IdentitiesOnly yes
   StrictHostKeyChecking accept-new
-  LocalForward 5080 localhost:5080
+  # Keep in sync with forwardPorts in devcontainer.json.
+  LocalForward 5081 localhost:5080
   LocalForward 8080 localhost:8080
 EOF
 
 chmod 600 "$FILE"
 echo "Wrote $FILE (dev -> $DEV_HOSTNAME, prod -> $PROD_HOSTNAME)."
-echo "Port forwarding: OpenObserve 5080, Traefik dashboard 8080."
+echo "Port forwarding: OpenObserve 5081, Traefik dashboard 8080."
 
 # Auto-add Include line to ~/.ssh/config (idempotent, create if missing, skip if already included)
 SSH_CONFIG=~/.ssh/config

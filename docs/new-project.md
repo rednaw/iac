@@ -52,6 +52,7 @@ Create `secrets/infrastructure-secrets.yml` (plain YAML) with at least:
 - `allowed_ssh_ips` — list of CIDRs allowed to SSH, e.g. `["203.0.113.50/32"]`
 - `registry_username`, `registry_password`, `base_domain`, `registry_http_secret` — registry auth and config (registry hostname is `registry.<base_domain>`)
 - `terraform_cloud_token` — Terraform Cloud API token (used by the devcontainer to write `~/.terraform.d/credentials.tfrc.json`)
+- `terraform_cloud_organization` — Terraform Cloud organization name (used by `terraform init` to connect to the right organization)
 
 The devcontainer reads `hcloud_token` and `terraform_cloud_token` from this file at startup and writes hcloud and Terraform credentials so you do not need to run `hcloud context create` or `task terraform:login` manually.
 
@@ -81,7 +82,7 @@ See [Launch the IaC devcontainer](launch-devcontainer.md) for the steps (open wo
 We use Terraform Cloud for shared state, automatic locking, and state history. No local state files; each team member uses the same state.
 
 - Create a Terraform Cloud account and organization (e.g. `rednaw`). Set execution mode to **Local** at organization level.
-- Backend in `terraform/versions.tf` expects organization name and workspaces `platform-dev`, `platform-prod`. Create those workspaces in Terraform Cloud:
+- Create workspaces `platform-dev` and `platform-prod` in Terraform Cloud (the organization name is read from `terraform_cloud_organization` in `infrastructure-secrets.yml`):
   1. Go to Terraform Cloud → your organization
   2. Create workspace with name `platform-dev`
   3. Create workspace with name `platform-prod`
@@ -93,9 +94,7 @@ We use Terraform Cloud for shared state, automatic locking, and state history. N
 Initialize Terraform, provision the dev server, and configure it:
 
 ```bash
-task terraform:init -- dev
 task terraform:apply -- dev
-task ansible:install
 task ansible:bootstrap -- dev
 task ansible:run -- dev
 ```

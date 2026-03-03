@@ -25,7 +25,11 @@ SECRETS_FILE="${1:-secrets/infrastructure-secrets.yml}"
 DECRYPTED=$(SOPS_AGE_KEY_FILE="$SOPS_KEY_FILE" sops -d "$SECRETS_FILE")
 
 # Base domain and registry (parameterization: one value drives all hostnames)
-BASE_DOMAIN=$(echo "$DECRYPTED" | yq -r '.base_domain // "rednaw.nl"')
+BASE_DOMAIN=$(echo "$DECRYPTED" | yq -r '.base_domain // ""')
+if [ -z "$BASE_DOMAIN" ]; then
+  echo "ERROR: 'base_domain' is missing from $SECRETS_FILE. Set it to your domain (e.g. example.com)." >&2
+  exit 1
+fi
 REGISTRY="registry.${BASE_DOMAIN}"
 export BASE_DOMAIN REGISTRY
 

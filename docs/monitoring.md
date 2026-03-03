@@ -26,7 +26,7 @@ flowchart LR
 
 ## Access
 
-OpenObserve is not exposed publicly (no DNS). Use an SSH tunnel to the server, then open **http://localhost:5080** in your browser. See [Remote-SSH](remote-ssh.md) for setting up SSH and port forwarding. Log in with `openobserve_username@observe.local` and the password from `secrets/infrastructure-secrets.yml`.
+OpenObserve is not exposed publicly (no DNS). Use an SSH tunnel to the server, then open **http://localhost:5081** in your browser. See [Remote-SSH](remote-ssh.md) for setting up SSH and port forwarding. Log in with `openobserve_username@observe.local` and the password from `secrets/infrastructure-secrets.yml`.
 
 ## Dashboards
 
