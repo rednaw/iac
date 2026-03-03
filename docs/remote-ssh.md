@@ -14,7 +14,7 @@ flowchart LR
     subgraph SERVER["Server"]
         VSCODE(VS Code / Cursor)
         TRAEFIK(Traefik dashboard<br/>http://localhost:8080)
-        OBSERVE(OpenObserve<br/>http://localhost:5080)
+        OBSERVE(OpenObserve<br/>http://localhost:5081)
     end
 
     EDITOR -->|SSH| VSCODE
@@ -31,7 +31,7 @@ Open this repo in the devcontainer. When you need the admin UIs, start the tunne
 | What | URL |
 |------|-----|
 | Traefik dashboard (internal) | http://localhost:8080/dashboard/ |
-| OpenObserve (internal) | http://localhost:5080/ |
+| OpenObserve (internal) | http://localhost:5081/ |
 
 Close the tunnel again with: `task tunnel:stop -- dev` (or `prod`).
 
@@ -64,7 +64,7 @@ Traefik and OpenObserve are internal only (no public DNS); use the tunnel URLs. 
 | Service | Via tunnel | Login |
 |---------|------------|--------|
 | Traefik dashboard | http://localhost:8080/dashboard/ | Basic auth (see `/etc/traefik/auth/htpasswd` on server) |
-| OpenObserve | http://localhost:5080/ | `openobserve_username@observe.local`, password from `secrets/infrastructure-secrets.yml` |
+| OpenObserve | http://localhost:5081/ | `openobserve_username@observe.local`, password from `secrets/infrastructure-secrets.yml` |
 
 **Traefik or OpenObserve not loading?** The tunnel may have dropped (e.g. after a reboot). Run `task tunnel:start -- dev` (or `prod`) again.
 

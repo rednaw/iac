@@ -13,16 +13,16 @@ tasks:
     cmds:
       - |
         HOSTNAME=$(task hostkeys:hostname -- "{{.WORKSPACE}}")
-        if pgrep -f "ssh.*-L 5080:localhost:5080.*ubuntu@$HOSTNAME" >/dev/null 2>&1; then
+        if pgrep -f "ssh.*-L 5081:localhost:5080.*ubuntu@$HOSTNAME" >/dev/null 2>&1; then
           echo "Tunnel to {{.WORKSPACE}} already running."
           echo "  Traefik Dashboard: http://localhost:8080/dashboard/"
-          echo "  OpenObserve:       http://localhost:5080/"
+          echo "  OpenObserve:       http://localhost:5081/"
           exit 0
         fi
-        ssh -f -N -L 5080:localhost:5080 -L 8080:localhost:8080 -o StrictHostKeyChecking=accept-new "ubuntu@$HOSTNAME" || { echo "Failed to start tunnel."; exit 1; }
+        ssh -f -N -L 5081:localhost:5080 -L 8080:localhost:8080 -o StrictHostKeyChecking=accept-new "ubuntu@$HOSTNAME" || { echo "Failed to start tunnel."; exit 1; }
         echo "Tunnel to {{.WORKSPACE}} started."
         echo "  Traefik Dashboard: http://localhost:8080/dashboard/"
-        echo "  OpenObserve:       http://localhost:5080/"
+        echo "  OpenObserve:       http://localhost:5081/"
         echo "  Stop: task tunnel:stop -- {{.WORKSPACE}}"
 
   stop:
@@ -34,7 +34,7 @@ tasks:
     cmds:
       - |
         HOSTNAME=$(task hostkeys:hostname -- "{{.WORKSPACE}}")
-        PIDS=$(pgrep -f "ssh.*-L 5080:localhost:5080.*ubuntu@$HOSTNAME" 2>/dev/null) || true
+        PIDS=$(pgrep -f "ssh.*-L 5081:localhost:5080.*ubuntu@$HOSTNAME" 2>/dev/null) || true
         if [ -z "$PIDS" ]; then
           echo "No tunnel to {{.WORKSPACE}} running."
         else

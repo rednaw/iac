@@ -27,19 +27,17 @@
           "*.env": "dotenv",
           ".env": "dotenv"
         },
-        "yaml.schemas": {
-          "Traefik v2": "ansible/roles/server/templates/traefik*.j2"
-        },
-        "yaml.customTags": [
-          "!vault",
-          "!include",
-          "!include_role",
-          "!include_tasks"
-        ],
         "ansible.python.interpreterPath": "/usr/bin/python3"
       }
     },
     "remote.containers.autoReopen": true
+  },
+
+  // Keep in sync with LocalForward in setup-remote-ssh.sh and tunnel task.
+  "forwardPorts": [5081, 8080],
+  "portsAttributes": {
+    "5081": { "label": "OpenObserve", "onAutoForward": "silent" },
+    "8080": { "label": "Traefik Dashboard", "onAutoForward": "silent" }
   },
 
   "remoteUser": "vscode",
