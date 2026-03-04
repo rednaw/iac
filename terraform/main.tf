@@ -3,7 +3,7 @@ resource "hcloud_firewall" "platform" {
   lifecycle {
     precondition {
       condition     = length(local.ssh_ips_invalid) == 0
-      error_message = "Invalid CIDR blocks found. All IP addresses must be valid CIDR format (e.g., 1.2.3.4/32 or 1.2.3.4/24). Please check your infrastructure-secrets.yml file."
+      error_message = "Invalid CIDR blocks found in allowed_ssh_ips. All values must be valid CIDR format (e.g., 1.2.3.4/32 or 1.2.3.4/24)."
     }
   }
   name = "platform-firewall-${local.environment}"
@@ -49,7 +49,7 @@ resource "hcloud_server" "platform" {
   lifecycle {
     precondition {
       condition     = length(local.ssh_keys_invalid) == 0
-      error_message = "Invalid SSH key IDs found. All SSH key IDs must be numeric. Please check your infrastructure-secrets.yml file."
+      error_message = "Invalid SSH key IDs found in ssh_keys. All SSH key IDs must be numeric."
     }
     precondition {
       condition     = contains(["dev", "prod"], local.environment)
