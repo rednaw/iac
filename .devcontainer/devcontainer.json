@@ -11,7 +11,6 @@
     "source=${localEnv:APP_HOST_PATH}/.env,target=/workspaces/iac/app/.env,type=bind,readonly",
     "source=${localEnv:APP_HOST_PATH}/.sops.yaml,target=/workspaces/iac/app/.sops.yaml,type=bind,readonly",
     "source=${localEnv:APP_HOST_PATH}/.github/workflows/build-and-push.yml,target=/workspaces/iac/app/.github/workflows/build-and-push.yml,type=bind,readonly"
-    
   ],
 
   "customizations": {
