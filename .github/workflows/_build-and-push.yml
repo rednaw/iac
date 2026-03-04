@@ -43,13 +43,26 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Extract metadata
+        id: meta
+        run: |
+          echo "short_sha=${GITHUB_SHA:0:7}" >> "$GITHUB_OUTPUT"
+          echo "description=$(git log -1 --pretty=%s)" >> "$GITHUB_OUTPUT"
+          echo "created=$(git log -1 --pretty=%cI | sed -E 's/(.*)T(.*)\+.*$/\1 \2/')" >> "$GITHUB_OUTPUT"
+
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
           context: .
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ${{ vars.REGISTRY_URL }}/${{ vars.IMAGE_NAME }}:${{ github.sha }}
+            ${{ vars.REGISTRY_URL }}/${{ vars.IMAGE_NAME }}:${{ steps.meta.outputs.short_sha }}
             ${{ vars.REGISTRY_URL }}/${{ vars.IMAGE_NAME }}:latest
+          labels: |
+            org.opencontainers.image.description=${{ steps.meta.outputs.description }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.created=${{ steps.meta.outputs.created }}
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
