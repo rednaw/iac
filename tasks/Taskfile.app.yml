@@ -1,8 +1,10 @@
 # yaml-language-server: $schema=https://taskfile.dev/schema.json
 #
 # Application deployment tasks — run from IAC devcontainer.
-# Four app files (iac.yml, docker-compose.yml, .env, .sops.yaml) are mounted at /workspaces/iac/app via APP_HOST_PATH.
-# Registry and image come from the app's iac.yml.
+# App contract is mounted at /workspaces/iac/app via APP_HOST_PATH:
+#   app/.iac/          — platform config and secrets (read/write)
+#   app/docker-compose.yml  — generic stack (readonly)
+#   app/.github/workflows/build-and-push.yml — CI caller (read/write)
 #
 #   task app:deploy   -- <env> <sha>
 #   task app:versions -- <env>
@@ -31,20 +33,18 @@ tasks:
         msg: "Usage: task app:deploy -- <environment> <sha>"
       - sh: test -d "{{.APP_ROOT}}"
         msg: "App not mounted at {{.APP_ROOT}}. Run ./scripts/setup-app-path.sh /path/to/app and reopen the devcontainer."
-      - sh: test -f "{{.APP_ROOT}}/iac.yml"
-        msg: "App missing iac.yml. Run ./scripts/setup-app-path.sh /path/to/app (app must have iac.yml, docker-compose.yml, .env, .sops.yaml)."
+      - sh: test -f "{{.APP_ROOT}}/.iac/iac.yml"
+        msg: "App missing .iac/iac.yml. Run task platform:init inside the devcontainer."
+      - sh: test -f "{{.APP_ROOT}}/.iac/.env"
+        msg: "App missing .iac/.env. Run task platform:init inside the devcontainer."
+      - sh: test -f "{{.APP_ROOT}}/.iac/docker-compose.override.yml"
+        msg: "App missing .iac/docker-compose.override.yml. Run task platform:init inside the devcontainer."
       - sh: test -f "{{.APP_ROOT}}/docker-compose.yml"
-        msg: "App missing docker-compose.yml. Run ./scripts/setup-app-path.sh /path/to/app."
-      - sh: test -f "{{.APP_ROOT}}/.env"
-        msg: "App missing .env. Each app must have .env (can be minimal if no secrets). Run ./scripts/setup-app-path.sh /path/to/app."
-      - sh: test -f "{{.APP_ROOT}}/.sops.yaml"
-        msg: "App missing .sops.yaml. Run ./scripts/setup-app-path.sh /path/to/app (app must have iac.yml, docker-compose.yml, .env, .sops.yaml)."
+        msg: "App missing docker-compose.yml."
     cmds:
       - |
-        REGISTRY_NAME=$(yq -r '.REGISTRY_NAME' "{{.APP_ROOT}}/iac.yml")
-        IMAGE_NAME=$(yq -r '.IMAGE_NAME' "{{.APP_ROOT}}/iac.yml")
-        
-        # Run Ansible deployment
+        IMAGE_NAME=$(yq -r '.image_name' "{{.APP_ROOT}}/.iac/iac.yml")
+
         HOSTNAME=$(task hostkeys:hostname -- "{{.WORKSPACE}}")
         ANSIBLE_CONFIG="{{.IAC_ROOT}}/ansible/ansible.cfg" \
         ansible-playbook \
@@ -53,7 +53,7 @@ tasks:
           -e "app_root={{.APP_ROOT}}" \
           -e "workspace={{.WORKSPACE}}" \
           -e "sha={{.SHA}}" \
-          -e "registry_name=$REGISTRY_NAME" \
+          -e "registry_name=${REGISTRY}" \
           -e "image_name=$IMAGE_NAME"
 
   versions:
@@ -67,11 +67,10 @@ tasks:
         msg: "Usage: task app:versions -- <environment>\nExample: task app:versions -- dev"
       - sh: test -d "{{.APP_ROOT}}"
         msg: "App not mounted at {{.APP_ROOT}}. Run ./scripts/setup-app-path.sh /path/to/app and reopen the devcontainer."
-      - sh: test -f "{{.APP_ROOT}}/iac.yml"
-        msg: "App missing iac.yml. Run ./scripts/setup-app-path.sh /path/to/app (app must have iac.yml, docker-compose.yml, .env, .sops.yaml)."
+      - sh: test -f "{{.APP_ROOT}}/.iac/iac.yml"
+        msg: "App missing .iac/iac.yml. Run task platform:init inside the devcontainer."
     cmds:
       - |
-        REGISTRY_NAME=$(yq -r '.REGISTRY_NAME' "{{.APP_ROOT}}/iac.yml")
-        IMAGE_NAME=$(yq -r '.IMAGE_NAME' "{{.APP_ROOT}}/iac.yml")
+        IMAGE_NAME=$(yq -r '.image_name' "{{.APP_ROOT}}/.iac/iac.yml")
         APP_SLUG="${IMAGE_NAME##*/}"
-        cd "{{.IAC_ROOT}}" && python3 scripts/application_versions.py "{{.WORKSPACE}}" "$REGISTRY_NAME" "$IMAGE_NAME" "$APP_SLUG"
+        cd "{{.IAC_ROOT}}" && python3 scripts/application_versions.py "{{.WORKSPACE}}" "$REGISTRY" "$IMAGE_NAME" "$APP_SLUG"

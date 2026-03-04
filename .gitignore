@@ -15,10 +15,7 @@ __pycache__/
 *.pyc
 
 # Mounted application files
-app/docker-compose.yml
-app/iac.yml
-app/.env
-app/.sops.yaml
+app/
 
 .DS_Store
 .vscode/

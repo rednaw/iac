@@ -1,133 +1,124 @@
 #!/usr/bin/env bash
-# DevContainer setup script:
-# - Trust mise tools (user-specific, must run as vscode user)
-# - Configure credentials from SOPS (Docker registry, hcloud, Terraform Cloud)
-# - Write host SSH config for dev/prod (used by Remote-SSH to server)
-# Requires SOPS key and secrets/infrastructure-secrets.yml in repo.
+# DevContainer setup script.
+# Runs as postCreateCommand.
+#
+# Bootstrap mode: app/.iac/iac.yml absent → tools available, secrets skipped.
+# Operational mode: app/.iac/iac.yml present → full setup, hard failure on any error.
 set -euo pipefail
 
+IAC_FILE="app/.iac/iac.yml"
+SOPS_KEY_FILE="${HOME}/.config/sops/age/keys.txt"
+DOCKER_CONFIG="${HOME}/.docker/config.json"
+HCLOUD_CONFIG_DIR="${HOME}/.config/hcloud"
+
 ########################################
-# Trust mise tools (user-specific)
+# Trust mise tools
 ########################################
 
 mise trust -a
 
 ########################################
-# Decrypt secrets once
+# Bootstrap mode
 ########################################
 
-DOCKER_CONFIG="${HOME}/.docker/config.json"
-HCLOUD_CONFIG_DIR="${HOME}/.config/hcloud"
-HCLOUD_CONFIG_FILE="${HCLOUD_CONFIG_DIR}/cli.toml"
-SOPS_KEY_FILE="${HOME}/.config/sops/age/keys.txt"
-SECRETS_FILE="${1:-secrets/infrastructure-secrets.yml}"
+if [ ! -f "$IAC_FILE" ]; then
+  echo ""
+  echo "Platform not initialised. Run: task platform:init"
+  echo ""
+  sudo chown -R vscode:vscode /home/vscode/.cursor 2>/dev/null || true
+  exit 0
+fi
 
-DECRYPTED=$(SOPS_AGE_KEY_FILE="$SOPS_KEY_FILE" sops -d "$SECRETS_FILE")
+########################################
+# Operational mode — hard failure from here
+########################################
 
-# Base domain and registry (parameterization: one value drives all hostnames)
-BASE_DOMAIN=$(echo "$DECRYPTED" | yq -r '.base_domain // ""')
-if [ -z "$BASE_DOMAIN" ]; then
-  echo "ERROR: 'base_domain' is missing from $SECRETS_FILE. Set it to your domain (e.g. example.com)." >&2
+if [ ! -f "$SOPS_KEY_FILE" ]; then
+  echo "ERROR: SOPS key not found at $SOPS_KEY_FILE. Mount ~/.config/sops or run task secrets:keygen." >&2
   exit 1
 fi
+
+DECRYPTED=$(SOPS_AGE_KEY_FILE="$SOPS_KEY_FILE" sops -d "$IAC_FILE") || {
+  echo "ERROR: Failed to decrypt $IAC_FILE. Check your SOPS key." >&2
+  exit 1
+}
+
+BASE_DOMAIN=$(echo "$DECRYPTED" | yq -r '.base_domain // ""')
+[ -n "$BASE_DOMAIN" ] || { echo "ERROR: base_domain missing from $IAC_FILE." >&2; exit 1; }
+
 REGISTRY="registry.${BASE_DOMAIN}"
 export BASE_DOMAIN REGISTRY
 
-# Persist for future shells (task, etc.)
 for profile in "${HOME}/.bashrc" "${HOME}/.zshrc"; do
   [ -f "$profile" ] && ! grep -q "BASE_DOMAIN=" "$profile" 2>/dev/null && \
-    echo "export BASE_DOMAIN=\"$BASE_DOMAIN\"" >> "$profile" && \
-    echo "export REGISTRY=\"$REGISTRY\"" >> "$profile"
+    printf '\nexport BASE_DOMAIN="%s"\nexport REGISTRY="%s"\n' "$BASE_DOMAIN" "$REGISTRY" >> "$profile"
 done
 
 ########################################
-# Docker Registry (~/.docker/config.json)
+# Docker registry
 ########################################
-
-mkdir -p "$(dirname "$DOCKER_CONFIG")"
 
 REG_USER=$(echo "$DECRYPTED" | yq -r '.registry_username // ""')
 REG_PASS=$(echo "$DECRYPTED" | yq -r '.registry_password // ""')
 
-if [ -n "$REG_USER" ] && [ -n "$REG_PASS" ]; then
-  AUTH=$(printf '%s' "$REG_USER:$REG_PASS" | base64 | tr -d '\n')
+[ -n "$REG_USER" ] || { echo "ERROR: registry_username missing from $IAC_FILE." >&2; exit 1; }
+[ -n "$REG_PASS" ] || { echo "ERROR: registry_password missing from $IAC_FILE." >&2; exit 1; }
 
-  if [ -f "$DOCKER_CONFIG" ]; then
-    EXISTING_AUTH=$(jq -r --arg registry "$REGISTRY" '.auths[$registry].auth // empty' "$DOCKER_CONFIG" 2>/dev/null || echo "")
-    if [ "$EXISTING_AUTH" = "$AUTH" ]; then
-      echo "Registry auth for $REGISTRY already configured in $DOCKER_CONFIG (skipping)."
-    else
-      jq --arg registry "$REGISTRY" --arg auth "$AUTH" \
-        '.auths[$registry] = {auth: $auth}' \
-        "$DOCKER_CONFIG" > "${DOCKER_CONFIG}.tmp" && mv "${DOCKER_CONFIG}.tmp" "$DOCKER_CONFIG"
-      echo "Registry auth updated for $REGISTRY in $DOCKER_CONFIG (merged with existing config)."
-    fi
-  else
-    jq -n --arg registry "$REGISTRY" --arg auth "$AUTH" \
-      '{auths: {($registry): {auth: $auth}}}' > "$DOCKER_CONFIG"
-    echo "Registry auth configured for $REGISTRY in $DOCKER_CONFIG (new config created)."
-  fi
+mkdir -p "$(dirname "$DOCKER_CONFIG")"
+AUTH=$(printf '%s' "$REG_USER:$REG_PASS" | base64 | tr -d '\n')
 
-  chmod 600 "$DOCKER_CONFIG"
+if [ -f "$DOCKER_CONFIG" ]; then
+  jq --arg registry "$REGISTRY" --arg auth "$AUTH" \
+    '.auths[$registry] = {auth: $auth}' \
+    "$DOCKER_CONFIG" > "${DOCKER_CONFIG}.tmp" && mv "${DOCKER_CONFIG}.tmp" "$DOCKER_CONFIG"
 else
-  echo "Registry credentials (registry_username/registry_password) not found in $SECRETS_FILE, skipping registry auth."
+  jq -n --arg registry "$REGISTRY" --arg auth "$AUTH" \
+    '{auths: {($registry): {auth: $auth}}}' > "$DOCKER_CONFIG"
 fi
+chmod 600 "$DOCKER_CONFIG"
+echo "Registry auth configured for $REGISTRY."
 
 ########################################
-# hcloud (~/.config/hcloud/cli.toml)
+# hcloud
 ########################################
 
 HCLOUD_TOKEN=$(echo "$DECRYPTED" | yq -r '.hcloud_token // ""')
+[ -n "$HCLOUD_TOKEN" ] || { echo "ERROR: hcloud_token missing from $IAC_FILE." >&2; exit 1; }
 
-if [ -n "$HCLOUD_TOKEN" ]; then
-  mkdir -p "$HCLOUD_CONFIG_DIR"
-
-  cat > "$HCLOUD_CONFIG_FILE" <<EOF
+mkdir -p "$HCLOUD_CONFIG_DIR"
+cat > "$HCLOUD_CONFIG_DIR/cli.toml" <<EOF
 active_context = "default"
 
 [[contexts]]
   name = "default"
   token = "$HCLOUD_TOKEN"
 EOF
-
-  chmod 600 "$HCLOUD_CONFIG_FILE"
-  echo "hcloud CLI config written to $HCLOUD_CONFIG_FILE (context \"default\")."
-else
-  echo "hcloud_token not found in $SECRETS_FILE, skipping hcloud CLI config."
-fi
+chmod 600 "$HCLOUD_CONFIG_DIR/cli.toml"
+echo "hcloud CLI configured (context \"default\")."
 
 ########################################
-# Terraform Cloud (TF_TOKEN_app_terraform_io env var)
-# Terraform Cloud supports environment variable authentication:
-# https://developer.hashicorp.com/terraform/cloud-docs/workspaces/remote-state#environment-variable-credentials
+# Terraform Cloud
 ########################################
 
 TFC_TOKEN=$(echo "$DECRYPTED" | yq -r '.terraform_cloud_token // ""')
+[ -n "$TFC_TOKEN" ] || { echo "ERROR: terraform_cloud_token missing from $IAC_FILE." >&2; exit 1; }
 
-if [ -n "$TFC_TOKEN" ]; then
-  export TF_TOKEN_app_terraform_io="$TFC_TOKEN"
-  
-  # Persist to shell profiles if they exist
-  for profile in "${HOME}/.bashrc" "${HOME}/.zshrc"; do
-    [ -f "$profile" ] && ! grep -q "TF_TOKEN_app_terraform_io" "$profile" 2>/dev/null && \
-      echo "export TF_TOKEN_app_terraform_io=\"$TFC_TOKEN\"" >> "$profile"
-  done
-  
-  echo "Terraform Cloud token configured (TF_TOKEN_app_terraform_io)."
-else
-  echo "terraform_cloud_token not found in $SECRETS_FILE, skipping Terraform Cloud credentials."
-fi
+export TF_TOKEN_app_terraform_io="$TFC_TOKEN"
+for profile in "${HOME}/.bashrc" "${HOME}/.zshrc"; do
+  [ -f "$profile" ] && ! grep -q "TF_TOKEN_app_terraform_io" "$profile" 2>/dev/null && \
+    printf '\nexport TF_TOKEN_app_terraform_io="%s"\n' "$TFC_TOKEN" >> "$profile"
+done
+echo "Terraform Cloud token configured."
 
 ########################################
-# SSH config for Remote-SSH to server (dev/prod)
-# Writes to host ~/.ssh (mounted) so Remote-SSH → dev|prod works
+# SSH config for Remote-SSH
 ########################################
 
 cd /workspaces/iac || exit 1
 bash .devcontainer/setup-remote-ssh.sh
 
 ########################################
-# Cursor state directory
+# Cursor state
 ########################################
-sudo chown -R vscode:vscode /home/vscode/.cursor 2>/dev/null || true
 
+sudo chown -R vscode:vscode /home/vscode/.cursor 2>/dev/null || true
