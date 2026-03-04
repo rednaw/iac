@@ -6,11 +6,9 @@
     "source=iac-cursor-state,target=/home/vscode/.cursor,type=volume",
     "source=${localEnv:HOME}/.ssh,target=/home/vscode/.ssh,type=bind",
     "source=${localEnv:HOME}/.config/sops,target=/home/vscode/.config/sops,type=bind,readonly",
-    "source=${localEnv:APP_HOST_PATH}/iac.yml,target=/workspaces/iac/app/iac.yml,type=bind,readonly",
+    "source=${localEnv:APP_HOST_PATH}/.iac,target=/workspaces/iac/app/.iac,type=bind",
     "source=${localEnv:APP_HOST_PATH}/docker-compose.yml,target=/workspaces/iac/app/docker-compose.yml,type=bind,readonly",
-    "source=${localEnv:APP_HOST_PATH}/.env,target=/workspaces/iac/app/.env,type=bind,readonly",
-    "source=${localEnv:APP_HOST_PATH}/.sops.yaml,target=/workspaces/iac/app/.sops.yaml,type=bind,readonly",
-    "source=${localEnv:APP_HOST_PATH}/.github/workflows/build-and-push.yml,target=/workspaces/iac/app/.github/workflows/build-and-push.yml,type=bind,readonly"
+    "source=${localEnv:APP_HOST_PATH}/.github/workflows/build-and-push.yml,target=/workspaces/iac/app/.github/workflows/build-and-push.yml,type=bind"
   ],
 
   "customizations": {
