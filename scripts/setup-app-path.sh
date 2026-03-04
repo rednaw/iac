@@ -5,7 +5,6 @@
 set -euo pipefail
 
 MARKER="# IAC devcontainer: app path (setup-app-path.sh)"
-REQUIRED_FILES=(iac.yml docker-compose.yml .env .sops.yaml)
 
 running_in_devcontainer() {
   [[ -f /.dockerenv ]] || [[ -n "${DEVCONTAINER:-}" ]]
@@ -15,7 +14,7 @@ usage() {
   echo "Usage: $0 [PATH_TO_APP]"
   echo ""
   echo "  PATH_TO_APP  Absolute or relative path to your app repo."
-  echo "               Must contain iac.yml, docker-compose.yml, .env, .sops.yaml."
+  echo "               Must contain docker-compose.yml and a .iac/ directory."
   echo "               If omitted, you will be prompted."
   echo ""
   echo "Sets which app is mounted in the IAC devcontainer. Run again with a different path"
@@ -33,16 +32,12 @@ resolve_path() {
 
 validate_app() {
   local dir="$1"
-  local missing=()
-  for f in "${REQUIRED_FILES[@]}"; do
-    [[ -f "$dir/$f" ]] || missing+=("$f")
-  done
-  if [[ ${#missing[@]} -gt 0 ]]; then
-    echo "❌ Missing required files in $dir:"
-    printf '   - %s\n' "${missing[@]}"
+  local ok=1
+  [[ -f "$dir/docker-compose.yml" ]] || { echo "❌ Missing: $dir/docker-compose.yml"; ok=0; }
+  [[ -d "$dir/.iac" ]]              || { echo "❌ Missing: $dir/.iac/ directory"; ok=0; }
+  if [[ $ok -eq 0 ]]; then
     echo ""
-    echo "Each app must have iac.yml, docker-compose.yml, .env, and .sops.yaml."
-    echo ".env can be minimal (e.g. empty or a single comment) if the app has no secrets."
+    echo "Create docker-compose.yml and an empty .iac/ directory, then run task platform:init inside the devcontainer."
     exit 1
   fi
 }
@@ -88,7 +83,7 @@ main() {
     fi
     path=$(resolve_path "$1")
   else
-    echo "Path to your app repo (must contain iac.yml, docker-compose.yml, .env, .sops.yaml):"
+    echo "Path to your app repo (must contain docker-compose.yml and a .iac/ directory):"
     read -r path
     path=$(resolve_path "$path")
   fi

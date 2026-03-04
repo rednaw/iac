@@ -1,5 +1,4 @@
 # Reusable workflow: run IAC test suite inside a Docker image.
-# Callers pass the image ref and must pass SOPS_AGE_KEY for the Terraform validate test step.
 
 name: Run IAC tests
 
@@ -10,9 +9,6 @@ on:
         description: "Docker image to run tests in (e.g. ghcr.io/rednaw/iac-dev:latest)"
         required: true
         type: string
-    secrets:
-      SOPS_AGE_KEY:
-        required: true
 
 permissions:
   contents: read
@@ -33,11 +29,6 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: SOPS setup
-        uses: ./.github/actions/sops-setup
-        with:
-          sops_age_key: ${{ secrets.SOPS_AGE_KEY }}
-
       - name: Terraform security (tfsec)
         run: |
           docker run --rm \
@@ -50,9 +41,7 @@ jobs:
         run: |
           docker run --rm \
             -v ${{ github.workspace }}:/workspace \
-            -v ~/.config/sops:/home/vscode/.config/sops:ro \
             -w /workspace \
-            -e SOPS_AGE_KEY_FILE=/home/vscode/.config/sops/age/keys.txt \
             -e TF_DATA_DIR=/tmp/terraform-validate \
             ${{ inputs.image }} \
             sh -c "mise trust -a && task test:terraform:validate"

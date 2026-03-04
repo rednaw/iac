@@ -32,5 +32,5 @@ tasks:
         echo ""
         hcloud ssh-key list -o columns=name,id
         echo ""
-        echo "💡 Use the 'ID' column for secrets/infrastructure-secrets.yml (ssh_keys: [\"ID\", ...])"
+        echo "💡 Use the 'ID' column for app/.iac/iac.yml (ssh_keys: [\"ID\", ...])"
 

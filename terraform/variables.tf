@@ -1,3 +1,26 @@
+variable "hcloud_token" {
+  description = "Hetzner Cloud API token"
+  type        = string
+  sensitive   = true
+}
+
+variable "ssh_keys" {
+  description = "List of Hetzner Cloud SSH key IDs to authorize on the server"
+  type        = list(string)
+  sensitive   = true
+}
+
+variable "allowed_ssh_ips" {
+  description = "List of IP addresses or CIDR blocks allowed to SSH"
+  type        = list(string)
+  sensitive   = true
+}
+
+variable "base_domain" {
+  description = "Base domain for the platform (e.g. milledoni.com)"
+  type        = string
+}
+
 variable "server_user" {
   description = "SSH user for Ansible (default ubuntu for normal runs)"
   type        = string
@@ -27,5 +50,3 @@ variable "server_image" {
   type        = string
   default     = "ubuntu-24.04"
 }
-
-

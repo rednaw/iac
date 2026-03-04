@@ -11,10 +11,9 @@
 #   sha: Image tag / commit SHA to deploy (e.g. abc1234)
 #
 # Expected files in app_root:
-#   docker-compose.yml: Docker Compose service definition
-#   .env:               SOPS-encrypted environment variables (dotenv format); can be minimal
-#
-# Requires infrastructure_secrets to be loaded by the calling playbook
+#   docker-compose.yml:              generic stack definition
+#   .iac/docker-compose.override.yml: platform config (Traefik labels, networks, restart)
+#   .iac/.env:                        SOPS-encrypted environment variables (dotenv format)
 
 # =============================================================================
 # Phase 1: Preparation (runs on localhost)

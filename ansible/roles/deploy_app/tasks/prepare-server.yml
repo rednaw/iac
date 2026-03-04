@@ -45,3 +45,11 @@
     owner: deploy
     group: deploy
     mode: '0644'
+
+- name: Copy docker-compose.override.yml
+  ansible.builtin.copy:
+    src: "{{ app_root }}/.iac/docker-compose.override.yml"
+    dest: "{{ deploy_target }}/docker-compose.override.yml"
+    owner: deploy
+    group: deploy
+    mode: '0644'

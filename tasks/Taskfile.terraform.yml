@@ -9,8 +9,8 @@ tasks:
     deps: [":_check:sops-key"]
     cmds:
       - |
-        TFC_ORG=$(SOPS_AGE_KEY_FILE="{{.SOPS_KEY_FILE}}" sops -d ../secrets/infrastructure-secrets.yml | yq -r '.terraform_cloud_organization')
-        if ! output=$(SOPS_AGE_KEY_FILE="{{.SOPS_KEY_FILE}}" terraform init -backend-config="organization=${TFC_ORG}" 2>&1); then
+        TFC_ORG=$(SOPS_AGE_KEY_FILE="{{.SOPS_KEY_FILE}}" sops -d ../app/.iac/iac.yml | yq -r '.terraform_cloud_organization')
+        if ! output=$(terraform init -backend-config="organization=${TFC_ORG}" 2>&1); then
           echo "$output"
           exit 1
         fi
@@ -27,7 +27,13 @@ tasks:
       - |
         echo "📋 Planning Terraform changes for workspace: platform-{{.WORKSPACE}}..."
         terraform workspace select "{{.WORKSPACE}}"
-        SOPS_AGE_KEY_FILE="{{.SOPS_KEY_FILE}}" terraform plan
+        SECRETS=$(SOPS_AGE_KEY_FILE="{{.SOPS_KEY_FILE}}" sops -d ../app/.iac/iac.yml)
+        TF_VAR_hcloud_token=$(echo "$SECRETS" | yq -r '.hcloud_token')
+        TF_VAR_base_domain=$(echo "$SECRETS" | yq -r '.base_domain')
+        TF_VAR_ssh_keys=$(echo "$SECRETS" | yq '.ssh_keys' -o=json)
+        TF_VAR_allowed_ssh_ips=$(echo "$SECRETS" | yq '.allowed_ssh_ips' -o=json)
+        export TF_VAR_hcloud_token TF_VAR_base_domain TF_VAR_ssh_keys TF_VAR_allowed_ssh_ips
+        terraform plan
 
   apply:
     desc: "Apply Terraform changes (use: task terraform:apply -- dev or -- prod)"
@@ -41,9 +47,15 @@ tasks:
       - |
         echo "✨ Applying Terraform changes to workspace: platform-{{.WORKSPACE}}"
         terraform workspace select "{{.WORKSPACE}}"
+        SECRETS=$(SOPS_AGE_KEY_FILE="{{.SOPS_KEY_FILE}}" sops -d ../app/.iac/iac.yml)
+        TF_VAR_hcloud_token=$(echo "$SECRETS" | yq -r '.hcloud_token')
+        TF_VAR_base_domain=$(echo "$SECRETS" | yq -r '.base_domain')
+        TF_VAR_ssh_keys=$(echo "$SECRETS" | yq '.ssh_keys' -o=json)
+        TF_VAR_allowed_ssh_ips=$(echo "$SECRETS" | yq '.allowed_ssh_ips' -o=json)
+        export TF_VAR_hcloud_token TF_VAR_base_domain TF_VAR_ssh_keys TF_VAR_allowed_ssh_ips
         echo "🔑 Removing old host key for workspace from known_hosts..."
         task hostkeys:prepare -- "{{.WORKSPACE}}"
-        SOPS_AGE_KEY_FILE="{{.SOPS_KEY_FILE}}" terraform apply
+        terraform apply
         echo "🔑 Accepting new host key..."
         HOSTNAME=$(task hostkeys:hostname -- "{{.WORKSPACE}}")
         ssh -o StrictHostKeyChecking=accept-new -o ConnectTimeout=5 -o BatchMode=yes "ubuntu@${HOSTNAME}" "echo" >/dev/null 2>&1 || true
@@ -62,7 +74,13 @@ tasks:
         echo "Terraform will ask for confirmation..."
         echo ""
         terraform workspace select "{{.WORKSPACE}}"
-        SOPS_AGE_KEY_FILE="{{.SOPS_KEY_FILE}}" terraform destroy
+        SECRETS=$(SOPS_AGE_KEY_FILE="{{.SOPS_KEY_FILE}}" sops -d ../app/.iac/iac.yml)
+        TF_VAR_hcloud_token=$(echo "$SECRETS" | yq -r '.hcloud_token')
+        TF_VAR_base_domain=$(echo "$SECRETS" | yq -r '.base_domain')
+        TF_VAR_ssh_keys=$(echo "$SECRETS" | yq '.ssh_keys' -o=json)
+        TF_VAR_allowed_ssh_ips=$(echo "$SECRETS" | yq '.allowed_ssh_ips' -o=json)
+        export TF_VAR_hcloud_token TF_VAR_base_domain TF_VAR_ssh_keys TF_VAR_allowed_ssh_ips
+        terraform destroy
         echo "🧹 Cleaning server host key from known_hosts..."
         task hostkeys:prepare -- "{{.WORKSPACE}}"
         echo "✅ Host key removed"
