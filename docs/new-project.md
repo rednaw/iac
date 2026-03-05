@@ -2,96 +2,137 @@
 
 # New project (bootstrapping from scratch)
 
-Create the platform. Use this when you are creating new infrastructure and there is no `infrastructure-secrets.yml` yet. You will create the secrets file once, encrypt it with SOPS, and from then on the devcontainer will use it to configure registry, Terraform Cloud, and hcloud automatically.
+Create the platform. Use this when you are creating new infrastructure and do not yet have platform config in the app repo. All platform-specific configuration and secrets live in the app repo under **`.iac/`** (not in the IaC repo).
 
 ## 1. Development environment
 
 1. Install [Docker](https://docs.docker.com/get-docker/), [VS Code](https://code.visualstudio.com/) or [Cursor](https://cursor.com/), and the [Dev Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) extension.
-2. Clone the repo.
-3. On the host, run **`./scripts/setup-app-path.sh /path/to/your/app`** (the app must have `iac.yml`, `docker-compose.yml`, `.env`, `.sops.yaml`). You'll open the devcontainer after creating secrets in the steps below.
+2. Clone the IaC repo.
+3. Have an **app repo** (or directory) with:
+   - **`docker-compose.yml`** — your app stack (generic; no domain or Traefik labels here).
+   - **`.iac/`** — empty directory (create with `mkdir .iac`). You will fill this in the steps below.
+4. On the host, run **`./scripts/setup-app-path.sh /path/to/your/app`**. You will open the devcontainer after creating secrets (steps below).
 
-Until you have created and encrypted `infrastructure-secrets.yml`, the devcontainer cannot configure Terraform Cloud, hcloud, or registry auth. Create the secrets file (steps 2–4), then open the workspace and launch the devcontainer—see [Launch the IaC devcontainer](launch-devcontainer.md).
+Until `.iac/iac.yml` exists and is encrypted, the devcontainer runs in **bootstrap mode**: tools work, but it will not configure Terraform Cloud, hcloud, or registry auth. Complete steps 2–5, then reopen the devcontainer for **operational mode**. See [Launch the IaC devcontainer](launch-devcontainer.md).
 
-## 2. SOPS key and config
+## 2. SOPS key and config (in the app repo)
 
-Generate your age key pair and prepare SOPS to encrypt a single key-holder (you) initially:
+From the IaC repo (or inside the devcontainer with the app mounted), generate your age key and SOPS config for the app’s `.iac/` directory:
 
 ```bash
 task secrets:keygen
 task secrets:generate-sops-config
 ```
 
-This creates `~/.config/sops/age/keys.txt` (private key, keep secret) and `secrets/sops-key-<username>.pub` (commit this), and generates `.sops.yaml` so that files matching `secrets/infrastructure-secrets.yml` are encrypted with your public key. Commit the public key and `.sops.yaml`:
+This creates:
+
+- `~/.config/sops/age/keys.txt` (private key; keep secret)
+- **`app/.iac/sops-key-<username>.pub`** (commit this to the **app** repo)
+- **`app/.iac/.sops.yaml`** (commit to the app repo; covers `iac.yml` and `.env`)
+
+Commit in the **app** repo:
 
 ```bash
-git add secrets/sops-key-*.pub .sops.yaml
+cd /path/to/your/app
+git add .iac/sops-key-*.pub .iac/.sops.yaml
 git commit -m "Add SOPS key and config for bootstrap"
 git push
 ```
 
 ## 3. External accounts and tokens
 
-Create the following; you will put the relevant values into `infrastructure-secrets.yml` in the next step.
+Create the following; you will put values into **`app/.iac/iac.yml`** in the next step.
 
 | What | Where to get it |
 |------|------------------|
 | **Hetzner Cloud API token** | Hetzner Cloud Console → Security → API tokens. Create a token with Read & Write. |
-| **Terraform Cloud token** | Terraform Cloud → User Settings → Tokens. Create an API token. You need an organization (e.g. create one) and workspaces `platform-dev` and `platform-prod` (see step 6 below). |
-| **Registry credentials** | If you use the self-hosted registry: choose a username and password and the registry domain; the registry will be configured later by Ansible. If you use a third-party registry, use its credentials. |
-| **Your SSH public key** | Ensure you have `~/.ssh/id_rsa.pub` (or generate with `ssh-keygen`). You will add this key to Hetzner and put the Hetzner key ID in secrets. SSH is used to log in to the server for maintenance and troubleshooting. |
-| **Your IP for SSH** | Your current IP (e.g. from [whatismyipaddress.com](https://whatismyipaddress.com/)); use CIDR form e.g. `203.0.113.50/32`. The firewall only allows SSH from IPs listed in `allowed_ssh_ips`. |
+| **Terraform Cloud token** | Terraform Cloud → User Settings → Tokens. Create an API token. You need an organization and workspaces `platform-dev` and `platform-prod` (see step 6). |
+| **Registry credentials** | Choose a username and password for the self-hosted registry (hostname will be `registry.<base_domain>`). |
+| **Your SSH public key** | Ensure you have `~/.ssh/id_rsa.pub` (or generate with `ssh-keygen`). Add this key to Hetzner and put the Hetzner key ID in secrets. |
+| **Your IP for SSH** | Your current IP (e.g. [whatismyipaddress.com](https://whatismyipaddress.com/)); use CIDR e.g. `203.0.113.50/32`. The firewall only allows SSH from IPs in `allowed_ssh_ips`. |
 
-Add your SSH public key to Hetzner Cloud: Console → Project → Security → SSH keys → Add. Note the key **ID** (numeric) for the next step. You can also get the ID later with `task server:list-hetzner-keys` (after hcloud is configured).
+Add your SSH public key in Hetzner Cloud: Console → Project → Security → SSH keys → Add. Note the key **ID** (numeric) for the next step.
 
-## 4. Create and encrypt infrastructure-secrets.yml
+## 4. Create and encrypt `app/.iac/iac.yml`
 
-Create `secrets/infrastructure-secrets.yml` (plain YAML) with at least:
+In the **app** repo, create **`.iac/iac.yml`** (plain YAML) with at least:
+
+**Unencrypted** (required):
+
+- `base_domain` — your domain (e.g. `example.com`). Drives platform name, registry URL, and hostnames.
+- `image_name` — Docker image name (e.g. `myorg/myapp`).
+- `app_domains` — list of domains for Traefik TLS (e.g. `["dev.example.com", "example.com"]`).
+
+**Encrypted** (credentials):
 
 - `hcloud_token` — Hetzner Cloud API token
 - `ssh_keys` — list of Hetzner SSH key IDs, e.g. `["12345678"]`
-- `allowed_ssh_ips` — list of CIDRs allowed to SSH, e.g. `["203.0.113.50/32"]`
-- `registry_username`, `registry_password`, `base_domain`, `registry_http_secret` — registry auth and config (registry hostname is `registry.<base_domain>`)
-- `terraform_cloud_token` — Terraform Cloud API token (used by the devcontainer to write `~/.terraform.d/credentials.tfrc.json`)
-- `terraform_cloud_organization` — Terraform Cloud organization name (used by `terraform init` to connect to the right organization)
+- `allowed_ssh_ips` — list of CIDRs for SSH, e.g. `["203.0.113.50/32"]`
+- `registry_username`, `registry_password`, `registry_http_secret`
+- `terraform_cloud_token`, `terraform_cloud_organization`
+- `openobserve_username`, `openobserve_password` (for monitoring)
+- `abuseipdb_api_key` (optional; for Fail2ban)
 
-The devcontainer reads `hcloud_token` and `terraform_cloud_token` from this file at startup and writes hcloud and Terraform credentials so you do not need to run `hcloud context create` or `task terraform:login` manually.
-
-Encrypt the file with SOPS (in VS Code with the SOPS extension: open the file, save; or via CLI):
+The `.sops.yaml` in `.iac/` is set up so that `image_name` and `app_domains` stay unencrypted; everything else is encrypted. Encrypt the file (in VS Code: open and save with the SOPS extension; or via CLI):
 
 ```bash
-sops --encrypt --in-place secrets/infrastructure-secrets.yml
-# Or: edit in VS Code and save; the SOPS extension encrypts on save.
+cd /path/to/your/app
+sops --encrypt --in-place .iac/iac.yml
 ```
 
 Commit the encrypted file (never commit the plain file):
 
 ```bash
-git add secrets/infrastructure-secrets.yml
-git commit -m "Add encrypted infrastructure secrets (bootstrap)"
+git add .iac/iac.yml
+git commit -m "Add encrypted platform config (bootstrap)"
 git push
 ```
 
-## 5. Launch the devcontainer
+## 5. Complete the `.iac/` contract in the app repo
 
-Open the workspace and start the devcontainer so it can decrypt secrets and configure your credentials. Close and reopen the container if you already had it open.
+Create these in the **app** repo:
 
-See [Launch the IaC devcontainer](launch-devcontainer.md) for the steps (open workspace, Reopen in Container) and what happens on startup (decrypt, write registry/Terraform/hcloud config).
+- **`.iac/.env`** — SOPS-encrypted dotenv for app runtime secrets (can be a stub: empty or a comment). Same SOPS keyring as `iac.yml`.
+- **`.iac/docker-compose.override.yml`** — Production overrides: Traefik labels (e.g. `Host(\`example.com\`)`), `networks: [default, traefik]`, `restart: unless-stopped`. See [Traefik](traefik.md) and [Application deployment](application-deployment.md).
+- **`.github/workflows/build-and-push.yml`** — Thin caller to the IaC reusable workflow. Example:
 
-## 6. Terraform Cloud (one-time)
+  ```yaml
+  on:
+    push:
+      branches: [main]
+  jobs:
+    build-and-push:
+      uses: rednaw/iac/.github/workflows/_build-and-push.yml@main
+      secrets:
+        REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
+        REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+  ```
 
-We use Terraform Cloud for shared state, automatic locking, and state history. No local state files; each team member uses the same state.
+  Set **Variables** in the app repo (Settings → Secrets and variables → Actions): `REGISTRY_URL` = `registry.<base_domain>`, `IMAGE_NAME` = value of `image_name` from `iac.yml`. Set **Secrets**: `REGISTRY_USERNAME`, `REGISTRY_PASSWORD` (from `iac.yml`).
 
-- Create a Terraform Cloud account and organization (e.g. `rednaw`). Set execution mode to **Local** at organization level.
-- Create workspaces `platform-dev` and `platform-prod` in Terraform Cloud (the organization name is read from `terraform_cloud_organization` in `infrastructure-secrets.yml`):
-  1. Go to Terraform Cloud → your organization
-  2. Create workspace with name `platform-dev`
-  3. Create workspace with name `platform-prod`
-- The environment is derived from the workspace name (`platform-dev` → `dev`). Variables like `server_type`, `server_location` can be set via `-var` or `.tfvars` per environment. Workspaces must exist before `task terraform:init -- dev` or `-- prod`.
-- Terraform runs locally; state is stored in Terraform Cloud (one state per workspace, automatic locking). Each environment has its own workspace and state. If Terraform Cloud is unreachable, you can recover state using [terraform import](https://developer.hashicorp.com/terraform/tutorials/state/state-import).
+Commit and push:
 
-## 7. Terraform and Ansible
+```bash
+git add .iac/ .github/
+git commit -m "Add .iac contract and build workflow"
+git push
+```
 
-Initialize Terraform, provision the dev server, and configure it:
+## 6. Launch the devcontainer
+
+Open the IaC workspace and start the devcontainer. With `app/.iac/iac.yml` present and decryptable, it will run in **operational mode**: decrypt, write registry/Terraform/hcloud config. If you had the container open before, close and reopen it.
+
+See [Launch the IaC devcontainer](launch-devcontainer.md).
+
+## 7. Terraform Cloud (one-time)
+
+- Create a Terraform Cloud account and organization. Set execution mode to **Local**.
+- Create workspaces **`platform-dev`** and **`platform-prod`**. The organization name is read from `terraform_cloud_organization` in `app/.iac/iac.yml`.
+- The environment is derived from the workspace name (`platform-dev` → `dev`). Workspaces must exist before `task terraform:init` or `task terraform:apply`.
+
+## 8. Terraform and Ansible
+
+From the IaC devcontainer:
 
 ```bash
 task terraform:apply -- dev
@@ -101,8 +142,8 @@ task ansible:run -- dev
 
 Get the server IP with `task terraform:output -- dev`. Use `prod` instead of `dev` for production.
 
-**Notes:** Use the `--` separator when passing the workspace (e.g. `task terraform:apply -- dev`). If your IP address changes (e.g. different network or VPN), update `allowed_ssh_ips` in secrets and run `task terraform:apply -- <workspace>` again.
+If your IP changes, update `allowed_ssh_ips` in `app/.iac/iac.yml` and run `task terraform:apply -- <workspace>` again.
 
-## 8. Adding more people later
+## 9. Adding more people later
 
-When someone joins, they follow [Joining](joining.md). You add their SOPS public key to `.sops.yaml` and re-encrypt `secrets/infrastructure-secrets.yml` so they can decrypt it; after that, their devcontainer will also configure registry, Terraform, and hcloud from the same file. See [secrets.md](secrets.md) for the exact steps.
+When someone joins, they follow [Joining](joining.md). You add their SOPS public key to `app/.iac/` and run `task secrets:generate-sops-config`, then re-encrypt `app/.iac/iac.yml` so they can decrypt it. See [Secrets](secrets.md).

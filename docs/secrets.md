@@ -14,8 +14,8 @@ flowchart LR
     end
 
     subgraph GIT["Git repository"]
-        S@{ shape: lin-doc, label: "Encrypted secrets<br/>infrastructure-secrets.yml<br/>app/.env" }
-        P@{ shape: lin-doc, label: "Public keys<br/>sops-key-*.pub" }
+        S@{ shape: lin-doc, label: "Encrypted secrets<br/>app/.iac/iac.yml<br/>app/.iac/.env" }
+        P@{ shape: lin-doc, label: "Public keys<br/>app/.iac/sops-key-*.pub" }
     end
 
     subgraph USE["Used by"]
@@ -49,16 +49,16 @@ With the extension installed, encrypted files open decrypted — edit and save a
 
 | Type | File | Format |
 |------|------|--------|
-| Infrastructure | `iac/secrets/infrastructure-secrets.yml` | YAML |
-| Application | `<app>/.env` | dotenv |
+| Infrastructure (platform) | `app/.iac/iac.yml` | YAML |
+| Application runtime | `app/.iac/.env` | dotenv |
 
-Both are encrypted and committed to Git.
+Both live in the app repo under `.iac/` and are encrypted with SOPS. Public keys are in `app/.iac/sops-key-*.pub`; SOPS config is `app/.iac/.sops.yaml`.
 
 ---
 
 ## Platform parameterization (base_domain)
 
-The infrastructure secrets file must include `base_domain` (e.g. `example.com`). Registry and hostnames are derived from it: `registry.<base_domain>`, `dev.<base_domain>`, `prod.<base_domain>`. The devcontainer and Ansible will fail with a clear error if this key is missing.
+The file `app/.iac/iac.yml` must include `base_domain` (e.g. `example.com`) as an unencrypted key. Registry and hostnames are derived from it: `registry.<base_domain>`, `dev.<base_domain>`, `prod.<base_domain>`. The devcontainer and Ansible will fail with a clear error if this key is missing. The same file also has unencrypted `image_name` and `app_domains`; all credentials are encrypted.
 
 ---
 
@@ -66,34 +66,31 @@ The infrastructure secrets file must include `base_domain` (e.g. `example.com`).
 
 When someone joins, they generate a key and get added to the keyring:
 
-1. **Generate your key pair:**
+1. **Generate your key pair** (from the IaC repo with the app mounted):
    ```bash
-   cd iac
    task secrets:keygen
    ```
-   Creates `~/.config/sops/age/keys.txt` (private key, never share) and `iac/secrets/sops-key-<username>.pub` (public key, commit this).
+   Creates `~/.config/sops/age/keys.txt` (private key, never share) and **`app/.iac/sops-key-<username>.pub`** (public key; commit this in the **app** repo).
 
-2. **Commit your public key:**
+2. **Commit your public key** (in the app repo):
    ```bash
-   git add secrets/sops-key-*.pub
-   git commit -m "Add SOPS public key for <username>"
-   git push
+   cd /path/to/app && git add .iac/sops-key-*.pub && git commit -m "Add SOPS public key for <username>" && git push
    ```
 
 3. **Ask a teammate to add you:**
    ```bash
-   # Teammate runs:
-   git pull
-   task secrets:generate-sops-config    # Updates .sops.yaml with your key
-   # Open secrets/infrastructure-secrets.yml in VS Code, save it
-   git add -A && git commit -m "Add <username> to secrets" && git push
+   # Teammate runs (with app mounted):
+   git pull   # in the app repo
+   task secrets:generate-sops-config    # Updates app/.iac/.sops.yaml with your key
+   # Open app/.iac/iac.yml in VS Code, save (re-encrypt)
+   git add .iac/ && git commit -m "Add <username> to secrets" && git push
    ```
 
-4. **Pull and verify:**
+4. **Pull and verify** (in the app repo):
    ```bash
    git pull
    ```
-   Open `secrets/infrastructure-secrets.yml` in VS Code — if it decrypts, you're set.
+   Open `app/.iac/iac.yml` in VS Code — if it decrypts, you're set.
 
 ---
 
@@ -103,8 +100,8 @@ When someone joins, they generate a key and get added to the keyring:
 
 Just open the file. The SOPS extension decrypts it automatically. Save to re-encrypt.
 
-- `iac/secrets/infrastructure-secrets.yml` — Infrastructure secrets
-- `tientje-ketama/.env` — Application secrets (dotenv; use SOPS + dotenv extension)
+- `app/.iac/iac.yml` — Platform/infrastructure secrets (in the app repo)
+- `app/.iac/.env` — Application runtime secrets (dotenv; use SOPS + dotenv extension)
 
 ### From command line
 
@@ -126,7 +123,7 @@ SOPS_AGE_KEY_FILE=~/.config/sops/age/keys.txt sops <file>
 3. Save — the SOPS extension encrypts automatically.
 4. Commit.
 
-The IAC devcontainer includes the **dotenv** extension (`mikestead.dotenv`) and `files.associations` so you edit `.env` as dotenv. Ensure the app's `.sops.yaml` has a `path_regex` that matches `.env` (e.g. `\.env$`). The deploy process uses the decrypted dotenv directly for docker-compose.
+The IAC devcontainer includes the **dotenv** extension (`mikestead.dotenv`) and `files.associations` so you edit `.env` as dotenv. Ensure `app/.iac/.sops.yaml` exists (`task secrets:generate-sops-config`) and has a `path_regex` that matches `.env` (e.g. `\.env$`). The deploy process uses the decrypted dotenv directly for docker-compose.
 
 ---
 
@@ -134,19 +131,18 @@ The IAC devcontainer includes the **dotenv** extension (`mikestead.dotenv`) and 
 
 **Multi-key encryption:** Each team member has their own key pair. Secrets are encrypted with all public keys, so anyone can decrypt with their private key.
 
-**File structure:**
-```
-iac/
-├── secrets/
-│   ├── infrastructure-secrets.yml     # Encrypted YAML (committed)
-│   ├── sops-key-alice.pub              # Alice's public key
-│   ├── sops-key-bob.pub                # Bob's public key
-│   └── sops-key-github-ci.pub          # CI public key
-├── .sops.yaml                          # Encryption rules (committed)
-└── ...
+**File structure** (in the **app** repo):
 
-tientje-ketama/
-└── .env                                # Encrypted dotenv (committed)
+```
+<app-repo>/
+├── .iac/
+│   ├── iac.yml              # Encrypted platform secrets (base_domain, image_name, app_domains unencrypted)
+│   ├── .env                 # Encrypted app runtime secrets (dotenv)
+│   ├── .sops.yaml           # SOPS rules for iac.yml and .env (committed)
+│   ├── docker-compose.override.yml   # Traefik labels, networks, restart (committed)
+│   ├── sops-key-alice.pub   # Alice's public key
+│   └── sops-key-bob.pub     # Bob's public key
+└── docker-compose.yml       # Generic stack (committed)
 ```
 
 **Private keys** are stored outside the repo:
@@ -185,12 +181,14 @@ The file is encrypted. Install the VS Code SOPS extension to view it.
 
 ---
 
-## CI/CD
+## CI/CD (app repo)
 
-GitHub Actions uses:
-- **SOPS:** Public key `iac/secrets/sops-key-github-ci.pub` (committed); private key in secret `SOPS_AGE_KEY` (used for Terraform validation, deployment, and registry authentication)
-- **Private registry:** Credentials come from SOPS-decrypted `infrastructure-secrets.yml`; see [Registry](registry.md)
-- **OpenObserve:** `openobserve_username` and `openobserve_password` in `infrastructure-secrets.yml` (root login; the OTEL Collector auto-generates the ingest auth key from these); see [Monitoring](monitoring.md)
+For **build-and-push** in the app repo, set in GitHub Settings → Secrets and variables → Actions:
+
+- **Variables:** `REGISTRY_URL` = `registry.<base_domain>`, `IMAGE_NAME` = value of `image_name` from `app/.iac/iac.yml`
+- **Secrets:** `REGISTRY_USERNAME`, `REGISTRY_PASSWORD` (from `iac.yml`; decrypt in VS Code to copy)
+
+The IaC reusable workflow `_build-and-push.yml` does not need SOPS; the app repo passes registry credentials as secrets. OpenObserve and other platform credentials stay in `app/.iac/iac.yml`; see [Registry](registry.md) and [Monitoring](monitoring.md).
 
 ---
 

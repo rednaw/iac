@@ -6,8 +6,9 @@
 #   app/docker-compose.yml  — generic stack (readonly)
 #   app/.github/workflows/build-and-push.yml — CI caller (read/write)
 #
-#   task app:deploy   -- <env> <sha>
-#   task app:versions -- <env>
+#   task app:deploy     -- <env> <sha>
+#   task app:versions   -- <env>
+#   task app:delete-tag -- <tag>   # one-time: remove a tag from the registry (e.g. latest)
 #
 # See docs/application-deployment.md.
 
@@ -46,10 +47,12 @@ tasks:
         IMAGE_NAME=$(yq -r '.image_name' "{{.APP_ROOT}}/.iac/iac.yml")
 
         HOSTNAME=$(task hostkeys:hostname -- "{{.WORKSPACE}}")
+        PLATFORM=$(task hostkeys:platform)
         ANSIBLE_CONFIG="{{.IAC_ROOT}}/ansible/ansible.cfg" \
         ansible-playbook \
-          -i "${HOSTNAME}," \
+          -i "${PLATFORM}-{{.WORKSPACE}}," \
           "{{.IAC_ROOT}}/ansible/playbooks/deploy-app.yml" \
+          -e "ansible_host=${HOSTNAME}" \
           -e "app_root={{.APP_ROOT}}" \
           -e "workspace={{.WORKSPACE}}" \
           -e "sha={{.SHA}}" \
@@ -74,3 +77,23 @@ tasks:
         IMAGE_NAME=$(yq -r '.image_name' "{{.APP_ROOT}}/.iac/iac.yml")
         APP_SLUG="${IMAGE_NAME##*/}"
         cd "{{.IAC_ROOT}}" && python3 scripts/application_versions.py "{{.WORKSPACE}}" "$REGISTRY" "$IMAGE_NAME" "$APP_SLUG"
+
+  delete-tag:
+    desc: "Remove a tag from the app image in the registry (one-time manual, e.g. task app:delete-tag -- latest)"
+    silent: true
+    vars:
+      TAG: "{{.CLI_ARGS}}"
+    preconditions:
+      - sh: '[ -n "{{.CLI_ARGS}}" ]'
+        msg: "Usage: task app:delete-tag -- <tag>\nExample: task app:delete-tag -- latest"
+      - sh: test -d "{{.APP_ROOT}}"
+        msg: "App not mounted at {{.APP_ROOT}}. Run ./scripts/setup-app-path.sh /path/to/app and reopen the devcontainer."
+      - sh: test -f "{{.APP_ROOT}}/.iac/iac.yml"
+        msg: "App missing .iac/iac.yml. Run task platform:init inside the devcontainer."
+    cmds:
+      - |
+        IMAGE_NAME=$(yq -r '.image_name' "{{.APP_ROOT}}/.iac/iac.yml")
+        REF="${REGISTRY}/${IMAGE_NAME}:{{.TAG}}"
+        echo "Deleting tag {{.TAG}} from registry (${REF})..."
+        crane delete "$REF"
+        echo "Done."
