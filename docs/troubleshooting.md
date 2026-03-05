@@ -2,11 +2,11 @@
 
 ## Troubleshooting
 
-**"secrets/infrastructure-secrets.yml not found"**
+**"app/.iac/iac.yml not found" or "cannot decrypt"**
 - Create the file and encrypt it. See [secrets.md](secrets.md) for setup instructions.
 
 **"Error: authentication required" (Terraform)**
-- In the devcontainer, ensure your SOPS key is in place (`~/.config/sops/age/keys.txt`) and that `secrets/infrastructure-secrets.yml` contains `terraform_cloud_token`. The devcontainer startup script writes `~/.terraform.d/credentials.tfrc.json` automatically.
+- In the devcontainer, ensure your SOPS key is in place (`~/.config/sops/age/keys.txt`) and that `app/.iac/iac.yml` exists and contains `terraform_cloud_token`. The devcontainer startup script writes `~/.terraform.d/credentials.tfrc.json` automatically.
 - If you are running Terraform **outside** the devcontainer, run `terraform login` or create `~/.terraform.d/credentials.tfrc.json` with your token.
 
 **Connection timeout**

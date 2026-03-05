@@ -49,17 +49,17 @@ The registry runs on the same Ubuntu server(s) as the applications, configured b
 | **Auth** | htpasswd at `/etc/traefik/auth/htpasswd` (Traefik basic-auth middleware; registry uses same credentials, `REGISTRY_AUTH=none`) |
 | **Traefik** | Proxies HTTPS `registry.<base_domain>` → registry container; Basic Auth middleware; TLS via Let's Encrypt |
 
-Credentials and domain are taken from SOPS-decrypted `secrets/infrastructure-secrets.yml`:
+Credentials and domain are taken from SOPS-decrypted `app/.iac/iac.yml`:
 
 - `registry_username` / `registry_password` — used for htpasswd and for Docker client auth
-- `base_domain` — e.g. `rednaw.nl`; registry hostname is derived as `registry.<base_domain>`
+- `base_domain` — e.g. `example.com`; registry hostname is derived as `registry.<base_domain>`
 - `registry_http_secret` — registry config HTTP secret
 
 ---
 
 ## Authentication
 
-All environments use the same credential source: SOPS-decrypted `secrets/infrastructure-secrets.yml` (`registry_username`, `registry_password`). No manual `docker login` is required.
+All environments use the same credential source: SOPS-decrypted `app/.iac/iac.yml` (`registry_username`, `registry_password`). No manual `docker login` is required.
 
 ### Devcontainer
 
@@ -70,8 +70,8 @@ All environments use the same credential source: SOPS-decrypted `secrets/infrast
 
 ### GitHub Actions
 
-- **Method:** Workflows install SOPS and yq, decrypt `secrets/infrastructure-secrets.yml`, extract `registry_username` and `registry_password`, and pass them to `docker/login-action@v3`
-- **When:** Automatic in `static-code-analysis.yml` and `promote-image.yml`. Only `SOPS_AGE_KEY` is required as a repository secret
+- **Method:** In the **app** repo, set GitHub Actions **Secrets** `REGISTRY_USERNAME` and `REGISTRY_PASSWORD` (from `app/.iac/iac.yml`; decrypt in VS Code to copy). The reusable workflow `_build-and-push.yml` receives these and uses `docker/login-action@v3`.
+- **When:** One-time setup per app repo; no SOPS in CI for app builds
 
 ### Server – ubuntu user
 

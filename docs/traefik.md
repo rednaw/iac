@@ -36,33 +36,31 @@ flowchart LR
 
 ## Adding an application
 
-To expose an application through Traefik, add the following to your app's `docker-compose.yml`:
+Production routing is defined in **`.iac/docker-compose.override.yml`** in the app repo (not in the main `docker-compose.yml`). That override is copied to the server by the deploy task.
 
-1. **Add Traefik network:**
+1. **In `.iac/docker-compose.override.yml`**, add the Traefik network and labels to your app service:
+
    ```yaml
+   services:
+     app:
+       labels:
+         traefik.enable: "true"
+         traefik.http.routers.app.rule: "Host(`example.com`)"
+         traefik.http.routers.app.entrypoints: "websecure"
+         traefik.http.routers.app.tls.certresolver: "letsencrypt"
+         traefik.http.services.app.loadbalancer.server.port: "3000"
+       networks:
+         - default
+         - traefik
+       restart: unless-stopped
+     # ... other services with restart: unless-stopped as needed ...
+
    networks:
-     default:
-       name: <app-network>
      traefik:
        external: true
    ```
 
-2. **Add Traefik labels to your service:**
-   ```yaml
-   services:
-     app:
-       # ... other config ...
-       networks:
-         - default
-         - traefik
-       labels:
-         - traefik.enable=true
-         - traefik.http.routers.app.rule=Host(`dev.<base_domain>`) || Host(`prod.<base_domain>`)   # e.g. rednaw.nl
-         - traefik.http.routers.app.entrypoints=websecure
-         - traefik.http.routers.app.tls.certresolver=letsencrypt
-         - traefik.http.services.app.loadbalancer.server.port=3000  # Your app's internal port
-         - traefik.http.routers.app.middlewares=app-headers,app-buffering
-   ```
+2. **Domains for TLS** — List your app domains in `app/.iac/iac.yml` under **`app_domains`** (unencrypted). Traefik uses this list to pre-warm Let's Encrypt certificates; the override file supplies the actual routing labels.
 
 3. **Required middlewares:**
 

@@ -227,12 +227,15 @@ The work is split so each phase leaves the system working. Steps 1 and 2 touch o
 - `fail2ban.yml` renames `rednaw.conf` → `platform.conf`
 - All depend on `base_domain` being available from `iac.yml`
 
-### Phase 5 — IaC repo, new platform support
-- `task platform:init`
+### Phase 5 — IaC repo, new platform support (skipped)
+- `task platform:init` — not implemented
 - Placeholder `.iac/` directory in the IaC repo for new operators
 - Milledoni onboarding
 
-### Phase 6 — Docs
+### Phase 6 — Docs (done)
+- Updated `new-project.md`, `application-deployment.md`, `secrets.md`, `traefik.md` for `.iac/` contract and override pattern
+- Updated `joining.md`, `launch-devcontainer.md`, `README.md`, `monitoring.md`, `remote-ssh.md`, `troubleshooting.md`, `registry.md`, `private.md` for `app/.iac/iac.yml` and CI credentials
+- Removed platform-parameterization backlog item
 
 ---
 
