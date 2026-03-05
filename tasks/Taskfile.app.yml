@@ -35,11 +35,11 @@ tasks:
       - sh: test -d "{{.APP_ROOT}}"
         msg: "App not mounted at {{.APP_ROOT}}. Run ./scripts/setup-app-path.sh /path/to/app and reopen the devcontainer."
       - sh: test -f "{{.APP_ROOT}}/.iac/iac.yml"
-        msg: "App missing .iac/iac.yml. Run task platform:init inside the devcontainer."
+        msg: "App missing .iac/iac.yml. Create the .iac/ contract; see docs/new-project.md."
       - sh: test -f "{{.APP_ROOT}}/.iac/.env"
-        msg: "App missing .iac/.env. Run task platform:init inside the devcontainer."
+        msg: "App missing .iac/.env. Create the .iac/ contract; see docs/new-project.md."
       - sh: test -f "{{.APP_ROOT}}/.iac/docker-compose.override.yml"
-        msg: "App missing .iac/docker-compose.override.yml. Run task platform:init inside the devcontainer."
+        msg: "App missing .iac/docker-compose.override.yml. Create the .iac/ contract; see docs/new-project.md."
       - sh: test -f "{{.APP_ROOT}}/docker-compose.yml"
         msg: "App missing docker-compose.yml."
     cmds:
@@ -71,7 +71,7 @@ tasks:
       - sh: test -d "{{.APP_ROOT}}"
         msg: "App not mounted at {{.APP_ROOT}}. Run ./scripts/setup-app-path.sh /path/to/app and reopen the devcontainer."
       - sh: test -f "{{.APP_ROOT}}/.iac/iac.yml"
-        msg: "App missing .iac/iac.yml. Run task platform:init inside the devcontainer."
+        msg: "App missing .iac/iac.yml. Create the .iac/ contract; see docs/new-project.md."
     cmds:
       - |
         IMAGE_NAME=$(yq -r '.image_name' "{{.APP_ROOT}}/.iac/iac.yml")
@@ -89,7 +89,7 @@ tasks:
       - sh: test -d "{{.APP_ROOT}}"
         msg: "App not mounted at {{.APP_ROOT}}. Run ./scripts/setup-app-path.sh /path/to/app and reopen the devcontainer."
       - sh: test -f "{{.APP_ROOT}}/.iac/iac.yml"
-        msg: "App missing .iac/iac.yml. Run task platform:init inside the devcontainer."
+        msg: "App missing .iac/iac.yml. Create the .iac/ contract; see docs/new-project.md."
     cmds:
       - |
         IMAGE_NAME=$(yq -r '.image_name' "{{.APP_ROOT}}/.iac/iac.yml")
