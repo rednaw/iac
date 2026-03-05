@@ -6,7 +6,7 @@
 - name: Assert base_domain is set in infrastructure secrets
   ansible.builtin.assert:
     that: infrastructure_secrets.base_domain is defined and infrastructure_secrets.base_domain | length > 0
-    fail_msg: "'base_domain' is missing from infrastructure-secrets.yml. Set it to your domain (e.g. example.com)."
+    fail_msg: "'base_domain' is missing from iac.yml. Set it to your domain (e.g. example.com)."
 
 - name: Set Traefik facts (base_domain, app_environment)
   ansible.builtin.set_fact:

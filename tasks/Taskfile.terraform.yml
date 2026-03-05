@@ -32,7 +32,8 @@ tasks:
         TF_VAR_base_domain=$(echo "$SECRETS" | yq -r '.base_domain')
         TF_VAR_ssh_keys=$(echo "$SECRETS" | yq '.ssh_keys' -o=json)
         TF_VAR_allowed_ssh_ips=$(echo "$SECRETS" | yq '.allowed_ssh_ips' -o=json)
-        export TF_VAR_hcloud_token TF_VAR_base_domain TF_VAR_ssh_keys TF_VAR_allowed_ssh_ips
+        TF_VAR_server_type=$(echo "$SECRETS" | yq -r '.server_type // "cx23"')
+        export TF_VAR_hcloud_token TF_VAR_base_domain TF_VAR_ssh_keys TF_VAR_allowed_ssh_ips TF_VAR_server_type
         terraform plan
 
   apply:
@@ -52,7 +53,8 @@ tasks:
         TF_VAR_base_domain=$(echo "$SECRETS" | yq -r '.base_domain')
         TF_VAR_ssh_keys=$(echo "$SECRETS" | yq '.ssh_keys' -o=json)
         TF_VAR_allowed_ssh_ips=$(echo "$SECRETS" | yq '.allowed_ssh_ips' -o=json)
-        export TF_VAR_hcloud_token TF_VAR_base_domain TF_VAR_ssh_keys TF_VAR_allowed_ssh_ips
+        TF_VAR_server_type=$(echo "$SECRETS" | yq -r '.server_type // "cx23"')
+        export TF_VAR_hcloud_token TF_VAR_base_domain TF_VAR_ssh_keys TF_VAR_allowed_ssh_ips TF_VAR_server_type
         echo "🔑 Removing old host key for workspace from known_hosts..."
         task hostkeys:prepare -- "{{.WORKSPACE}}"
         terraform apply
@@ -79,7 +81,8 @@ tasks:
         TF_VAR_base_domain=$(echo "$SECRETS" | yq -r '.base_domain')
         TF_VAR_ssh_keys=$(echo "$SECRETS" | yq '.ssh_keys' -o=json)
         TF_VAR_allowed_ssh_ips=$(echo "$SECRETS" | yq '.allowed_ssh_ips' -o=json)
-        export TF_VAR_hcloud_token TF_VAR_base_domain TF_VAR_ssh_keys TF_VAR_allowed_ssh_ips
+        TF_VAR_server_type=$(echo "$SECRETS" | yq -r '.server_type // "cx23"')
+        export TF_VAR_hcloud_token TF_VAR_base_domain TF_VAR_ssh_keys TF_VAR_allowed_ssh_ips TF_VAR_server_type
         terraform destroy
         echo "🧹 Cleaning server host key from known_hosts..."
         task hostkeys:prepare -- "{{.WORKSPACE}}"
