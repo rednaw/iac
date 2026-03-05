@@ -53,13 +53,13 @@ Use this when you need to work directly on the server (e.g. view `/var/log`, ins
 3. In VS Code or Cursor: **Cmd+Shift+P** → **Remote-SSH: Connect to Host...** → choose `dev` or `prod`.
 4. Open a folder (e.g. `/home/ubuntu`, `/var/log`). Port forwarding is active; use the dashboard URLs above in your local browser.
 
-**Note:** Do not make manual changes on the server!, all configuration should be done via Ansible. Use Remote-SSH only for troubleshooting and inspection, treat it as read-only access. 
+**Note:** Do not make manual changes on the server. All configuration goes through Ansible. Use Remote-SSH for troubleshooting and inspection only — treat it as read-only.
 
 ---
 
 ## Internal dashboards and credentials
 
-Traefik and OpenObserve are internal only (no public DNS); use the tunnel URLs. The Registry is internet-facing at `https://registry.<your-domain>` and is not forwarded through the tunnel.
+Traefik and OpenObserve are internal only (no public DNS); reach them via the tunnel URLs below.
 
 | Service | Via tunnel | Login |
 |---------|------------|--------|

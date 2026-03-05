@@ -18,11 +18,7 @@ The test suite runs five checks:
 4. **Ansible syntax** — Validates Ansible playbook syntax
 5. **Taskfiles** — Validates embedded scripts in Taskfiles with shellcheck
 
-Checks also run in GitHub Actions.
-
-**On a PR:** All checks run. On a Renovate PR we build the image first, then run them. On any other PR we use the existing image (`iac-dev:latest`) and run the checks (no build).
-
-**On merge to main:** The image that was tested for that commit is saved as `latest` for the next PRs. If there was no image for that commit, we build from main, run the checks, and then save it as `latest`.
+Checks also run in GitHub Actions. The CI needs two secrets: `SOPS_AGE_KEY` (see [Secrets](secrets.md)) and registry credentials (see [Registry](registry.md#authentication)).
 
 | Event | What happens |
 |-------|--------------|
@@ -30,4 +26,4 @@ Checks also run in GitHub Actions.
 | PR from you | Use `latest` → run checks |
 | Merge to main | Tested image becomes `latest` |
 
-**Secrets:** `SOPS_AGE_KEY` (see [Secrets](secrets.md)). Registry auth: see [Registry](registry.md).
+If a check fails locally, fix the issue and re-run `task test:run` before pushing.

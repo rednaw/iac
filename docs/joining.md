@@ -29,7 +29,8 @@ You need to be part of the SOPS keyring to be able to decrypt `app/.iac/iac.yml`
    ```bash
    git pull   # in the app repo
    ```
-   Your private key is in `~/.config/sops/age/keys.txt` (created by `task secrets:keygen`). It is not in the repo, keep it somewhere safe.
+
+   > **Important:** Your private key is in `~/.config/sops/age/keys.txt`. It is not in the repo and cannot be recovered if lost. Back it up to a secure location (password manager, encrypted drive) before continuing.
 
 4. Verify that it works:
    Open `app/.iac/iac.yml`, you should be able to view and edit the secrets.

@@ -30,11 +30,19 @@ OpenObserve is not exposed publicly (no DNS). Use an SSH tunnel to the server, t
 
 ## Dashboards
 
-**Host Metrics**, **Docker Container Metrics**, and **Traefik Metrics** dashboards are managed by the server playbook: Ansible creates each dashboard if it does not exist and updates it in place if the JSON file has changed (`ansible/roles/server/files/openobserve-host-metrics.json`, `openobserve-docker-metrics.json`, `openobserve-traefik-metrics.json`). Add or change dashboards in the UI, or edit those files and re-run the playbook.
+Three dashboards are pre-installed: **Host Metrics**, **Docker Container Metrics**, and **Traefik Metrics**. Ansible manages them — it creates each dashboard on first run and updates it when the source JSON changes. To add or modify a dashboard, edit the file in `ansible/roles/server/files/` and re-run the playbook, or make changes directly in the OpenObserve UI.
 
 ## Logs
 
-Logs are sent from the server by the OTEL Collector into the **default** org. In OpenObserve, open **Logs** and choose a **stream**: `traefik-access`, `docker-containers`, `syslog`, `auth`, `fail2ban`.
+Logs are sent from the server by the OTEL Collector into the **default** org. In OpenObserve, open **Logs** and choose a stream:
+
+| Stream | Contents |
+|--------|----------|
+| `traefik-access` | HTTP access log from Traefik (method, path, status, duration) |
+| `docker-containers` | stdout/stderr from all Docker containers on the server |
+| `syslog` | System-level events from the host OS |
+| `auth` | SSH authentication events (logins, failures) |
+| `fail2ban` | IPs banned or unbanned by fail2ban |
 
 ## Related
 

@@ -1,4 +1,5 @@
 [**<---**](README.md)
+
 # Onboarding
 
 ## New project
@@ -9,7 +10,10 @@ You have an app and want it to run on this platform. You need **your own server 
 
 2. **[Launch the IaC devcontainer](launch-devcontainer.md)** — Open the workspace and start the devcontainer. It decrypts secrets and configures registry, Terraform Cloud, and hcloud.
 
-3. **[Application deployment](application-deployment.md)** — Set up your app: app mount (run `setup-app-path.sh`), iac.yml, compose, Traefik labels, and [deploy commands](application-deployment.md#commands).
+3. **[Application deployment](application-deployment.md)** — Set up your app:
+   - Run `setup-app-path.sh` to configure the app mount.
+   - Fill in `app/.iac/iac.yml`, write your `docker-compose.yml` with Traefik labels.
+   - Run your first deploy with `task app:deploy`.
 
 4. **[Secrets](secrets.md)** — [App secrets](secrets.md#creating-new-app-secrets) (`.env`, `.sops.yaml`).
 

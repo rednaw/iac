@@ -38,7 +38,7 @@ flowchart LR
 
 Renovate runs in CI: the workflow [`.github/workflows/renovate.yml`](../.github/workflows/renovate.yml) runs daily and can be triggered manually. Configured by [`renovate.json`](../renovate.json) and repository secret `RENOVATE_TOKEN` (GitHub PAT with `repo` and `workflow` scope).
 
-Renovate opens upgrade PRs and maintains a [**Dependency Dashboard**](https://github.com/rednaw/iac/issues/41) listing all pending, open, and closed updates. Use it to recreate PRs or rebase branches.
+Renovate opens upgrade PRs and maintains a **Dependency Dashboard** in GitHub Issues (search for "Renovate Dependency Dashboard") listing all pending, open, and closed updates. Use it to recreate PRs or rebase branches. When a PR is ready: review the changes, verify CI passes, and merge.
 
 ## Package files
 
