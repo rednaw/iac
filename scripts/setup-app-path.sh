@@ -37,7 +37,7 @@ validate_app() {
   [[ -d "$dir/.iac" ]]              || { echo "❌ Missing: $dir/.iac/ directory"; ok=0; }
   if [[ $ok -eq 0 ]]; then
     echo ""
-    echo "Create docker-compose.yml and an empty .iac/ directory, then run task platform:init inside the devcontainer."
+    echo "Create docker-compose.yml and an empty .iac/ directory, then create the .iac/ contract (see docs/new-project.md)."
     exit 1
   fi
 }

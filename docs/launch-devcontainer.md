@@ -14,9 +14,15 @@ On the **host**, run:
 ./scripts/setup-app-path.sh /path/to/your/app
 ```
 
-Your app must have `docker-compose.yml` and a **`.iac/`** directory. If you don't have an app yet (e.g. you're only operating the platform), you can omit the path or use a placeholder; the script may prompt you.
+**App requirements:**
 
-The devcontainer mounts your app repo at `/workspaces/iac/app` (`.iac/` read/write, `docker-compose.yml` readonly), allowing you to run deployment commands without installing tools on your local machine. See [Application deployment → App mount](application-deployment.md#app-mount) for details.
+- `docker-compose.yml`
+- `.iac/` directory
+- `.github/workflows/build-and-push.yml` 
+
+The devcontainer bind-mounts these files and directory; if they are missing, the container may not start. For a new app, create it first ([New project → step 5](new-project.md#5-complete-the-iac-contract-in-the-app-repo)).
+
+The app is mounted at `/workspaces/iac/app`. See [Application deployment → App mount](application-deployment.md#app-mount) for details.
 
 ## 2. Open the workspace in the devcontainer
 
@@ -41,38 +47,42 @@ The devcontainer also includes VS Code extensions (SOPS, dotenv) and `files.asso
 
 ```mermaid
 flowchart TB
-    subgraph HOST["Host"]
-        SECRETS@{ shape: lin-doc, label: "~/.config/sops/age/keys.txt<br/>private key" }
-        APP@{ shape: lin-doc, label: "App repo<br/>.iac/ + docker-compose.yml" }
+    subgraph HOST["Laptop"]
+        SECRETS@{ shape: lin-doc, label: "private keys<br/>~/.config/sops/age/keys.txt<br/>~/.ssh/id_rsa" }
+        APP@{ shape: lin-doc, label: "Encrypted<br/>Infrastructure secrets<br/>Application secretss" }
     end
 
     subgraph DEVCONTAINER["IaC Devcontainer"]
-        TOOLS(Task, Terraform, Ansible<br/>SOPS, crane)
-        INFRA_SECRETS@{ shape: lin-doc, label: "app/.iac/iac.yml<br/>decrypted" }
-        DOCKER_CONFIG@{ shape: lin-doc, label: "~/.docker/config.json<br/>registry auth" }
-        TF_CRED@{ shape: lin-doc, label: "~/.terraform.d/credentials.tfrc.json<br/>Terraform Cloud token" }
-        HCLOUD_CONFIG@{ shape: lin-doc, label: "~/.config/hcloud/cli.toml<br/>Hetzner Cloud token" }
-        APP_MOUNT@{ shape: lin-doc, label: "/workspaces/iac/app<br/>mounted app files" }
+        TOOLS(Task, SOPS, Terraform, Ansible)
+        SETUP(Devcontainer init)
+        DOCKER_CONFIG@{ shape: lin-doc, label: "~/.docker/config.json" }
+        TF_CRED@{ shape: lin-doc, label: "~/.terraform.d/credentials.tfrc.json" }
+        HCLOUD_CONFIG@{ shape: lin-doc, label: "~/.config/hcloud/cli.toml" }
     end
 
     subgraph EXTERNAL["External services"]
-        REGISTRY(Registry)
         TF_CLOUD(Terraform Cloud)
         HCLOUD(Hetzner Cloud)
     end
 
-    SECRETS -->|decrypts| INFRA_SECRETS
-    APP -->|mounts| APP_MOUNT
-    INFRA_SECRETS -->|writes| DOCKER_CONFIG
-    INFRA_SECRETS -->|writes| TF_CRED
-    INFRA_SECRETS -->|writes| HCLOUD_CONFIG
+    subgraph SERVER[Hetzner Server]
+      subgraph DOCKER[Docker]
+        APP_SERVICE(Application)
+        REGISTRY(Registry)
+      end
+    end
 
-    TOOLS -->|uses| DOCKER_CONFIG
-    TOOLS -->|uses| TF_CRED
-    TOOLS -->|uses| HCLOUD_CONFIG
-    TOOLS -->|uses| APP_MOUNT
 
-    DOCKER_CONFIG --> REGISTRY
-    TF_CRED --> TF_CLOUD
-    HCLOUD_CONFIG --> HCLOUD
+    SECRETS --->|mounted| DEVCONTAINER
+    APP --->|mounted| DEVCONTAINER
+
+    SETUP -->|create| DOCKER_CONFIG
+    SETUP -->|create| TF_CRED
+    SETUP -->|create| HCLOUD_CONFIG
+
+    TOOLS -->|manage| SERVER
+
+    DOCKER_CONFIG -->|authorize| REGISTRY
+    TF_CRED -->|authorize| TF_CLOUD
+    HCLOUD_CONFIG -->|authorize| HCLOUD
 ```

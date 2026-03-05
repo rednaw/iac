@@ -23,7 +23,7 @@ mise trust -a
 
 if [ ! -f "$IAC_FILE" ]; then
   echo ""
-  echo "Platform not initialised. Run: task platform:init"
+  echo "Platform not initialised. Create the .iac/ contract; see docs/new-project.md."
   echo ""
   sudo chown -R vscode:vscode /home/vscode/.cursor 2>/dev/null || true
   exit 0
