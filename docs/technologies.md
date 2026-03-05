@@ -38,8 +38,14 @@ Main tools and technologies used in this project:
 
 - [Fail2ban](https://github.com/fail2ban/fail2ban/blob/master/README.md) — Intrusion prevention by banning IPs that show malicious behavior (e.g. repeated failed SSH logins)
 
+## Monitoring
+
+- [OpenObserve](https://openobserve.ai/) — Logs, metrics, and traces UI; collects host and Docker container data
+- [OpenTelemetry Collector](https://opentelemetry.io/docs/collector/) — Ships host metrics, container logs, and app traces to OpenObserve
+
 ## Testing
 
 - [Ansible Lint](https://docs.ansible.com/projects/lint/) — Promotes best practices for Ansible
 - [ShellCheck](https://www.shellcheck.net/) — Finds bugs in shell scripts
 - [TFsec](https://aquasecurity.github.io/tfsec/v1.20.0/) — Static analysis security scanner for Terraform code
+- [Trivy](https://aquasecurity.github.io/trivy/) — Container image vulnerability scanner
