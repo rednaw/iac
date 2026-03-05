@@ -34,7 +34,7 @@ Local configuration files in your home directory. These are used by this project
 
 **`~/.config/hcloud/cli.toml`**
 - **Purpose:** Hetzner Cloud API token for CLI operations in the devcontainer
-- **Setup:** Created from `hcloud_token` in `secrets/infrastructure-secrets.yml` by the devcontainer startup script
+- **Setup:** Created from `hcloud_token` in `app/.iac/iac.yml` by the devcontainer startup script
 - **Used by:** `hcloud` CLI inside the devcontainer, `task server:list-hetzner-keys`
 
 **`~/.config/sops/age/keys.txt`**
@@ -44,7 +44,7 @@ Local configuration files in your home directory. These are used by this project
 
 **`~/.terraform.d/credentials.tfrc.json`**
 - **Purpose:** Terraform Cloud authentication token for accessing shared state in the devcontainer
-- **Setup:** Created from `terraform_cloud_token` in `secrets/infrastructure-secrets.yml` by the devcontainer startup script
+- **Setup:** Created from `terraform_cloud_token` in `app/.iac/iac.yml` by the devcontainer startup script
 - **Used by:** Terraform CLI inside the devcontainer to authenticate with Terraform Cloud backend
 
 **`~/.docker/config.json`**

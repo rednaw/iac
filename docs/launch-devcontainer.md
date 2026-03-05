@@ -14,9 +14,9 @@ On the **host**, run:
 ./scripts/setup-app-path.sh /path/to/your/app
 ```
 
-Your app must have `iac.yml`, `docker-compose.yml`, `.env`, and `.sops.yaml`. If you don't have an app yet (e.g. you're only operating the platform), you can omit the path or use a placeholder; the script may prompt you.
+Your app must have `docker-compose.yml` and a **`.iac/`** directory. If you don't have an app yet (e.g. you're only operating the platform), you can omit the path or use a placeholder; the script may prompt you.
 
-The devcontainer mounts these four files from your app repo at `/workspaces/iac/app`, allowing you to run deployment commands without installing tools on your local machine. See [Application deployment → App mount](application-deployment.md#app-mount) for details.
+The devcontainer mounts your app repo at `/workspaces/iac/app` (`.iac/` read/write, `docker-compose.yml` readonly), allowing you to run deployment commands without installing tools on your local machine. See [Application deployment → App mount](application-deployment.md#app-mount) for details.
 
 ## 2. Open the workspace in the devcontainer
 
@@ -25,7 +25,7 @@ The devcontainer mounts these four files from your app repo at `/workspaces/iac/
 
 ## 3. What happens on startup
 
-When the devcontainer starts, it decrypts `secrets/infrastructure-secrets.yml` using your mounted `~/.config/sops/age/keys.txt` and writes:
+When the devcontainer starts (operational mode), it decrypts `app/.iac/iac.yml` using your mounted `~/.config/sops/age/keys.txt` and writes:
 
 - **`~/.docker/config.json`** — Registry auth (for application deployment).
 - **`~/.terraform.d/credentials.tfrc.json`** — Terraform Cloud token (shared state).
@@ -43,12 +43,12 @@ The devcontainer also includes VS Code extensions (SOPS, dotenv) and `files.asso
 flowchart TB
     subgraph HOST["Host"]
         SECRETS@{ shape: lin-doc, label: "~/.config/sops/age/keys.txt<br/>private key" }
-        APP@{ shape: lin-doc, label: "App files<br/>iac.yml, docker-compose.yml<br/>.env, .sops.yaml" }
+        APP@{ shape: lin-doc, label: "App repo<br/>.iac/ + docker-compose.yml" }
     end
 
     subgraph DEVCONTAINER["IaC Devcontainer"]
         TOOLS(Task, Terraform, Ansible<br/>SOPS, crane)
-        INFRA_SECRETS@{ shape: lin-doc, label: "secrets/infrastructure-secrets.yml<br/>decrypted" }
+        INFRA_SECRETS@{ shape: lin-doc, label: "app/.iac/iac.yml<br/>decrypted" }
         DOCKER_CONFIG@{ shape: lin-doc, label: "~/.docker/config.json<br/>registry auth" }
         TF_CRED@{ shape: lin-doc, label: "~/.terraform.d/credentials.tfrc.json<br/>Terraform Cloud token" }
         HCLOUD_CONFIG@{ shape: lin-doc, label: "~/.config/hcloud/cli.toml<br/>Hetzner Cloud token" }
