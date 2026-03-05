@@ -11,7 +11,8 @@ Create the platform. Use this when you are creating new infrastructure and do no
 3. Have an **app repo** (or directory) with:
    - **`docker-compose.yml`** — your app stack (generic; no domain or Traefik labels here).
    - **`.iac/`** — empty directory (create with `mkdir .iac`). You will fill this in the steps below.
-4. On the host, run **`./scripts/setup-app-path.sh /path/to/your/app`**. You will open the devcontainer after creating secrets (steps below).
+   - **`.github/workflows/build-and-push.yml`** — create this in step 5 below **before** opening the devcontainer. The devcontainer bind-mounts this path; if the file is missing, the container may fail to start.
+4. On the host, run **`./scripts/setup-app-path.sh /path/to/your/app`**. You will open the devcontainer after creating the contract files (steps 2–5).
 
 Until `.iac/iac.yml` exists and is encrypted, the devcontainer runs in **bootstrap mode**: tools work, but it will not configure Terraform Cloud, hcloud, or registry auth. Complete steps 2–5, then reopen the devcontainer for **operational mode**. See [Launch the IaC devcontainer](launch-devcontainer.md).
 
@@ -94,7 +95,7 @@ Create these in the **app** repo:
 
 - **`.iac/.env`** — SOPS-encrypted dotenv for app runtime secrets (can be a stub: empty or a comment). Same SOPS keyring as `iac.yml`.
 - **`.iac/docker-compose.override.yml`** — Production overrides: Traefik labels (e.g. `Host(\`example.com\`)`), `networks: [default, traefik]`, `restart: unless-stopped`. See [Traefik](traefik.md) and [Application deployment](application-deployment.md).
-- **`.github/workflows/build-and-push.yml`** — Thin caller to the IaC reusable workflow. Example:
+- **`.github/workflows/build-and-push.yml`** — Thin caller to the IaC reusable workflow. **Create this file before opening the devcontainer:** the devcontainer bind-mounts it from your app repo; if the path is missing, the container may fail to start. Example:
 
   ```yaml
   on:
