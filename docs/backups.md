@@ -1,3 +1,5 @@
+[**<---**](README.md)
+
 # Backups
 
 **Current setup:** Hetzner automated backups. Enabled in Terraform with `backups = true` on `hcloud_server.platform`. Seven image-level restore points; no backup scripts to run. See [Hetzner Cloud: Backups and snapshots](https://docs.hetzner.com/cloud/servers/backups-snapshots/overview) for the official documentation.
@@ -18,10 +20,14 @@
 
 Both restore commands run `hcloud server rebuild <server-name> --image <image-id>`: the existing server is rebuilt from the backup image in place (same server ID and IP). They are destructive and ask you to type `yes` before proceeding.
 
-**Manually (Hetzner Cloud Console or API):** In the Hetzner Cloud Console, go to your server → Backups (or Images), or use the API/CLI. To restore in place, use `hcloud server rebuild <server-name> --image <image-id>`. To create a new server from a backup image instead, use the image when creating a new server (you get a new IP and ID; point DNS at it and fix Terraform state or import the new server).
+**Manually (Hetzner Cloud Console or API):** In the Hetzner Cloud Console, go to your server → Backups (or Images), or use the API/CLI.
+
+- **Restore in place:** `hcloud server rebuild <server-name> --image <image-id>` — same server ID and IP, disk replaced.
+- **New server from backup:** Create a new server using the backup image. You get a new IP and ID — update DNS and fix Terraform state (`terraform import` or manual update).
 
 **After an in-place restore:** The server reboots with the backup disk. Platform containers (Traefik, registry, OpenObserve) have `restart_policy: unless-stopped` and come back automatically. Deployed apps only restart if their `docker-compose.yml` sets `restart: unless-stopped` for each service — see [Application deployment](application-deployment.md).
 
 ## Relation to other docs
 
 - [Application deployment](application-deployment.md) — App compose should set `restart: unless-stopped` so the app survives reboot/restore.
+- [Backup with Hetzner Storage Box](backup-storage-box.md) — Service-aware backups (Postgres dumps + uploads) as a complement or alternative to image backups.

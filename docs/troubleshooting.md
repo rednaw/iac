@@ -1,6 +1,6 @@
 [**<---**](README.md)
 
-## Troubleshooting
+# Troubleshooting
 
 **"app/.iac/iac.yml not found" or "cannot decrypt"**
 - Create the file and encrypt it. See [secrets.md](secrets.md) for setup instructions.
@@ -14,4 +14,5 @@
 - Server may need 30-60 seconds to boot after `terraform apply`
 
 **"Host key verification failed"**
-- Tasks run `hostkeys:prepare` before SSH/Ansible to remove old keys for the workspace hostname. If you still get errors (e.g. after a server recreate), run `task hostkeys:prepare -- <workspace>` before your command. We use `StrictHostKeyChecking=accept-new` only (never `no`).
+- Tasks run `hostkeys:prepare` before SSH/Ansible to remove old keys for the workspace hostname. If you still get errors (e.g. after a server recreate), run `task hostkeys:prepare -- <workspace>` before your next command.
+- Host key checking uses `StrictHostKeyChecking=accept-new` — it accepts new hosts but rejects changed keys. We never use `StrictHostKeyChecking=no`.

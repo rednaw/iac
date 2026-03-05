@@ -1,6 +1,6 @@
 [**<---**](README.md)
 
-# Private
+# Private (local config files)
 
 Local configuration files in your home directory. These are used by this project and should never be committed to Git. Use them from inside the devcontainer.
 
@@ -13,8 +13,6 @@ Local configuration files in your home directory. These are used by this project
 | `~/.config/hcloud/cli.toml` | Hetzner Cloud CLI configuration and API token | Devcontainer | Devcontainer startup script (from SOPS) |
 | `~/.terraform.d/credentials.tfrc.json` | Terraform Cloud authentication token | Devcontainer | Devcontainer startup script (from SOPS) |
 | `~/.docker/config.json` | Docker/crane/Trivy auth for private registry in the devcontainer | Devcontainer | Devcontainer startup script — see [Registry](registry.md#authentication) |
-
-## Details
 
 **`~/.ssh/id_rsa*`**
 - **Purpose:** SSH key pair for authenticating with Hetzner Cloud servers
@@ -49,7 +47,8 @@ Local configuration files in your home directory. These are used by this project
 
 **`~/.docker/config.json`**
 - **Purpose:** Docker/crane/Trivy auth for the private registry
-- **Details:** See [Registry](registry.md#authentication) for how to log in
+- **Setup:** Written by the devcontainer startup script from registry credentials in `app/.iac/iac.yml`. No manual steps needed.
+- **Used by:** Docker CLI, crane, Trivy — see [Registry: Authentication](registry.md#authentication)
 
 ## Security risks
 
