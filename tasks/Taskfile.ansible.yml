@@ -22,7 +22,8 @@ tasks:
       - |
         echo "NOTE: This step connects as root using your Hetzner SSH key to set up the ubuntu user."
         HOSTNAME=$(task hostkeys:hostname -- "{{.WORKSPACE}}")
-        ansible-playbook -i "${HOSTNAME}," playbooks/bootstrap.yml
+        PLATFORM=$(task hostkeys:platform)
+        ansible-playbook -i "${PLATFORM}-{{.WORKSPACE}}," playbooks/bootstrap.yml -e "ansible_host=${HOSTNAME}"
 
   run:
     desc: "Configure server (use: task ansible:run -- dev or -- prod)"
@@ -36,4 +37,5 @@ tasks:
       - |
         echo "⚙️  Running full Ansible playbook for workspace: {{.WORKSPACE}}..."
         HOSTNAME=$(task hostkeys:hostname -- "{{.WORKSPACE}}")
-        ansible-playbook -i "${HOSTNAME}," playbooks/server.yml
+        PLATFORM=$(task hostkeys:platform)
+        ansible-playbook -i "${PLATFORM}-{{.WORKSPACE}}," playbooks/server.yml -e "ansible_host=${HOSTNAME}"

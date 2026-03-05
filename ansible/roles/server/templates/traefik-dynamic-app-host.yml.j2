@@ -1,10 +1,11 @@
 # yaml-language-server: $schema=https://json.schemastore.org/traefik-v2.json
-# Router for main app hostname so Traefik requests a Let's Encrypt cert
+# Routers for app_domains so Traefik requests Let's Encrypt certs (TLS pre-warm)
 # even when the app container is not running. Priority -1 so the app's Docker router wins when deployed.
+# Domains from iac.yml app_domains (unencrypted).
 http:
   routers:
     app-host:
-      rule: "Host(`{{ traefik_redirect_target }}`)"
+      rule: "Host(`{{ traefik_app_domains | join('`) || Host(`') }}`)"
       entryPoints:
         - websecure
       tls:

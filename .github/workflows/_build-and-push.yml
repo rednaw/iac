@@ -84,7 +84,6 @@ jobs:
           push: true
           tags: |
             ${{ env.REGISTRY_URL }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.short_sha }}
-            ${{ env.REGISTRY_URL }}/${{ env.IMAGE_NAME }}:latest
           labels: |
             org.opencontainers.image.description=${{ steps.meta.outputs.description }}
             org.opencontainers.image.revision=${{ github.sha }}
