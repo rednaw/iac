@@ -2,54 +2,70 @@
 
 # Launch the IaC devcontainer
 
-The IaC devcontainer provides a standardized environment with all tools pre-installed (Task, Terraform, Ansible, SOPS, crane, Docker CLI, jq, and more via [mise](https://mise.jdx.dev/)). It automatically configures registry, Terraform Cloud, and hcloud from your secrets file so you don't need to log in manually.
+The IaC devcontainer provides a standardized environment with all tools pre-installed (Task, Terraform, Ansible, SOPS, crane, Docker CLI, and more via [mise](https://mise.jdx.dev/)). On startup it decrypts your secrets file and configures registry, Terraform Cloud, and hcloud automatically.
 
-**Before this:** You need Docker, VS Code or Cursor, and the [Dev Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) extension. If you're creating a new project, complete [New project](new-project.md) through creating and encrypting the secrets file first. If you're joining, complete [Joining](joining.md) through getting added to the SOPS keyring (and SSH if you need server access).
+**Before this:** You need Docker, VS Code or Cursor, and the [Dev Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) extension. If you're creating a new project, see [New project](new-project.md). If you're joining, see [Joining](joining.md).
 
-## 1. Set your app path (if you have an app to deploy)
+---
 
-On the **host**, run:
+## 1. Set your app path
+
+On the **host** (not inside the devcontainer):
 
 ```bash
 ./scripts/setup-app-path.sh /path/to/your/app
 ```
 
-**App requirements:**
+The devcontainer bind-mounts three paths from your app repo:
 
-- `docker-compose.yml`
-- `.iac/` directory
-- `.github/workflows/build-and-push.yml` 
+| Mount | Purpose |
+|-------|---------|
+| `.iac/` | Platform config and secrets |
+| `docker-compose.yml` | Your app stack |
+| `.github/workflows/build-and-push.yml` | CI workflow |
 
-The devcontainer bind-mounts these files and directory; if they are missing, the container may not start. For a new app, create it first ([New project → step 5](new-project.md#5-complete-the-iac-contract-in-the-app-repo)).
+If any of these files are missing, the container will fail to start. For a new app, create them first ([New project: step 1](new-project.md#1-prepare-your-app-repo)).
 
-The app is mounted at `/workspaces/iac/app`. See [Application deployment → App mount](application-deployment.md#app-mount) for details.
+---
 
-## 2. Open the workspace in the devcontainer
+## 2. Open the workspace
 
-1. **File → Open Workspace from File...** → select `iac.code-workspace` in the repo root.
-2. When prompted, choose **Reopen in Container** (or **Cmd+Shift+P** → **Dev Containers: Reopen in Container**). Wait for the image to build.
+1. Open `iac.code-workspace` in VS Code/Cursor (File → Open Workspace from File).
+2. **Reopen in Container** when prompted (or Cmd+Shift+P → Dev Containers: Reopen in Container).
+
+Your app appears at `/workspaces/iac/app` inside the container.
+
+---
 
 ## 3. What happens on startup
 
-When the devcontainer starts (operational mode), it decrypts `app/.iac/iac.yml` using your mounted `~/.config/sops/age/keys.txt` and writes:
+The devcontainer has two modes:
 
-- **`~/.docker/config.json`** — Registry auth (for application deployment).
-- **`~/.terraform.d/credentials.tfrc.json`** — Terraform Cloud token (shared state).
-- **`~/.config/hcloud/cli.toml`** — Hetzner Cloud API token.
+**Bootstrap mode** (no `app/.iac/iac.yml`): All tools are available, but credentials are not configured. Use this mode to create the secrets file during [New project](new-project.md) setup.
 
-You don't need to run `task terraform:login` or `hcloud context create`; they are populated from the secrets file. You now have access to the registry, Terraform Cloud, and Hetzner from inside the devcontainer.
+**Operational mode** (`app/.iac/iac.yml` exists and is decryptable): The startup script decrypts secrets using your `~/.config/sops/age/keys.txt` and writes:
 
-The devcontainer also includes VS Code extensions (SOPS, dotenv) and `files.associations` so encrypted `.env` files are edited as dotenv.
+| File created | Purpose |
+|-------------|---------|
+| `~/.docker/config.json` | Registry auth for Docker, crane, and Trivy |
+| `~/.terraform.d/credentials.tfrc.json` | Terraform Cloud token for shared state |
+| `~/.config/hcloud/cli.toml` | Hetzner Cloud API token |
 
-**If you don't have decrypt access yet:** The devcontainer will still start, but it won't write these credentials until you're part of the SOPS keyring and the secrets file is present. Complete [New project](new-project.md) (create and encrypt the file) or [Joining](joining.md) (get added to the keyring), then close and reopen the container.
+No manual login needed — `terraform`, `hcloud`, and `crane` work immediately.
+
+**If startup fails:** Check that your SOPS key is at `~/.config/sops/age/keys.txt` and that you've been added to the keyring. See [Secrets: Troubleshooting](secrets.md#troubleshooting).
+
+---
 
 ## 4. Overview
+
+How host files flow into the devcontainer and connect to external services:
 
 ```mermaid
 flowchart TB
     subgraph HOST["Laptop"]
-        SECRETS@{ shape: lin-doc, label: "private keys<br/>~/.config/sops/age/keys.txt<br/>~/.ssh/id_rsa" }
-        APP@{ shape: lin-doc, label: "Encrypted<br/>Infrastructure secrets<br/>Application secretss" }
+        SECRETS@{ shape: lin-doc, label: "Private keys<br/>~/.config/sops/age/keys.txt<br/>~/.ssh/id_rsa" }
+        APP@{ shape: lin-doc, label: "Encrypted<br/>Infrastructure secrets<br/>Application secrets" }
     end
 
     subgraph DEVCONTAINER["IaC Devcontainer"]
