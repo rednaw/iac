@@ -38,7 +38,7 @@ flowchart LR
 
 Production routing is defined in **`.iac/docker-compose.override.yml`** in the app repo (not in the main `docker-compose.yml`). That override is copied to the server by the deploy task.
 
-1. **In `.iac/docker-compose.override.yml`**, add the Traefik network and labels to your app service:
+1. **In `.iac/docker-compose.override.yml`**, add the Traefik network and labels to your app service (including the required middlewares):
 
    ```yaml
    services:
@@ -48,6 +48,7 @@ Production routing is defined in **`.iac/docker-compose.override.yml`** in the a
          traefik.http.routers.app.rule: "Host(`example.com`)"
          traefik.http.routers.app.entrypoints: "websecure"
          traefik.http.routers.app.tls.certresolver: "letsencrypt"
+         traefik.http.routers.app.middlewares: "app-headers,app-buffering"
          traefik.http.services.app.loadbalancer.server.port: "3000"
        networks:
          - default
@@ -64,12 +65,29 @@ Production routing is defined in **`.iac/docker-compose.override.yml`** in the a
 
 3. **Required middlewares:**
 
-All apps should use these middlewares:
+All apps should use these middlewares on their router:
 
-- **`app-headers`**: Security headers (`X-Frame-Options`, `Referrer-Policy`, `Strict-Transport-Security`, `X-Content-Type-Options`)
-- **`app-buffering`**: Request body size limit (20MB)
+- **`app-headers`**: Security headers — `X-Frame-Options`, `Referrer-Policy`, `Strict-Transport-Security`, `X-Content-Type-Options`. No CSP or Permissions-Policy; set those in the app (e.g. SvelteKit, Next.js) or via an extra Traefik middleware if needed.
+- **`app-buffering`**: Request body size limit (20MB).
+
+Add them to your router, e.g.:
+
+```yaml
+labels:
+  traefik.http.routers.app.middlewares: "app-headers,app-buffering"
+```
 
 Defined in `ansible/roles/server/templates/traefik-dynamic-middlewares.yml.j2`.
+
+4. **Optional: Content-Security-Policy or Permissions-Policy**
+
+The platform does not set CSP or Permissions-Policy by default. Prefer setting them in the app (framework or server). If you want them in Traefik instead, add a middleware in **`.iac/docker-compose.override.yml`** and attach it after the shared ones:
+
+```yaml
+traefik.http.routers.app.middlewares: "app-headers,app-buffering,myapp-security"
+traefik.http.middlewares.myapp-security.headers.customResponseHeaders.Content-Security-Policy: "default-src 'self'; script-src 'self'"
+traefik.http.middlewares.myapp-security.headers.customResponseHeaders.Permissions-Policy: "geolocation=(), microphone=(), camera=()"
+```
 
 ---
 
@@ -105,11 +123,13 @@ The Traefik dashboard is not exposed publicly (no DNS). Use an SSH tunnel to the
 
 ### Security Headers
 
-All Traefik-managed endpoints send:
+Apps using the **`app-headers`** middleware get:
 - `X-Frame-Options: DENY`
 - `Referrer-Policy: strict-origin-when-cross-origin`
 - `Strict-Transport-Security: max-age=31536000; includeSubDomains`
 - `X-Content-Type-Options: nosniff`
+
+CSP and Permissions-Policy are not set by the platform; set them in the app or via an optional [Traefik middleware](#4-optional-content-security-policy-or-permissions-policy).
 
 ### Fail2ban Integration
 

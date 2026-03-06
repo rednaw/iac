@@ -195,6 +195,7 @@ services:
       traefik.http.routers.app.rule: "Host(`dev.example.com`) || Host(`example.com`)"
       traefik.http.routers.app.entrypoints: "websecure"
       traefik.http.routers.app.tls.certresolver: "letsencrypt"
+      traefik.http.routers.app.middlewares: "app-headers,app-buffering"
       traefik.http.services.app.loadbalancer.server.port: "3000"
     networks:
       - default

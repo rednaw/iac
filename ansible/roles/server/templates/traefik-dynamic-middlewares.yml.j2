@@ -1,0 +1,15 @@
+# yaml-language-server: $schema=https://json.schemastore.org/traefik-v2.json
+# Shared middlewares for all app services. Apps reference these in their router labels.
+# CSP and Permissions-Policy are not set here; apps can set them in the app (e.g. SvelteKit, framework) or add a Traefik middleware in their override if needed.
+http:
+  middlewares:
+    app-headers:
+      headers:
+        customResponseHeaders:
+          X-Frame-Options: "DENY"
+          Referrer-Policy: "strict-origin-when-cross-origin"
+          Strict-Transport-Security: "max-age=31536000; includeSubDomains"
+          X-Content-Type-Options: "nosniff"
+    app-buffering:
+      buffering:
+        maxRequestBodyBytes: 20971520
