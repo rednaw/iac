@@ -45,6 +45,7 @@ Production routing is defined in **`.iac/docker-compose.override.yml`** in the a
      app:
        labels:
          traefik.enable: "true"
+         traefik.http.routers.app.priority: "1"
          traefik.http.routers.app.rule: "Host(`example.com`)"
          traefik.http.routers.app.entrypoints: "websecure"
          traefik.http.routers.app.tls.certresolver: "letsencrypt"
@@ -116,6 +117,16 @@ ssh ubuntu@dev.<base_domain> 'sudo docker network inspect traefik'
 ### Access Dashboard
 
 The Traefik dashboard is not exposed publicly (no DNS). Use an SSH tunnel to the server, then open **http://localhost:8080** in your browser. See [Remote-SSH](remote-ssh.md) for setting up SSH and port forwarding. On the server the API/dashboard listens on port 8080 (internal).
+
+### HTTP 418 (I'm a teapot)
+
+Traefik's built-in `noop@internal` service returns 418. It is used by the **app-host** router (in `traefik-dynamic-app-host.yml.j2`) so Let's Encrypt can obtain certificates for your app domains even when the app container is not running. When the app is deployed, the app's Docker router must win over app-host so traffic goes to your app, not to noop.
+
+If you see 418 on your app URL after deploy:
+
+1. **Priority** — Ensure your app router has `traefik.http.routers.app.priority: "1"` (or higher) in `.iac/docker-compose.override.yml`. The app-host router uses priority -10 so priority 1 always wins.
+2. **App container** — Confirm the app container is running and on the `traefik` network: `docker ps` and `docker network inspect traefik` on the server.
+3. **Traefik logs** — Check for router or middleware errors: `sudo docker logs traefik`.
 
 ---
 
