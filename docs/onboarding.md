@@ -2,6 +2,25 @@
 
 # Onboarding
 
+## Before you start
+
+Install on your machine:
+
+- **[Docker](https://docs.docker.com/get-docker/)** — to run the IaC devcontainer
+- **[VS Code](https://code.visualstudio.com/) or [Cursor](https://cursor.com/)** — to open the workspace and run extensions
+
+**Extensions** (install in VS Code or Cursor via **Cmd+Shift+X** → search by name):
+
+| Extension | Purpose |
+|-----------|---------|
+| [Dev Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) | Open the IaC repo in the devcontainer (required) |
+| [SOPS](https://marketplace.visualstudio.com/items?itemName=signageos.signageos-vscode-sops) (SignageOS) | View and edit encrypted secrets (`iac.yml`, `.env`) (required) |
+| [Remote - SSH](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-ssh) | Connect to the server and use port forwarding for Traefik/OpenObserve dashboards (optional) |
+
+The devcontainer installs additional extensions inside the container (YAML, Ansible, dotenv, Mermaid); you don’t need to install those on the host.
+
+---
+
 Pick your path:
 
 ## New project

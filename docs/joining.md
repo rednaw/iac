@@ -1,4 +1,4 @@
-[**<---**](README.md)
+[**<---**](onboarding.md)
 
 # Joining an existing project
 
@@ -6,7 +6,7 @@ The infrastructure exists. A teammate has already set up the server, registry, a
 
 **What you need before starting:**
 
-- [Docker](https://docs.docker.com/get-docker/), [VS Code](https://code.visualstudio.com/) or [Cursor](https://cursor.com/), and the [Dev Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) extension
+- Editor and extensions: see [Onboarding: Before you start](onboarding.md#before-you-start)
 - Access to **two repos**: the IaC repo and the app repo
 - An SSH key pair (`~/.ssh/id_rsa`), if you don't have one run `ssh-keygen`
 

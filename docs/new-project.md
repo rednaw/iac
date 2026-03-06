@@ -1,4 +1,4 @@
-[**<---**](README.md)
+[**<---**](onboarding.md)
 
 # New project (bootstrapping from scratch)
 
@@ -8,7 +8,7 @@ All platform config lives in your **app repo** under **`.iac/`** (not in the IaC
 
 **What you need before starting:**
 
-- [Docker](https://docs.docker.com/get-docker/), [VS Code](https://code.visualstudio.com/) or [Cursor](https://cursor.com/), and the [Dev Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) extension
+- Editor and extensions: see [Onboarding: Before you start](onboarding.md#before-you-start)
 - A [Hetzner Cloud](https://console.hetzner.cloud/) account
 - A domain name you control (for DNS records)
 - An app repo with at least a `docker-compose.yml`
