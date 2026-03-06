@@ -140,6 +140,41 @@ exporters:
     headers:
       Authorization: "Basic {{ openobserve_ingest_auth }}"
 
+  otlp_http/traefik:
+    endpoint: http://openobserve:5080/api/default/traefik-access
+    tls:
+      insecure: true
+    headers:
+      Authorization: "Basic {{ openobserve_ingest_auth }}"
+
+  otlp_http/docker:
+    endpoint: http://openobserve:5080/api/default/docker-containers
+    tls:
+      insecure: true
+    headers:
+      Authorization: "Basic {{ openobserve_ingest_auth }}"
+
+  otlp_http/syslog:
+    endpoint: http://openobserve:5080/api/default/syslog
+    tls:
+      insecure: true
+    headers:
+      Authorization: "Basic {{ openobserve_ingest_auth }}"
+
+  otlp_http/auth:
+    endpoint: http://openobserve:5080/api/default/auth
+    tls:
+      insecure: true
+    headers:
+      Authorization: "Basic {{ openobserve_ingest_auth }}"
+
+  otlp_http/fail2ban:
+    endpoint: http://openobserve:5080/api/default/fail2ban
+    tls:
+      insecure: true
+    headers:
+      Authorization: "Basic {{ openobserve_ingest_auth }}"
+
   # Send all metrics via Prometheus remote write (OTLP->Prometheus conversion gives dashboard-ready names)
   prometheusremotewrite:
     endpoint: http://openobserve:5080/api/default/prometheus/api/v1/write
@@ -152,24 +187,24 @@ service:
     metrics:
       receivers: [hostmetrics, docker_stats, prometheus]
       exporters: [prometheusremotewrite, otlp_http]
-    # Logs pipelines: one per source so each gets its own stream in OpenObserve
+    # Logs pipelines: one exporter per stream so OpenObserve shows separate streams (traefik-access, docker-containers, syslog, auth, fail2ban)
     logs/traefik:
       receivers: [filelog/traefik]
       processors: [transform/redact_basic, resource/traefik, batch]
-      exporters: [otlp_http]
+      exporters: [otlp_http/traefik]
     logs/docker:
       receivers: [filelog/docker]
       processors: [transform/redact_basic, resource/docker, batch]
-      exporters: [otlp_http]
+      exporters: [otlp_http/docker]
     logs/syslog:
       receivers: [filelog/syslog]
       processors: [transform/redact_basic, resource/syslog, batch]
-      exporters: [otlp_http]
+      exporters: [otlp_http/syslog]
     logs/auth:
       receivers: [filelog/auth]
       processors: [transform/redact_basic, resource/auth, batch]
-      exporters: [otlp_http]
+      exporters: [otlp_http/auth]
     logs/fail2ban:
       receivers: [filelog/fail2ban]
       processors: [transform/redact_basic, resource/fail2ban, batch]
-      exporters: [otlp_http]
+      exporters: [otlp_http/fail2ban]
