@@ -4,7 +4,7 @@
 
 The IaC devcontainer provides a standardized environment with all tools pre-installed (Task, Terraform, Ansible, SOPS, crane, Docker CLI, and more via [mise](https://mise.jdx.dev/)). On startup it decrypts your secrets file and configures registry, Terraform Cloud, and hcloud automatically.
 
-**Before this:** You need Docker, VS Code or Cursor, and the [Dev Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) extension. If you're creating a new project, see [New project](new-project.md). If you're joining, see [Joining](joining.md).
+**Before this:** Install Docker, VS Code or Cursor, and the required extensions — see [Onboarding: Before you start](onboarding.md#before-you-start). If you're creating a new project, complete [New project](new-project.md) through the secrets file. If you're joining, complete [Joining](joining.md) through the SOPS keyring.
 
 ---
 
