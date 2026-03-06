@@ -64,6 +64,12 @@
     dest: /etc/traefik/dynamic/app-host.yml
     mode: '0644'
 
+- name: Deploy Traefik middlewares (app-headers, app-buffering)
+  ansible.builtin.template:
+    src: traefik-dynamic-middlewares.yml.j2
+    dest: /etc/traefik/dynamic/middlewares.yml
+    mode: '0644'
+
 - name: Ensure Traefik Docker network exists
   community.docker.docker_network:
     name: traefik
