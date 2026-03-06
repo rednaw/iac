@@ -81,12 +81,9 @@
     volumes:
       - /etc/otel-collector/config.yaml:/etc/otelcol/config.yaml:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      # Log directories for log collection
-      - /var/log/traefik:/var/log/traefik:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
-      - /var/log/syslog:/var/log/syslog:ro
-      - /var/log/auth.log:/var/log/auth.log:ro
-      - /var/log/fail2ban.log:/var/log/fail2ban.log:ro
+      # Single /var/log mount so collector can read all log files (traefik, syslog, auth, fail2ban)
+      - /var/log:/var/log:ro
     networks:
       - name: openobserve-network
     healthcheck:

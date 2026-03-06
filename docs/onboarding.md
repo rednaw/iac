@@ -2,30 +2,38 @@
 
 # Onboarding
 
+Pick your path:
+
 ## New project
 
-You have an app and want it to run on this platform. You need **your own server in your own Hetzner account**. Follow these steps:
+You have an app and want to deploy it on your own Hetzner server. You will create the infrastructure from scratch, then deploy.
 
-1. **[New project](new-project.md)** — Create your server and platform (prerequisites, SOPS, secrets file, Terraform Cloud, Terraform, Ansible). When done you have a server, Traefik, registry, and the rest.
+| Step | What you do | Time |
+|------|-------------|------|
+| 1. **[New project](new-project.md)** | Create SOPS keys, secrets file, external accounts (Hetzner, Terraform Cloud), provision the server with Terraform + Ansible, set up DNS. | ~60 min |
+| 2. **[Launch devcontainer](launch-devcontainer.md)** | Open the IaC workspace in the devcontainer. It decrypts secrets and configures all credentials automatically. | ~5 min |
+| 3. **[Application deployment](application-deployment.md)** | Set up your app mount, write the deploy override and Traefik labels, run your first deploy. | ~30 min |
+| 4. **[App secrets](secrets.md#creating-app-secrets)** | Create `.iac/.env` with app runtime secrets (database URL, API keys). | ~10 min |
 
-2. **[Launch the IaC devcontainer](launch-devcontainer.md)** — Open the workspace and start the devcontainer. It decrypts secrets and configures registry, Terraform Cloud, and hcloud.
+When done: your app is live at `https://<your-domain>` with TLS, a private registry, and monitoring.
 
-3. **[Application deployment](application-deployment.md)** — Set up your app:
-   - Run `setup-app-path.sh` to configure the app mount.
-   - Fill in `app/.iac/iac.yml`, write your `docker-compose.yml` with Traefik labels.
-   - Run your first deploy with `task app:deploy`.
+**Reference implementation:** [tientje-ketama](https://github.com/rednaw/tientje-ketama) is a working app that uses this platform. Use its `.iac/` directory as a reference for file structure and Traefik labels.
 
-4. **[Secrets](secrets.md)** — [App secrets](secrets.md#creating-new-app-secrets) (`.env`, `.sops.yaml`).
-
+---
 
 ## Join an existing project
 
-The project already exists. Get access, then operate:
+The infrastructure exists. You need access, then you can operate and deploy.
 
-1. **[Joining](joining.md)** — Get added to the SOPS keyring, add your SSH key and IP to secrets.
+| Step | What you do | Time |
+|------|-------------|------|
+| 1. **[Joining](joining.md)** | Get your SOPS key added to the keyring, add your SSH key and IP to the firewall. | ~20 min (includes waiting for teammate) |
+| 2. **[Launch devcontainer](launch-devcontainer.md)** | Open the IaC workspace in the devcontainer. It decrypts secrets and configures all credentials automatically. | ~5 min |
 
-2. **[Launch the IaC devcontainer](launch-devcontainer.md)** — Open the workspace and start the devcontainer. It decrypts secrets and configures registry, Terraform Cloud, and hcloud.
+When done: you can deploy, inspect, and operate. Run `task app:versions -- dev` to see available versions.
 
+---
 
 ## Explore
-After that you're in. Use the [Reference](README.md#reference) for operations, troubleshooting, and details.
+
+After onboarding, use the [Reference](README.md#reference) for operations, troubleshooting, and details.

@@ -2,7 +2,7 @@
 
 # Application Deployment
 
-This guide is for **both**: if you **created the project** (new project), you need the app mount, app config (`.iac/`, compose, Traefik), and deploy commands; if you **joined** an existing project, you need the same commands plus deployment records and implementation details.
+Deploy and manage applications from the IaC devcontainer. If you **created the project**, start at [App mount](#app-mount) to set up your app files. If you **joined**, skip to [Commands](#commands) — the app is already configured.
 
 ---
 
@@ -57,7 +57,7 @@ After running it, open `iac.code-workspace` (or **Reopen in Container** if alrea
 
 ## App mount
 
-The devcontainer mounts your app repo at `/workspaces/iac/app`: the **`.iac/`** directory (read/write) and **`docker-compose.yml`** (read-only). This lets you run **app:versions** and **app:deploy** from the IaC devcontainer. The mount uses **`APP_HOST_PATH`** from the environment of the process that opens the workspace (e.g. Cursor or VS Code).
+The devcontainer mounts your app repo at `/workspaces/iac/app`: the **`.iac/`** directory and **`docker-compose.yml`**. This lets you run **app:versions** and **app:deploy** from the IaC devcontainer. The mount uses **`APP_HOST_PATH`** from the environment of the process that opens the workspace (e.g. Cursor or VS Code).
 
 **Required layout** — Each app must have:
 
@@ -122,22 +122,13 @@ Applications declare deployment settings in **`.iac/iac.yml`** (in the app repo)
 - **`image_name`** — Image name in the registry (e.g. `myorg/myapp`).
 - **`app_domains`** — List of domains for Traefik TLS (e.g. `["dev.example.com", "example.com"]`).
 
-All credentials are stored encrypted in the same file. See [Secrets](secrets.md) and [New project](new-project.md).
+For the full file layout, see [App mount: Required layout](#app-mount) above. For creating these files from scratch, see [New project](new-project.md#7-create-the-remaining-iac-files).
 
-**Required layout (mounted at `/workspaces/iac/app`):**
-- **`.iac/iac.yml`** — Platform config and credentials (SOPS-encrypted except the keys above).
-- **`.iac/.env`** — SOPS-encrypted app runtime secrets (dotenv); can be minimal.
-- **`.iac/.sops.yaml`** — SOPS config for `iac.yml` and `.env`.
-- **`.iac/docker-compose.override.yml`** — Traefik labels, networks, `restart` policies.
-- **`docker-compose.yml`** — Full stack (app, database, etc.); generic, no domain or Traefik labels.
+**Key rules:**
+- The app service in `docker-compose.override.yml` must use `image: ${IMAGE}` — the deploy task sets this to the resolved image digest.
+- Put `restart: unless-stopped` on every service in the override. Without it, after a reboot only the platform restarts; your app stays stopped. See [Backups](backups.md#after-an-in-place-restore).
 
-**Note — `restart: unless-stopped`:** Put `restart: unless-stopped` on each service in **`.iac/docker-compose.override.yml`**. Without it, after a reboot or restore only the platform restarts; your app containers stay stopped. See [Backups](backups.md#after-an-in-place-restore).
-
-The app service must use `image: ${IMAGE}` (set by the deploy task from the resolved digest). 
-
-### App development workflow
-
-App development is **devcontainer-first**. The app repo’s devcontainer uses `docker-compose.yml` plus a minimal override under `.devcontainer/`. For **production**, the IaC uses `docker-compose.yml` + `.iac/docker-compose.override.yml` on the server.
+App development is **devcontainer-first**: the app repo's own devcontainer uses `docker-compose.yml` plus a minimal override under `.devcontainer/`. Production uses `docker-compose.yml` + `.iac/docker-compose.override.yml` on the server.
 
 ---
 
@@ -265,10 +256,6 @@ The editor process didn't have `APP_HOST_PATH` in its environment. Run `./script
 
 **"No tags found"**
 - Image repository may not exist; check registry access: see [Registry](registry.md#troubleshooting)
-
----
-
-[Registry](registry.md) documents overview, commands, and troubleshooting.
 
 ---
 

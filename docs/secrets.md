@@ -10,7 +10,6 @@ flowchart LR
         direction LR
         T1(Alice<br/>private key)
         T2(Bob<br/>private key)
-        T3(CI<br/>private key)
     end
 
     subgraph GIT["Git repository"]
@@ -18,18 +17,15 @@ flowchart LR
         P@{ shape: lin-doc, label: "Public keys<br/>app/.iac/sops-key-*.pub" }
     end
 
-    subgraph USE["Used by"]
-        D(Devcontainer<br/>registry, terraform, hcloud)
-        G(GitHub Actions<br/>deploy, validate)
-        A(Apps<br/>deployment)
+    subgraph USE["Configures"]
+        D(Infrastructure secrets:<br/>Hetzner, Registry, TF Cloud, ...)
+        A(Application secrets:<br/>Tokens, database passwords, ...)
     end
 
-    T1 --->|decrypt| S
-    T2 -->|decrypt| S
-    T3 -->|decrypt| S
-    S -->|decrypted| D
-    S -->|decrypted| G
-    S -->|decrypted| A
+    T1 --->|decrypt with| S
+    T2 -->|decrypt with| S
+    S -->|decrypt| D
+    S -->|decrypt| A
     P -->|encrypt with| S
 ```
 
