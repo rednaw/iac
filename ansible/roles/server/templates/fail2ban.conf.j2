@@ -37,7 +37,8 @@ maxretry = 5
 bantime = 3600
 findtime = 600
 
-# Traefik: auth failures (dashboard, registry, etc.)
+# Traefik: auth failures (dashboard, app auth, etc.)
+# Registry /v2/ 401s are excluded: unauthenticated GET /v2/ is normal (clients probe then send credentials).
 [traefik-auth]
 enabled = true
 backend = polling
@@ -47,6 +48,7 @@ maxretry = 6
 bantime = 1800
 findtime = 600
 failregex = ^<HOST> -.*"(GET|POST).*HTTP.*" (401|403) .*$
+ignoreregex = ^<HOST> -.*"/v2/.*" (401|403) .*$
 
 # Traefik: failed app login attempts (/api/auth/login 401|403) – filter in filter.d/traefik-login-attempts.conf
 [traefik-login-attempts]
