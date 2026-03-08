@@ -118,6 +118,20 @@ cd /workspaces/iac || exit 1
 bash .devcontainer/setup-remote-ssh.sh
 
 ########################################
+# Docker contexts (dev, prod, host)
+########################################
+
+# Named contexts: host = daemon running this container, dev/prod = servers over SSH. Default = host.
+# Idempotent: create fails when context exists, we ignore.
+DEV_HOST="dev.${BASE_DOMAIN}"
+PROD_HOST="prod.${BASE_DOMAIN}"
+docker context create host --docker "host=unix:///var/run/docker.sock" 2>/dev/null || true
+docker context create dev --docker "host=ssh://ubuntu@${DEV_HOST}" 2>/dev/null || true
+docker context create prod --docker "host=ssh://ubuntu@${PROD_HOST}" 2>/dev/null || true
+docker context use host
+echo "Docker contexts: host (default) | dev | prod — docker context use <name>"
+
+########################################
 # Cursor state
 ########################################
 

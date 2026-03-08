@@ -50,6 +50,7 @@ The devcontainer has two modes:
 | `~/.docker/config.json` | Registry auth for Docker, crane, and Trivy |
 | `~/.terraform.d/credentials.tfrc.json` | Terraform Cloud token for shared state |
 | `~/.config/hcloud/cli.toml` | Hetzner Cloud API token |
+| Docker contexts **host**, **dev**, **prod** | So you can run `docker` against the host (default), dev server, or prod server |
 
 No manual login needed — `terraform`, `hcloud`, and `crane` work immediately.
 

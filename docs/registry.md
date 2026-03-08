@@ -124,6 +124,8 @@ Filter SHA-like tags (e.g. for pruning):
 
 ### Registry host
 
+From the devcontainer, use Docker contexts to run commands on the server: `docker context use dev` (or `prod`), then e.g. `docker exec registry registry garbage-collect`.
+
 | Task | Command |
 |------|--------|
 | Registry data size | `du -sh /var/lib/docker-registry` (or the registry’s `rootdirectory`) |
