@@ -94,23 +94,39 @@ traefik.http.middlewares.myapp-security.headers.customResponseHeaders.Permission
 
 ## Operations
 
+From the **IaC devcontainer**, use Docker contexts so you don't need to type `ssh`: run `docker context use dev` (or `prod`), then run the commands below without the `ssh` wrapper. See [Launch the devcontainer](launch-devcontainer.md) for context setup. From outside the devcontainer, use the `ssh` form.
+
 ### Restart Traefik
 
 ```bash
+# From devcontainer (after: docker context use dev)
+docker restart traefik
+
+# From host
 ssh ubuntu@dev.<base_domain> 'sudo docker restart traefik'   # e.g. dev.rednaw.nl
 ```
 
 ### View Logs
 
 ```bash
-ssh ubuntu@dev.<base_domain> 'sudo docker logs traefik'   # e.g. dev.rednaw.nl
+# From devcontainer (after: docker context use dev)
+docker logs traefik
+# Access log on server: sudo tail -f /var/log/traefik/access.log (via ssh)
+
+# From host
+ssh ubuntu@dev.<base_domain> 'sudo docker logs traefik'
 ssh ubuntu@dev.<base_domain> 'sudo tail -f /var/log/traefik/access.log'
 ```
 
 ### Check Status
 
 ```bash
-ssh ubuntu@dev.<base_domain> 'sudo docker ps | grep traefik'   # e.g. dev.rednaw.nl
+# From devcontainer (after: docker context use dev)
+docker ps | grep traefik
+docker network inspect traefik
+
+# From host
+ssh ubuntu@dev.<base_domain> 'sudo docker ps | grep traefik'
 ssh ubuntu@dev.<base_domain> 'sudo docker network inspect traefik'
 ```
 
