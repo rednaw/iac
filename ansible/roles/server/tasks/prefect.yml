@@ -1,0 +1,115 @@
+---
+# Prefect: server + worker as Docker containers. One noop flow by default.
+# Requires: deploy user, Docker. Flow code is copied from the IaC repo and bind-mounted into the worker.
+
+- name: Set Prefect variables
+  ansible.builtin.set_fact:
+    prefect_flow_code_host_path: /opt/prefect/flows
+    prefect_server_port: 4200
+
+- name: Assert base_domain is set (for consistency with other server components)
+  ansible.builtin.assert:
+    that: infrastructure_secrets.base_domain is defined and infrastructure_secrets.base_domain | length > 0
+    fail_msg: "'base_domain' is missing from iac.yml."
+    quiet: true
+
+- name: Create Prefect flow code directory on host
+  ansible.builtin.file:
+    path: "{{ prefect_flow_code_host_path }}"
+    state: directory
+    mode: '0755'
+
+- name: Check if Prefect flow code directory exists in repo
+  ansible.builtin.stat:
+    path: "{{ playbook_dir }}/../../prefect"
+  register: prefect_src_stat
+  delegate_to: localhost
+  become: false
+
+- name: Copy Prefect flow code from IaC repo to host
+  ansible.posix.synchronize:
+    src: "{{ playbook_dir }}/../../prefect/"
+    dest: "{{ prefect_flow_code_host_path }}/"
+    delete: true
+    rsync_opts:
+      - "--exclude=__pycache__"
+      - "--exclude=.git"
+      - "--checksum"
+      - "--omit-dir-times"
+  when: prefect_src_stat.stat.exists and prefect_src_stat.stat.isdir
+
+- name: Ensure Prefect network exists
+  community.docker.docker_network:
+    name: prefect-network
+    driver: bridge
+    state: present
+
+- name: Ensure Prefect server container is running
+  community.docker.docker_container:
+    name: prefect-server
+    image: prefecthq/prefect:2-python3.11
+    state: started
+    restart_policy: unless-stopped
+    log_driver: json-file
+    log_options:
+      max-size: "10m"
+      max-file: "3"
+    command: prefect server start --host 0.0.0.0
+    env:
+      PREFECT_HOME: /data
+    ports:
+      - "127.0.0.1:{{ prefect_server_port }}:4200"
+    volumes:
+      - prefect-server-data:/data
+    networks:
+      - name: prefect-network
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:4200/api/health')\" || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+- name: Wait for Prefect server API to be ready
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ prefect_server_port }}/api/health"
+    method: GET
+    status_code: [200, 401]
+    timeout: 5
+  register: prefect_health
+  until: prefect_health.status in [200, 401]
+  retries: 12
+  delay: 5
+
+- name: Ensure Prefect worker container is running
+  community.docker.docker_container:
+    name: prefect-worker
+    image: prefecthq/prefect:2-python3.11
+    state: started
+    restart_policy: unless-stopped
+    log_driver: json-file
+    log_options:
+      max-size: "10m"
+      max-file: "3"
+    command: prefect worker start --pool default-agent-pool
+    env:
+      PREFECT_API_URL: "http://prefect-server:4200/api"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - "{{ prefect_flow_code_host_path }}:/opt/prefect/flows:ro"
+      - /opt/deploy:/opt/deploy:ro
+    networks:
+      - name: prefect-network
+
+- name: Register Prefect deployments
+  ansible.builtin.shell: |
+    docker run --rm \
+      --network prefect-network \
+      -e PREFECT_API_URL=http://prefect-server:4200/api \
+      -v {{ prefect_flow_code_host_path }}:/opt/prefect/flows:ro \
+      -w /opt/prefect/flows \
+      prefecthq/prefect:2-python3.11 \
+      prefect deploy --all
+  register: prefect_register
+  changed_when: false
+  

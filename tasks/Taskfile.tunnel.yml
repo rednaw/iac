@@ -17,12 +17,14 @@ tasks:
           echo "Tunnel to {{.WORKSPACE}} already running."
           echo "  Traefik Dashboard: http://localhost:8080/dashboard/"
           echo "  OpenObserve:       http://localhost:5081/"
+          echo "  Prefect UI:        http://localhost:4200/"
           exit 0
         fi
-        ssh -f -N -L 5081:localhost:5080 -L 8080:localhost:8080 -o StrictHostKeyChecking=accept-new "ubuntu@$HOSTNAME" || { echo "Failed to start tunnel."; exit 1; }
+        ssh -f -N -L 5081:localhost:5080 -L 8080:localhost:8080 -L 4200:localhost:4200 -o StrictHostKeyChecking=accept-new "ubuntu@$HOSTNAME" || { echo "Failed to start tunnel."; exit 1; }
         echo "Tunnel to {{.WORKSPACE}} started."
         echo "  Traefik Dashboard: http://localhost:8080/dashboard/"
         echo "  OpenObserve:       http://localhost:5081/"
+        echo "  Prefect UI:        http://localhost:4200/"
         echo "  Stop: task tunnel:stop -- {{.WORKSPACE}}"
 
   stop:

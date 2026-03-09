@@ -14,23 +14,28 @@ graph TB
     end
 
     subgraph SERVER[Ubuntu Server]
-      TRAEFIK(Traefik<br/>Reverse Proxy + TLS)
-      subgraph DOCKER[App Docker Compose]
+      subgraph DMZ[dmz]
+        SEC(Security hardening<br/>Fail2ban, SSH)
+        TRAEFIK(Traefik<br/>Reverse Proxy + TLS)
+      end
+      subgraph DOCKER[Application]
         SUPPORTING_SERVICES@{ shape: cyl, label: "Supporting Services<br/>Postgres, Redis, ..." }
         APP_SERVICE(Application Service)
       end
-      OBSERVE(OpenObserve<br/>Monitors system health)
-      REGISTRY(Docker Registry)
-      SEC(Security hardening<br/>Fail2ban, SSH, AbuseIPDB)
+      subgraph SYSTEM[Internal]
+        REGISTRY(Docker Registry)
+        OBSERVE(OpenObserve<br/>Monitors system health)
+        WORKFLOWS(Prefect<br/>Run and schedule workflows)
+      end
     end
 
     subgraph APP[Your application repo]
       COMPOSE@{ shape: lin-doc, label: "docker-compose.yml<br/>Application services" }
       PUSH@{ shape: subproc, label: "Github workflow<br/>Build and push" }
-      IAC_YML@{ shape: lin-doc, label: ".iac/<br/>Platform config & secrets" }
+      IAC_YML@{ shape: lin-doc, label: ".iac/<br/>Platform config<br/>Encrypted secrets" }
     end
 
-    IAC -->|mount| APP
+    IAC --->|mount| APP
 
     TASK -->|orchestrate| TF
     TASK -->|orchestrate| ANS
@@ -39,9 +44,7 @@ graph TB
     ANS -->|provision| SERVER
 
     APP_SERVICE -->|pull application image| REGISTRY
-    PUSH -->|push application image| REGISTRY 
-    
-    APP_SERVICE -->|proxy| TRAEFIK
+    PUSH --->|push application image| REGISTRY 
 ```
 
 The IaC devcontainer mounts four files in your local application clone so you can deploy without installing tools like Task, Ansible or Terraform on your local machine or application Devcontainer.
@@ -61,6 +64,7 @@ The IaC devcontainer mounts four files in your local application clone so you ca
 - [Traefik](traefik.md) — Reverse proxy, TLS, operations, adding apps
 - [Registry](registry.md) — Auth, commands, operations
 - [Monitoring](monitoring.md) — OpenObserve, dashboards, logs
+- [Workflows](workflows.md) — Scheduled tasks and multi-step workflows with Prefect
 
 **Application**
 
@@ -69,7 +73,8 @@ The IaC devcontainer mounts four files in your local application clone so you ca
 
 **Operations**
 
-- [Backups](backups.md) — Hetzner automated backups (Terraform, 7 restore points).
+- [Workflows](workflows.md) — Scheduled tasks and multi-step workflows with Prefect
+- [Backups](backups.md) — Hetzner automated backups (Terraform, 7 restore points)
 - [Troubleshooting](troubleshooting.md) — Common issues and fixes
 - [Upgrading dependencies](upgrading.md) — Renovate, PRs
 - [Remote-SSH](remote-ssh.md) — Connect to the server via Remote-SSH (tunnel, dashboards)
