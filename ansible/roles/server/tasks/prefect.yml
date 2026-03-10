@@ -1,4 +1,5 @@
 ---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/ansible/ansible-lint/main/src/ansiblelint/schemas/ansible.json#/$defs/tasks
 # Prefect: server + worker as Docker containers.
 # Requires: deploy user, Docker. Flow code is copied from the IaC repo and bind-mounted into the worker.
 
@@ -112,4 +113,4 @@
       prefecthq/prefect:2-python3.11 \
       prefect deploy --all
   register: prefect_register
-  changed_when: false
+  changed_when: prefect_register.rc == 0 and (prefect_register.stdout | default('') | regex_search('(?i)(deployed|updated|created)'))
