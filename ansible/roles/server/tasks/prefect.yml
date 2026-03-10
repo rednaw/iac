@@ -112,4 +112,3 @@
       prefect deploy --all
   register: prefect_register
   changed_when: false
-  
