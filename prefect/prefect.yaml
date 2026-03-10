@@ -1,0 +1,9 @@
+# Prefect project config. One noop deployment so prefect deploy --all succeeds.
+name: iac-prefect
+
+build: []
+deployments:
+  - entrypoint: flows/noop.py:noop
+    name: noop
+    work_pool:
+      name: default-agent-pool

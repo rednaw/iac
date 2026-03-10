@@ -28,3 +28,6 @@
 
 - name: Configure OpenObserve
   ansible.builtin.import_tasks: openobserve.yml
+
+- name: Configure Prefect
+  ansible.builtin.import_tasks: prefect.yml

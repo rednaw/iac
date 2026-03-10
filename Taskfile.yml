@@ -43,7 +43,7 @@ tasks:
         echo ""
         echo "Ansible commands:"
         echo "  task ansible:bootstrap -- <workspace>  # One-time bootstrap as root (dev or prod)"
-        echo "  task ansible:run       -- <workspace>  # Configure server (Docker, Traefik, security)"
+        echo "  task ansible:run       -- <workspace>  # Full server config (dev or prod)"
         echo ""
         echo "Application Deployment:"
         echo "  task app:deploy   -- <env> <sha>       # Deploy application to dev or prod"
