@@ -53,7 +53,7 @@
       ZO_LOCAL_MODE: "true"
       ZO_RETENTION_DAYS: "7"
     ports:
-      - "127.0.0.1:5080:5080"
+      - "127.0.0.1:57800:5080"
     volumes:
       - /var/lib/openobserve:/data
     networks:
@@ -95,7 +95,7 @@
 
 - name: Wait for OpenObserve API to be ready
   ansible.builtin.uri:
-    url: "http://127.0.0.1:5080/api/health"
+    url: "http://127.0.0.1:57800/api/health"
     method: GET
     status_code: [200, 401]
   register: openobserve_health
@@ -115,7 +115,7 @@
 # OpenObserve dashboard PUT (update) can return 500 (hash validation issues); we accept it so the playbook does not fail.
 - name: Get existing OpenObserve dashboards list
   ansible.builtin.uri:
-    url: "http://127.0.0.1:5080/api/default/dashboards"
+    url: "http://127.0.0.1:57800/api/default/dashboards"
     method: GET
     headers:
       Authorization: "Basic {{ openobserve_ingest_auth }}"
@@ -139,7 +139,7 @@
 
 - name: Create OpenObserve dashboard (when missing)
   ansible.builtin.uri:
-    url: "http://127.0.0.1:5080/api/default/dashboards"
+    url: "http://127.0.0.1:57800/api/default/dashboards"
     method: POST
     headers:
       Authorization: "Basic {{ openobserve_ingest_auth }}"
@@ -157,7 +157,7 @@
 
 - name: Update OpenObserve dashboard in place
   ansible.builtin.uri:
-    url: "http://127.0.0.1:5080/api/default/dashboards/{{ openobserve_dashboard_ids[item.title] }}"
+    url: "http://127.0.0.1:57800/api/default/dashboards/{{ openobserve_dashboard_ids[item.title] }}"
     method: PUT
     headers:
       Authorization: "Basic {{ openobserve_ingest_auth }}"

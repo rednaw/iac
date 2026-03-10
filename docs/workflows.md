@@ -41,7 +41,7 @@ flowchart LR
    ```bash
    task tunnel:start -- dev
    ```
-2. Open **http://localhost:4200/** in your browser.
+2. Open **http://localhost:57802/** in your browser.
 
 The UI is internal-only (no public DNS). Access is the same as OpenObserve and the Traefik dashboard — via SSH tunnel to localhost.
 
@@ -55,7 +55,7 @@ The UI is internal-only (no public DNS). Access is the same as OpenObserve and t
 Open Deployments → pick a deployment → **Run**. The worker picks it up and executes it. Check the Flow Runs tab for logs and state.
 
 **From the command line (optional):**  
-With the tunnel running, set `PREFECT_API_URL=http://localhost:4200/api` and run:
+With the tunnel running, set `PREFECT_API_URL=http://localhost:57802/api` and run:
 ```bash
 prefect deployment run 'noop/noop'
 ```
@@ -168,7 +168,7 @@ The server runs with `--analytics-off`. No usage or telemetry is sent to Prefect
 
 ## Architecture notes
 
-- **Server:** One Docker container. Prefect API + UI + SQLite. SQLite data in a Docker volume (`prefect-server-data`). Listens on localhost:4200.
+- **Server:** One Docker container. Prefect API + UI + SQLite. SQLite data in a Docker volume (`prefect-server-data`). Exposed on host port **57802** .
 - **Worker:** One Docker container. Polls the server, executes flow runs. Mounts flow code, Docker socket, and deploy paths.
 - **No Prefect Cloud:** Fully self-hosted. No external dependencies.
 - **No cron:** All scheduled tasks go through Prefect so you have one place for schedules, logs, retries, and state.
@@ -196,7 +196,7 @@ Check the flow run logs in the Prefect UI. Common causes:
 3. Verify the worker is connected: Prefect UI → Work Pools → default-agent-pool → should show 1 worker online.
 
 **Can't reach the UI:**  
-Ensure the tunnel is running: `task tunnel:start -- dev`. Then open http://localhost:4200/ (not https, not a different port).
+Ensure the tunnel is running: `task tunnel:start -- dev`. Then open http://localhost:57802/ (not https, not a different port).
 
 ---
 

@@ -5,7 +5,7 @@
 - name: Set Prefect variables
   ansible.builtin.set_fact:
     prefect_flow_code_host_path: /opt/prefect/flows
-    prefect_server_port: 4200
+    prefect_server_port: 57802
 
 - name: Assert base_domain is set (for consistency with other server components)
   ansible.builtin.assert:

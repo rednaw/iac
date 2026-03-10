@@ -25,7 +25,7 @@ for i in $(seq 1 "$RETRIES"); do
     if task tunnel:start -- "$WORKSPACE" > "$LOG" 2>&1; then
         echo "✅ Tunnel to $WORKSPACE is running."
         echo ""
-        echo "📊 Dashboards: http://localhost:8080/dashboard/ (Traefik), http://localhost:5081/ (OpenObserve)"
+        echo "📊 Dashboards: http://localhost:57801/dashboard/ (Traefik), http://localhost:57800/ (OpenObserve), http://localhost:57802/ (Prefect)"
         echo "💡 Stop: task tunnel:stop -- $WORKSPACE"
         exit 0
     fi

@@ -1,7 +1,7 @@
 # yaml-language-server: $schema=https://taskfile.dev/schema.json
 version: '3'
 
-# SSH tunnel for admin UIs (Traefik, OpenObserve). Run manually when needed.
+# SSH tunnel for admin UIs (Traefik, OpenObserve, Prefect). Run manually when needed.
 
 tasks:
   start:
@@ -13,18 +13,13 @@ tasks:
     cmds:
       - |
         HOSTNAME=$(task hostkeys:hostname -- "{{.WORKSPACE}}")
-        if pgrep -f "ssh.*-L 5081:localhost:5080.*ubuntu@$HOSTNAME" >/dev/null 2>&1; then
+        if pgrep -f "ssh.*-L 57800:localhost:57800.*ubuntu@$HOSTNAME" >/dev/null 2>&1; then
           echo "Tunnel to {{.WORKSPACE}} already running."
-          echo "  Traefik Dashboard: http://localhost:8080/dashboard/"
-          echo "  OpenObserve:       http://localhost:5081/"
-          echo "  Prefect UI:        http://localhost:4200/"
-          exit 0
+        else
+          ssh -f -N -L 57800:localhost:57800 -L 57801:localhost:57801 -L 57802:localhost:57802 -o StrictHostKeyChecking=accept-new "ubuntu@$HOSTNAME" || { echo "Failed to start tunnel."; exit 1; }
+          echo "Tunnel to {{.WORKSPACE}} started."
         fi
-        ssh -f -N -L 5081:localhost:5080 -L 8080:localhost:8080 -L 4200:localhost:4200 -o StrictHostKeyChecking=accept-new "ubuntu@$HOSTNAME" || { echo "Failed to start tunnel."; exit 1; }
-        echo "Tunnel to {{.WORKSPACE}} started."
-        echo "  Traefik Dashboard: http://localhost:8080/dashboard/"
-        echo "  OpenObserve:       http://localhost:5081/"
-        echo "  Prefect UI:        http://localhost:4200/"
+        echo "  Landing page:      file://${IAC_ROOT_PATH}/portal.html (open in host browser)"
         echo "  Stop: task tunnel:stop -- {{.WORKSPACE}}"
 
   stop:
@@ -36,7 +31,7 @@ tasks:
     cmds:
       - |
         HOSTNAME=$(task hostkeys:hostname -- "{{.WORKSPACE}}")
-        PIDS=$(pgrep -f "ssh.*-L 5081:localhost:5080.*ubuntu@$HOSTNAME" 2>/dev/null) || true
+        PIDS=$(pgrep -f "ssh.*-L 57800:localhost:57800.*ubuntu@$HOSTNAME" 2>/dev/null) || true
         if [ -z "$PIDS" ]; then
           echo "No tunnel to {{.WORKSPACE}} running."
         else

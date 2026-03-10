@@ -2,7 +2,7 @@
 
 # Remote-SSH
 
-Connect to the server for troubleshooting (logs, files) and reach **internal** admin UIs (Traefik dashboard, OpenObserve) via SSH port forwarding. Those two are not exposed publicly. The **Registry** is internet-facing at `https://registry.<your-domain>` and does not need a tunnel.
+Connect to the server for troubleshooting (logs, files) and reach **internal** admin UIs (Traefik, OpenObserve, Prefect) via SSH port forwarding. Those services are not exposed publicly. The **Registry** is internet-facing at `https://registry.<your-domain>` and does not need a tunnel.
 
 ```mermaid
 flowchart LR
@@ -13,27 +13,35 @@ flowchart LR
 
     subgraph SERVER["Server"]
         VSCODE(VS Code / Cursor)
-        TRAEFIK(Traefik dashboard<br/>http://localhost:8080)
-        OBSERVE(OpenObserve<br/>http://localhost:5081)
+        TRAEFIK(Traefik<br/>:57801)
+        OBSERVE(OpenObserve<br/>:57800)
+        PREFECT(Prefect<br/>:57802)
     end
 
     EDITOR -->|SSH| VSCODE
     BROWSER -->|tunnel| TRAEFIK
     BROWSER -->|tunnel| OBSERVE
+    BROWSER -->|tunnel| PREFECT
 ```
 
 ---
 
 ## Option 1: SSH tunnel
 
-Open this repo in the devcontainer. When you need the admin UIs, start the tunnel manually: `task tunnel:start -- dev` (or `prod`).
+Open this repo in the devcontainer. When you need the admin UIs, start the tunnel: `task tunnel:start -- dev` (or `prod`).
+
+**Landing page:** When you run `task tunnel:start -- dev`, the output includes **`tools/internal-landing.html`**. That file lists all three UIs with one-click links. To open it in your host browser:
+
 
 | What | URL |
 |------|-----|
-| Traefik dashboard (internal) | http://localhost:8080/dashboard/ |
-| OpenObserve (internal) | http://localhost:5081/ |
+| Traefik dashboard | http://localhost:57801/dashboard/ |
+| OpenObserve | http://localhost:57800/ |
+| Prefect | http://localhost:57802/ |
 
-Close the tunnel again with: `task tunnel:stop -- dev` (or `prod`).
+Ports **57800–57802** are the **IaC system range**: used for the tunnel and for these admin services on the server, so common app ports stay free for deployed applications.
+
+Stop the tunnel: `task tunnel:stop -- dev` (or `prod`).
 
 ---
 
@@ -63,9 +71,10 @@ Traefik and OpenObserve are internal only (no public DNS); reach them via the tu
 
 | Service | Via tunnel | Login |
 |---------|------------|--------|
-| Traefik dashboard | http://localhost:8080/dashboard/ | Basic auth (see `/etc/traefik/auth/htpasswd` on server) |
-| OpenObserve | http://localhost:5081/ | `openobserve_username@observe.local`, password from `app/.iac/iac.yml` |
+| Traefik dashboard | http://localhost:57801/dashboard/ | Basic auth (see `/etc/traefik/auth/htpasswd` on server) |
+| OpenObserve | http://localhost:57800/ | `openobserve_username@observe.local`, password from `app/.iac/iac.yml` |
+| Prefect | http://localhost:57802/ | No auth (tunnel only) |
 
-**Traefik or OpenObserve not loading?** The tunnel may have dropped (e.g. after a reboot). Run `task tunnel:start -- dev` (or `prod`) again.
+**UI not loading?** The tunnel may have dropped (e.g. after a reboot). Run `task tunnel:start -- dev` (or `prod`) again.
 
 ---
