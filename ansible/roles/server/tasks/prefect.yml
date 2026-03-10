@@ -1,5 +1,5 @@
 ---
-# Prefect: server + worker as Docker containers. One noop flow by default.
+# Prefect: server + worker as Docker containers.
 # Requires: deploy user, Docker. Flow code is copied from the IaC repo and bind-mounted into the worker.
 
 - name: Set Prefect variables
@@ -94,6 +94,7 @@
     command: prefect worker start --pool default-agent-pool
     env:
       PREFECT_API_URL: "http://prefect-server:4200/api"
+      REGISTRY_URL: "registry.{{ infrastructure_secrets.base_domain }}"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - "{{ prefect_flow_code_host_path }}:/opt/prefect/flows:ro"

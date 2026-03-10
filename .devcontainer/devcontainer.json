@@ -26,7 +26,10 @@
           "*.env": "dotenv",
           ".env": "dotenv"
         },
-        "ansible.python.interpreterPath": "/usr/bin/python3"
+        "ansible.python.interpreterPath": "/usr/bin/python3",
+        "yaml.schemas": {
+          "prefect.yaml": "prefect/prefect.yaml"
+        }
       }
     },
     "remote.containers.autoReopen": true

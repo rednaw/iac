@@ -1,65 +1,51 @@
-# Registry prune – plan
+# Registry prune (Prefect)
 
-> **Status: Plan.** Describes the intended design before implementation. See [Backlog](Backlog.md) for tracking.
+> **Status: Implemented.** Registry pruning is triggered by a scheduled Prefect flow. See [Backlog](Backlog.md) for tracking.
 
 ## Goal
 
 - Prune old image tags from the registry (keep N newest per repo by **creation time**).
-- Reclaim disk with registry **garbage-collect** after deletes.
-- One script, run on the server by a **Prefect flow** (scheduled).
+- Reclaim disk by running registry **garbage-collect** on the server after deletes.
+- Trigger: a **Prefect flow** on a schedule; the flow runs a script on the server (Prefect worker has Docker and deploy paths).
 
-## Prune logic (crane only)
+## Prune logic (crane)
 
 - **List tags:** `crane ls <registry>/<repo>`
 - **Creation time:** `crane config <ref>` → read OCI label `org.opencontainers.image.created` (same as `_build-and-push.yml` and `app:versions`).
 - **Sort:** Newest first; keep N; delete the rest with `crane delete <image>@<digest>`.
-- **Auth:** None in script. Crane uses Docker config (`~/.docker/config.json` / `/opt/deploy/.docker/config.json`), so it works in devcontainer and for deploy user out of the box.
+- **Auth:** Crane uses Docker config (`~/.docker/config.json` / `/opt/deploy/.docker/config.json`), so it works for the deploy user on the server.
+
+## Protect deployed tag
+
+If a tag that is currently deployed is pruned, the running app is unaffected but **re-deploy or rollback to that tag will fail** (pull fails). The prune script **must never delete the tag or digest that is currently deployed** for any app.
+
+Deployment state is written by the app deploy role to the server:
+
+- **`/opt/deploy/<app>/deploy-info.yml`** — Overwritten on each deploy. Contains the **current** image: `image.repo`, `image.tag`, `image.digest`, plus `app`, `workspace`, `deployment.deployed_at`. See [Application deployment – Deployment Records](application-deployment.md#deployment-records-if-you-joined).
+- **`/opt/deploy/<app>/deploy-history.yml`** — Append-only list; each entry has `image.tag`, `image.digest`, `deployment.workspace`. The last entry for a workspace is the currently deployed version (used by `scripts/application_versions.py`).
+
+The Prefect worker has `/opt/deploy` bind-mounted from the server, so the script reads these paths directly. For each repo, the script derives the app slug (e.g. repo `rednaw/tientje-ketama` → app `tientje-ketama`) and checks for **`/opt/deploy/<app_slug>/deploy-info.yml`**. If the file exists: the script **must** read it and **must not** delete the tag or digest listed there (that tag/digest is always protected, in addition to "keep N newest"). If the file does not exist (no deploy record for that repo): no protection is applied; the script keeps N newest by creation time only.
 
 ## Config
 
 - Repo list + keep count (e.g. `rednaw/tientje-ketama: 6`) in config (Ansible-managed or script config file).
 - Registry URL from env or same source as app (e.g. `registry.<base_domain>`).
 
-## Entry points
+## GC after prune
 
-| Where              | How                         | Auth / GC |
-|--------------------|-----------------------------|-----------|
-| **Server (Prefect)** | Prefect flow on schedule   | Crane uses `/opt/deploy/.docker/config.json`. GC: run locally on server after prune. |
+- **Garbage-collect** must run on the server (no remote API): `docker exec registry registry garbage-collect`.
+- The Prefect flow (or the script it runs) executes this on the server after pruning tags, so the registry process reclaims disk.
 
-## GC step (server-side)
+## Implementation
 
-- **Garbage-collect** must run on the server: `docker exec registry registry garbage-collect` (no remote API).
-- **From cron (deploy):** Script runs on server → after prune, same script (or same cron) runs `docker exec registry registry garbage-collect` (deploy needs Docker access, or use sudo/wrapper).
-- **From devcontainer (remote):** Two options:
-  1. **SSH:** `ssh ubuntu@<hostname> "docker exec registry registry garbage-collect"` (same SSH as `app:versions`).
-  2. **Remote Docker:** Use a Docker context with `host=ssh://ubuntu@<hostname>`; then `docker exec registry registry garbage-collect` runs on the remote daemon. Same SSH, nicer interface.
-
-## Remote Docker context (to explore)
-
-- **Idea:** `docker context create remote-dev --docker "host=ssh://ubuntu@dev.<base_domain>"` (and similar for prod).
-- **Use case 1:** GC from devcontainer: switch context (or set `DOCKER_HOST`), run `docker exec registry registry garbage-collect`.
-- **Use case 2:** Other ops: run any `docker` command against the server without hand-written `ssh ... "docker ..."` strings.
-- **Next:** Explore how to create/use contexts from the devcontainer (env, Taskfile, docs) and whether we want to adopt this for GC and beyond.
-
-### Improving existing functionality with remote context
-
-| Current | With remote context |
-|--------|----------------------|
-| **Traefik ops** ([traefik.md](traefik.md)): `ssh ubuntu@dev.<base_domain> 'sudo docker restart traefik'`, `ssh ... 'sudo docker logs traefik'`, etc. | After `docker context use remote-dev`: `docker restart traefik`, `docker logs traefik`, `docker ps`, `docker network inspect traefik`. No SSH string, no sudo (ubuntu is in docker group per [docker.yml](../ansible/roles/server/tasks/docker.yml)). |
-| **Registry GC** (this plan): `ssh ubuntu@host "docker exec registry registry garbage-collect"` | `docker exec registry registry garbage-collect` with context set. |
-| **Ad-hoc server Docker**: Inspect app container, logs, exec — today: SSH then run docker on server or type full `ssh host 'docker ...'` | Same context: from devcontainer run `docker ps`, `docker logs <app-container>`, `docker exec -it <container> sh`, etc. |
-| **application_versions.py** | No change: it only reads files via SSH (`cat deploy-history.yml`), not Docker. |
-| **Tunnels** (Taskfile.tunnel.yml) | No change: port forwarding is a different use case. |
-
-## Implementation outline
-
-1. **Script:** e.g. `prefect/scripts/prune_registry.py` (or `.sh`): read config (repos + keep N), for each repo list tags with crane, get created from `crane config`, sort, delete old ones; run GC on server after prune (same script or flow step).
-2. **Prefect flow:** Scheduled flow runs the script on the server; worker has Docker and deploy paths mounted.
-3. **Ansible:** Deploy flow code (and scripts) via Prefect role; no cron.
-4. **Docs:** Update [Registry](registry.md) and this plan when done.
+1. **Flow:** `flows/registry_prune/flow.py` — Prefect flow that runs the script. Deployment in `prefect.yaml` (daily 02:00 UTC).
+2. **Script:** `flows/registry_prune/etc/registry_prune.py` — reads `registry_prune_config.yml` in same dir (repos + keep N); for each repo, derives app slug and, if `/opt/deploy/<app_slug>/deploy-info.yml` exists, reads it and marks that tag/digest as protected; lists tags via `crane` (run in Docker with host network), gets creation time from `crane config`, sorts, keeps protected + N newest, deletes the rest with `crane delete`; then runs `docker exec registry registry garbage-collect /etc/distribution/config.yml` on the server. Registry auth from `/opt/deploy/.docker`; `REGISTRY_URL` from env (set by Ansible on the worker).
+3. **Ansible:** Prefect role syncs flow code and sets `REGISTRY_URL=registry.<base_domain>` on the worker; no cron.
+4. **Config:** `prefect/flows/registry_prune/etc/registry_prune_config.yml` — `repos` list with `name` and `keep`; extend for more repos.
 
 ## References
 
+- Deployment records (deploy-info.yml, deploy-history.yml): [Application deployment – Deployment Records](application-deployment.md#deployment-records-if-you-joined). Written by [record-deployment.yml](../ansible/roles/deploy_app/tasks/record-deployment.yml); read by [application_versions.py](../scripts/application_versions.py).
 - OCI labels set in [`.github/workflows/_build-and-push.yml`](../.github/workflows/_build-and-push.yml) (`org.opencontainers.image.created`, `org.opencontainers.image.description`).
 - Reading those in [`scripts/application_versions.py`](../scripts/application_versions.py) via `crane config` and `_sort_key_timestamp`.
 - Registry config: [Registry](registry.md), [Ansible registry role](../ansible/roles/server/tasks/registry.yml).

@@ -2,7 +2,7 @@
 
 # Workflows
 
-The platform runs scheduled tasks and multi-step workflows with [Prefect](https://www.prefect.io/). Prefect runs on the server as Docker containers (server + worker); flow code lives in this IaC repo under `prefect/flows/` and `prefect/scripts/`. One noop flow is deployed by default; add flows for backups, registry pruning, or custom workflows.
+The platform runs scheduled tasks and multi-step workflows with [Prefect](https://www.prefect.io/). Prefect runs on the server as Docker containers (server + worker); flow code lives in this IaC repo under `prefect/flows/` and `prefect/scripts/`.  Add flows for backups, registry pruning, or custom workflows.
 
 ```mermaid
 flowchart LR
@@ -53,12 +53,6 @@ The UI is internal-only (no public DNS). Access is the same as OpenObserve and t
 
 **From the UI:**  
 Open Deployments → pick a deployment → **Run**. The worker picks it up and executes it. Check the Flow Runs tab for logs and state.
-
-**From the command line (optional):**  
-With the tunnel running, set `PREFECT_API_URL=http://localhost:57802/api` and run:
-```bash
-prefect deployment run 'noop/noop'
-```
 
 ---
 
@@ -134,8 +128,6 @@ A flow that runs safety checks, then triggers a reboot via `systemctl reboot` (i
 **Data sync:**  
 A flow that pulls data from an external API, transforms it, writes to your Postgres. Runs hourly or when triggered.
 
-See [Backup (Storage Box)](backup-storage-box.md) and [Registry prune](registry-prune-plan.md) for detailed examples when those are implemented.
-
 ---
 
 ## Worker access
@@ -205,4 +197,4 @@ Ensure the tunnel is running: `task tunnel:start -- dev`. Then open http://local
 - [Monitoring](monitoring.md) — OpenObserve logs and metrics
 - [Remote-SSH](remote-ssh.md) — SSH tunnel setup
 - [Backup (Storage Box)](backup-storage-box.md) — Backup flow design (when implemented)
-- [Registry prune](registry-prune-plan.md) — Registry prune flow design (when implemented)
+- [Registry prune](registry-prune-plan.md) — Registry prune flow (implemented; scheduled daily)
