@@ -51,6 +51,7 @@ jobs:
           docker run --rm \
             -v ${{ github.workspace }}:/workspace \
             -w /workspace \
+            -e PYTHONWARNINGS=ignore::UserWarning:ansible_compat.prerun \
             ${{ inputs.image }} \
             sh -c "mise trust -a && task test:ansible:lint"
 
@@ -59,6 +60,7 @@ jobs:
           docker run --rm \
             -v ${{ github.workspace }}:/workspace \
             -w /workspace \
+            -e PYTHONWARNINGS=ignore::UserWarning:ansible_compat.prerun \
             ${{ inputs.image }} \
             sh -c "mise trust -a && ansible-galaxy collection install -r ansible/requirements.yml && task test:ansible:syntax"
 
