@@ -38,6 +38,10 @@ Main tools and technologies used in this project:
 
 - [Fail2ban](https://github.com/fail2ban/fail2ban/blob/master/README.md) — Intrusion prevention by banning IPs that show malicious behavior (e.g. repeated failed SSH logins)
 
+## Workflows
+
+- [Prefect](https://www.prefect.io/) — Scheduled tasks and multi-step workflows; server + worker run on the platform; see [Workflows](workflows.md)
+
 ## Monitoring
 
 - [OpenObserve](https://openobserve.ai/) — Logs, metrics, and traces UI; collects host and Docker container data

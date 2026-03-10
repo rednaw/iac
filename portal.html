@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>IaC portal</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 32rem; margin: 2rem auto; padding: 0 1rem; line-height: 1.5; color: #1a1a1a; }
+    h1 { font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5rem; }
+    p { color: #555; margin-bottom: 1.5rem; }
+    ul { list-style: none; padding: 0; margin: 0; }
+    li { margin-bottom: 0.75rem; }
+    a { color: #0066cc; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .port { font-size: 0.875rem; color: #777; }
+  </style>
+</head>
+<body>
+  <h1>IaC portal</h1>
+  <p>Start the SSH tunnel first: <code>task tunnel:start -- dev</code> (or <code>prod</code>). Then use the links below.</p>
+  <ul>
+    <li><a href="http://localhost:57801/dashboard/">Traefik</a> <span class="port">— reverse proxy, TLS, routing</span></li>
+    <li><a href="http://localhost:57800/">OpenObserve</a> <span class="port">— logs, metrics, traces</span></li>
+    <li><a href="http://localhost:57802/">Prefect</a> <span class="port">— workflows, scheduled runs</span></li>
+  </ul>
+  <p><small>Stop the tunnel: <code>task tunnel:stop -- dev</code></small></p>
+</body>
+</html>

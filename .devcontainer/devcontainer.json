@@ -33,10 +33,11 @@
   },
 
   // Keep in sync with LocalForward in setup-remote-ssh.sh and tunnel task.
-  "forwardPorts": [5081, 8080],
+  "forwardPorts": [57800, 57801, 57802],
   "portsAttributes": {
-    "5081": { "label": "OpenObserve", "onAutoForward": "silent" },
-    "8080": { "label": "Traefik Dashboard", "onAutoForward": "silent" }
+    "57800": { "label": "OpenObserve", "onAutoForward": "silent" },
+    "57801": { "label": "Traefik Dashboard", "onAutoForward": "silent" },
+    "57802": { "label": "Prefect", "onAutoForward": "silent" }
   },
 
   "remoteUser": "vscode",

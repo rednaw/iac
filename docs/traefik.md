@@ -132,7 +132,7 @@ ssh ubuntu@dev.<base_domain> 'sudo docker network inspect traefik'
 
 ### Access Dashboard
 
-The Traefik dashboard is not exposed publicly (no DNS). Use an SSH tunnel to the server, then open **http://localhost:8080** in your browser. See [Remote-SSH](remote-ssh.md) for setting up SSH and port forwarding. On the server the API/dashboard listens on port 8080 (internal).
+The Traefik dashboard is not exposed publicly (no DNS). Use an SSH tunnel to the server, then open **http://localhost:57801** in your browser. See [Remote-SSH](remote-ssh.md) for setting up SSH and port forwarding.
 
 ### HTTP 418 (I'm a teapot)
 
