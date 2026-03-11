@@ -6,7 +6,7 @@ deployments:
   - entrypoint: flows/registry_prune/flow.py:registry_prune
     name: registry-prune
     work_pool:
-      name: default-agent-pool
-    schedule:
-      cron: "0 2 * * *"  # Daily at 02:00 UTC
-      timezone: "UTC"
+      name: host-pool
+    schedules:
+      - cron: "0 2 * * *"  # Daily at 02:00 UTC
+        timezone: "UTC"

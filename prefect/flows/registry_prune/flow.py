@@ -5,6 +5,7 @@ import sys
 from pathlib import Path
 
 from prefect import flow
+from prefect.logging import get_run_logger
 
 
 @flow
@@ -22,9 +23,22 @@ def registry_prune():
     result = subprocess.run(
         [sys.executable, str(script)],
         cwd=prefect_root,
-        capture_output=False,
+        capture_output=True,
+        text=True,
         timeout=600,
     )
     if result.returncode != 0:
-        raise RuntimeError(f"registry_prune.py exited with {result.returncode}")
+        out = (result.stdout or "").strip() or "(none)"
+        err = (result.stderr or "").strip() or "(none)"
+        raise RuntimeError(
+            f"registry_prune.py exited with {result.returncode}\nstdout:\n{out}\nstderr:\n{err}"
+        )
+    # Log script output so it appears in the flow run logs in the UI
+    logger = get_run_logger()
+    if result.stdout and result.stdout.strip():
+        for line in result.stdout.strip().splitlines():
+            logger.info(line)
+    if result.stderr and result.stderr.strip():
+        for line in result.stderr.strip().splitlines():
+            logger.warning(line)
     return result.returncode

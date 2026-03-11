@@ -13,11 +13,6 @@
   failed_when: false
   no_log: true
 
-- name: Remove legacy fail2ban jail config (renamed to platform.conf)
-  ansible.builtin.file:
-    path: /etc/fail2ban/jail.d/rednaw.conf
-    state: absent
-
 - name: Configure fail2ban
   ansible.builtin.template:
     src: fail2ban.conf.j2

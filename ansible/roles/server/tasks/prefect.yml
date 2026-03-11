@@ -1,12 +1,14 @@
 ---
 # yaml-language-server: $schema=https://raw.githubusercontent.com/ansible/ansible-lint/main/src/ansiblelint/schemas/ansible.json#/$defs/tasks
-# Prefect: server + worker as Docker containers.
-# Requires: deploy user, Docker. Flow code is copied from the IaC repo and bind-mounted into the worker.
+# Prefect: server in container, worker on host (for host jobs: registry prune, backup, reboot).
+# Requires: deploy user (in docker group), Docker. Flow code synced to /opt/prefect/flows.
+# Run deploy-user (e.g. uncomment in server main.yml) before Prefect so the worker can run as deploy.
 
 - name: Set Prefect variables
   ansible.builtin.set_fact:
     prefect_flow_code_host_path: /opt/prefect/flows
     prefect_server_port: 57802
+    prefect_venv_path: /opt/prefect/venv
 
 - name: Assert base_domain is set (for consistency with other server components)
   ansible.builtin.assert:
@@ -82,35 +84,84 @@
   retries: 12
   delay: 5
 
-- name: Ensure Prefect worker container is running
-  community.docker.docker_container:
+- name: Get Prefect server version (worker must match to avoid WebSocket 500)
+  ansible.builtin.command:
+    cmd: docker exec prefect-server python -c "import prefect; print(prefect.__version__)"
+  register: prefect_server_version_result
+  changed_when: false
+  when: prefect_src_stat.stat.exists and prefect_src_stat.stat.isdir
+
+- name: Set Prefect server version for venv
+  ansible.builtin.set_fact:
+    prefect_version_pin: "{{ prefect_server_version_result.stdout | trim }}"
+  when: prefect_src_stat.stat.exists and prefect_src_stat.stat.isdir
+
+- name: Ensure python3-venv is installed (for Prefect venv)
+  ansible.builtin.apt:
+    name: python3-venv
+    state: present
+  when: prefect_src_stat.stat.exists and prefect_src_stat.stat.isdir
+
+- name: Ensure Prefect venv exists
+  ansible.builtin.command:
+    cmd: python3 -m venv {{ prefect_venv_path }}
+  args:
+    creates: "{{ prefect_venv_path }}/bin/python"
+  when: prefect_src_stat.stat.exists and prefect_src_stat.stat.isdir
+
+- name: Ensure Prefect venv has prefect (match server) and pyyaml
+  ansible.builtin.pip:
+    name:
+      - "prefect=={{ prefect_version_pin | default('2.14.1') }}"
+      - pyyaml
+    state: present
+    virtualenv: "{{ prefect_venv_path }}"
+    virtualenv_command: python3 -m venv
+  when: prefect_src_stat.stat.exists and prefect_src_stat.stat.isdir
+
+- name: Ensure deploy user owns Prefect venv (worker runs as deploy)
+  ansible.builtin.file:
+    path: "{{ prefect_venv_path }}"
+    state: directory
+    owner: deploy
+    group: deploy
+    recurse: true
+  when: prefect_src_stat.stat.exists and prefect_src_stat.stat.isdir
+
+- name: Ensure Prefect work pool host-pool exists
+  ansible.builtin.command:
+    cmd: "{{ prefect_venv_path }}/bin/prefect work-pool create host-pool --type process"
+  environment:
+    PREFECT_API_URL: "http://127.0.0.1:{{ prefect_server_port }}/api"
+  changed_when: false
+  failed_when: false
+  when: prefect_src_stat.stat.exists and prefect_src_stat.stat.isdir
+
+- name: Ensure Prefect worker systemd unit is deployed
+  ansible.builtin.template:
+    src: prefect-worker.service.j2
+    dest: /etc/systemd/system/prefect-worker.service
+    mode: '0644'
+  when: prefect_src_stat.stat.exists and prefect_src_stat.stat.isdir
+
+- name: Ensure Prefect worker service is started
+  ansible.builtin.systemd:
     name: prefect-worker
-    image: prefecthq/prefect:2-python3.11
     state: started
-    restart_policy: unless-stopped
-    log_driver: json-file
-    log_options:
-      max-size: "10m"
-      max-file: "3"
-    command: prefect worker start --pool default-agent-pool
-    env:
-      PREFECT_API_URL: "http://prefect-server:4200/api"
-      REGISTRY_URL: "registry.{{ infrastructure_secrets.base_domain }}"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - "{{ prefect_flow_code_host_path }}:/opt/prefect/flows:ro"
-      - /opt/deploy:/opt/deploy:ro
-    networks:
-      - name: prefect-network
+    enabled: true
+    daemon_reload: true
+  when: prefect_src_stat.stat.exists and prefect_src_stat.stat.isdir
 
 - name: Register Prefect deployments
   ansible.builtin.shell: |
     docker run --rm \
-      --network prefect-network \
-      -e PREFECT_API_URL=http://prefect-server:4200/api \
+      --network host \
+      -e PREFECT_API_URL=http://127.0.0.1:{{ prefect_server_port }}/api \
       -v {{ prefect_flow_code_host_path }}:/opt/prefect/flows:ro \
       -w /opt/prefect/flows \
       prefecthq/prefect:2-python3.11 \
-      prefect deploy --all
+      prefect deploy --all 2>&1
   register: prefect_register
-  changed_when: prefect_register.rc == 0 and (prefect_register.stdout | default('') | regex_search('(?i)(deployed|updated|created)'))
+  changed_when: false
+  failed_when: (prefect_register.rc != 0) and ('successfully created' not in (prefect_register.stdout | default('')))
+  when: prefect_src_stat.stat.exists and prefect_src_stat.stat.isdir

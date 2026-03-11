@@ -1,13 +1,17 @@
 # Prefect project (IaC flows)
 
-This directory is the Prefect project: it is synced to the server and bind-mounted into the worker. One Ansible sync deploys everything. Deployments are registered with `prefect deploy --all` (Ansible runs that after sync).
+This directory is the Prefect project. Ansible syncs it to the server at `/opt/prefect/flows` and runs `prefect deploy --all` to register deployments.
+
+- **Server:** Prefect server runs in a Docker container (API + UI).
+- **Worker:** Runs on the **host** as a systemd service (`prefect-worker`), so flows can use Docker, `/opt/deploy`, and host paths. Work pool: **`host-pool`**. Future self-contained flows can use a separate container worker and pool.
+
+Requires: deploy user (in docker group), Docker. Flow code is synced to `/opt/prefect/flows`; the host has a venv at `/opt/prefect/venv` with Prefect and PyYAML.
 
 ## Layout
 
 - **`flows/`** — One Python module per flow (or one module with multiple flows). Each flow is a `@flow` function. Entrypoints in `prefect.yaml` are `flows/<module>.py:<flow_name>`.
 - **`flows/<flow>/etc/`** — Flow-specific scripts and config
-- **`common/`** — Optional. Shared `@task` functions that flows import and call. Use this when several flows share the same steps so flow modules stay thin.
-- **`prefect.yaml`** — Project name and `deployments` list. Each deployment has an `entrypoint` (flow module and function), optional `schedule`, and `work_pool`.
+- **`common/`** — Optional. Shared `@task` functions that flows import and call.
+- **`prefect.yaml`** — Project name and `deployments` list. Host-job deployments use `work_pool.name: host-pool`.
 
-**Adding a new flow:** Add `flows/<name>.py` with a `@flow` function (or `flows/<name>/flow.py` and put flow-specific scripts/config in `flows/<name>/etc/`), then add a deployment in `prefect.yaml` with the matching `entrypoint`. If the flow needs shared logic, add `@task` functions in `common/` and import them from the flow.
-
+**Adding a new host flow:** Add `flows/<name>.py` (or `flows/<name>/flow.py` + `flows/<name>/etc/`), add a deployment in `prefect.yaml` with `work_pool.name: host-pool`, then re-run Ansible.

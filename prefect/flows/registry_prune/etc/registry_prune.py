@@ -12,8 +12,10 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 import yaml
@@ -36,15 +38,25 @@ def _crane_image() -> str:
 def _crane_docker_run(args: list[str]) -> subprocess.CompletedProcess:
     """Run crane in a Docker container with registry auth from /opt/deploy/.docker.
     Uses host network so the container can reach the registry on the host.
+    Copies config to a temp dir with open perms so the container (root) can read it
+    (host /opt/deploy/.docker is 0700 so root in container would get permission denied).
     """
-    run_cmd = [
-        "docker", "run", "--rm", "--network", "host",
-        "-v", f"{DOCKER_CONFIG_MOUNT}:/root/.docker:ro",
-        "-e", "DOCKER_CONFIG=/root/.docker",
-        _crane_image(),
-        *args,
-    ]
-    return subprocess.run(run_cmd, capture_output=True, text=True, timeout=120)
+    config_src = Path(DOCKER_CONFIG_MOUNT) / "config.json"
+    if not config_src.exists():
+        return subprocess.CompletedProcess([], 1, "", "config.json not found")
+    with tempfile.TemporaryDirectory(prefix="crane-auth-") as tmp:
+        tmp_path = Path(tmp)
+        config_dst = tmp_path / "config.json"
+        shutil.copy2(config_src, config_dst)
+        config_dst.chmod(0o644)
+        run_cmd = [
+            "docker", "run", "--rm", "--network", "host",
+            "-v", f"{tmp_path}:/root/.docker:ro",
+            "-e", "DOCKER_CONFIG=/root/.docker",
+            _crane_image(),
+            *args,
+        ]
+        return subprocess.run(run_cmd, capture_output=True, text=True, timeout=120)
 
 
 def crane_ls(registry_url: str, repo: str) -> list[str]:
@@ -152,7 +164,9 @@ def main() -> int:
         full_repo = f"{registry_url}/{repo}"
         tags = crane_ls(registry_url, repo)
         if not tags:
+            print(f"{repo}: no tags found, skipping")
             continue
+        print(f"{repo}: {len(tags)} tags, keep={keep}, protected={protected_tag or '(none)'}")
         # Build list of (tag, created_ts, digest) and sort by created descending
         tagged = []
         for tag in tags:
@@ -175,6 +189,8 @@ def main() -> int:
             if i < keep:
                 to_keep_tags.add(tag)
         to_delete = [t for t in tags if t not in to_keep_tags]
+        if to_delete:
+            print(f"{repo}: deleting {len(to_delete)} tag(s): {', '.join(to_delete)}")
         for tag in to_delete:
             ref = f"{full_repo}:{tag}"
             digest = crane_digest(ref)
@@ -184,12 +200,17 @@ def main() -> int:
             if crane_delete(repo_at_digest):
                 deleted_count += 1
                 print(f"Deleted {repo_at_digest}")
+            else:
+                print(f"Failed to delete {repo_at_digest}", file=sys.stderr)
 
     if deleted_count > 0:
         if not registry_garbage_collect():
             print("Warning: garbage-collect failed", file=sys.stderr)
         else:
             print("Registry garbage-collect completed")
+        print(f"Pruned {deleted_count} tag(s) in total.")
+    else:
+        print("No tags to delete (all within keep count or protected).")
     return 0
 
 

@@ -6,7 +6,7 @@
 
 - Prune old image tags from the registry (keep N newest per repo by **creation time**).
 - Reclaim disk by running registry **garbage-collect** on the server after deletes.
-- Trigger: a **Prefect flow** on a schedule; the flow runs a script on the server (Prefect worker has Docker and deploy paths).
+- Trigger: a **Prefect flow** on a schedule; the flow runs on the **host** (Prefect worker is a systemd service), so the script has Docker and deploy paths.
 
 ## Prune logic (crane)
 
@@ -24,7 +24,7 @@ Deployment state is written by the app deploy role to the server:
 - **`/opt/deploy/<app>/deploy-info.yml`** — Overwritten on each deploy. Contains the **current** image: `image.repo`, `image.tag`, `image.digest`, plus `app`, `workspace`, `deployment.deployed_at`. See [Application deployment – Deployment Records](application-deployment.md#deployment-records-if-you-joined).
 - **`/opt/deploy/<app>/deploy-history.yml`** — Append-only list; each entry has `image.tag`, `image.digest`, `deployment.workspace`. The last entry for a workspace is the currently deployed version (used by `scripts/application_versions.py`).
 
-The Prefect worker has `/opt/deploy` bind-mounted from the server, so the script reads these paths directly. For each repo, the script derives the app slug (e.g. repo `rednaw/tientje-ketama` → app `tientje-ketama`) and checks for **`/opt/deploy/<app_slug>/deploy-info.yml`**. If the file exists: the script **must** read it and **must not** delete the tag or digest listed there (that tag/digest is always protected, in addition to "keep N newest"). If the file does not exist (no deploy record for that repo): no protection is applied; the script keeps N newest by creation time only.
+The Prefect worker runs on the host, so the script reads `/opt/deploy` and uses the host’s Docker directly. For each repo, the script derives the app slug (e.g. repo `rednaw/tientje-ketama` → app `tientje-ketama`) and checks for **`/opt/deploy/<app_slug>/deploy-info.yml`**. If the file exists: the script **must** read it and **must not** delete the tag or digest listed there (that tag/digest is always protected, in addition to "keep N newest"). If the file does not exist (no deploy record for that repo): no protection is applied; the script keeps N newest by creation time only.
 
 ## Config
 
@@ -40,7 +40,7 @@ The Prefect worker has `/opt/deploy` bind-mounted from the server, so the script
 
 1. **Flow:** `flows/registry_prune/flow.py` — Prefect flow that runs the script. Deployment in `prefect.yaml` (daily 02:00 UTC).
 2. **Script:** `flows/registry_prune/etc/registry_prune.py` — reads `registry_prune_config.yml` in same dir (repos + keep N); for each repo, derives app slug and, if `/opt/deploy/<app_slug>/deploy-info.yml` exists, reads it and marks that tag/digest as protected; lists tags via `crane` (run in Docker with host network), gets creation time from `crane config`, sorts, keeps protected + N newest, deletes the rest with `crane delete`; then runs `docker exec registry registry garbage-collect /etc/distribution/config.yml` on the server. Registry auth from `/opt/deploy/.docker`; `REGISTRY_URL` from env (set by Ansible on the worker).
-3. **Ansible:** Prefect role syncs flow code and sets `REGISTRY_URL=registry.<base_domain>` on the worker; no cron.
+3. **Ansible:** Prefect role syncs flow code, runs the worker on the host (systemd), and sets `REGISTRY_URL=registry.<base_domain>` for the worker; no cron.
 4. **Config:** `prefect/flows/registry_prune/etc/registry_prune_config.yml` — `repos` list with `name` and `keep`; extend for more repos.
 
 ## References
