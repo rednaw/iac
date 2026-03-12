@@ -188,3 +188,4 @@ Ensure the tunnel is running: `task tunnel:start -- dev`. Then open http://local
 - [Remote-SSH](remote-ssh.md) — SSH tunnel setup
 - [Registry](registry.md) — Registry auth and operations
 - [Application deployment](application-deployment.md) — deploy-info.yml (used by registry prune for tag protection)
+
