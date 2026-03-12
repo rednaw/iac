@@ -3,7 +3,7 @@ name: iac-prefect
 
 build: []
 deployments:
-  - entrypoint: flows/registry_prune/flow.py:registry_prune
+  - entrypoint: registry_prune/flow.py:registry_prune
     name: registry-prune
     work_pool:
       name: host-pool

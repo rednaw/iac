@@ -2,18 +2,18 @@
 
 # Workflows
 
-The platform runs scheduled tasks and multi-step workflows with [Prefect](https://www.prefect.io/). The Prefect **server** and **worker** run in Docker containers; the worker has the Docker socket mounted so flows can run `docker exec`, use crane for the registry, and access other containers. Flow code lives in this IaC repo under `prefect/flows/`. Add flows for backups, registry pruning, or custom workflows.
+The platform runs scheduled tasks and multi-step workflows with [Prefect](https://www.prefect.io/). The Prefect **server** and **worker** run in Docker containers; the worker has the Docker socket mounted so flows can run `docker exec`, use crane for the registry, and access other containers. Flow code lives in this IaC repo under `prefect/` (one directory per flow, e.g. `prefect/registry_prune/`).
 
 ```mermaid
 flowchart LR
     subgraph REPO["IaC Repo"]
-        FLOWS(prefect/flows/<br/>Python flows + etc/)
+        FLOWS(prefect/<br/>registry_prune/, …)
     end
 
     subgraph SERVER["Server"]
         subgraph PREFECT["Prefect"]
-            PSERVER(Server container<br/>UI + API + SQLite)
-            PWORKER(Worker container<br/>Docker socket, host-pool)
+            PSERVER(Prefect server<br/>UI + API + SQLite)
+            PWORKER(Prefect worker<br/>Docker socket, host-pool)
         end
         DOCKER(Docker daemon<br/>registry, app containers)
     end
@@ -35,7 +35,7 @@ flowchart LR
 
 ## Open the UI
 
-1. Start the SSH tunnel:  
+1. Start the SSH tunnel:
    ```bash
    task tunnel:start -- dev
    ```
@@ -49,33 +49,26 @@ The UI is internal-only (no public DNS). Access is the same as OpenObserve and t
 
 ## Run a flow
 
-**From the UI:**  
+**From the UI:**
 Open Deployments → pick a deployment → **Run**. The worker picks it up and executes it. Check the Flow Runs tab for logs and state.
 
 ---
 
-## Add a new workflow
+## Add a new flow
 
 ### 1. Write the flow
 
-Add a Python file in **`prefect/flows/`** (e.g. `my_workflow.py`):
+Add a directory **`prefect/<flow_name>/`** with **`flow.py`** (e.g. `prefect/my_workflow/flow.py`):
 
 ```python
 from prefect import flow
-import subprocess
 
 @flow
 def my_workflow():
     """Run a custom workflow."""
-    # Option 1: Run a script from your flow's etc/ dir
-    subprocess.run(["/opt/prefect/flows/flows/my_workflow/etc/my_script.sh"], check=True)
-    
-    # Option 2: Inline Python logic
     print("Workflow step 1")
     # ... more steps
 ```
-
-If you need a separate script, put it in **`prefect/flows/<flow>/etc/`** (e.g. `flows/my_workflow/etc/my_script.sh`). The worker runs in a container with project root `/opt/prefect/flows/`.
 
 ### 2. Define the deployment
 
@@ -83,12 +76,12 @@ Add a deployment entry in **`prefect/prefect.yaml`** so the flow runs on a sched
 
 ```yaml
 deployments:
-  - entrypoint: flows/my_workflow.py:my_workflow
+  - entrypoint: my_workflow/flow.py:my_workflow
     name: my-workflow-daily
     work_pool:
       name: host-pool
     schedules:
-      - cron: "0 3 * * *"  # Daily at 03:00
+      - cron: "0 3 * * *"
         timezone: "Europe/Amsterdam"
 ```
 
@@ -99,32 +92,34 @@ deployments:
 
 ### 3. Deploy
 
-Run the server playbook:
 ```bash
 task ansible:run -- dev
 ```
 
-Ansible syncs `prefect/` to the server at `/opt/prefect/flows`, builds the worker image, then runs `prefect deploy --all` from a one-off container to register the new deployment. The worker container already has the flow code mounted at that path; no restart needed.
+Ansible syncs `prefect/` to the server at `/opt/prefect/flows`, builds the worker image, then runs `prefect deploy --all` to register the new deployment.
 
 ### 4. Verify
 
-Open the Prefect UI → Deployments. Your new deployment should appear. The next scheduled run will happen at the time you specified.
+Open the Prefect UI → Deployments. Your new deployment should appear with its next scheduled run time.
 
 ---
 
-## Example workflows
+## Flows
 
-**Backup (Storage Box):**  
-A flow that dumps your app's Postgres DB, tars it with uploads, encrypts with age, and rsyncs to Hetzner Storage Box. Runs daily at 02:00.
+### Registry prune
 
-**Registry prune:**  
-A flow that lists tags in your Docker registry, keeps N newest per repo, deletes the rest with `crane`, then runs `docker exec registry registry garbage-collect` to reclaim disk. Runs daily.
+**File:** `prefect/registry_prune/flow.py` — **Schedule:** daily at 02:00 UTC
 
-**Weekly server reboot:**  
-A flow that runs safety checks, then triggers a reboot via `systemctl reboot` (in a one-off container with host access). Runs Sunday 04:00.
+Keeps the 6 newest image tags per repo in the Docker registry and deletes the rest. Protects the currently deployed tag so rollback always works. Runs `docker exec registry registry garbage-collect` after deleting to reclaim disk.
 
-**Data sync:**  
-A flow that pulls data from an external API, transforms it, writes to your Postgres. Runs hourly or when triggered.
+**Logic:**
+- `crane catalog` lists all repos.
+- For each repo: `crane ls` lists tags, `crane config` reads `org.opencontainers.image.created` (set by `_build-and-push.yml`) to sort by creation time.
+- Keeps 6 newest + any tag/digest currently in `/opt/deploy/<app>/deploy-info.yml`.
+- Deletes the rest by digest (`crane delete`), logs OCI labels of removed tags to the flow run.
+- Runs `registry garbage-collect` once after all deletions.
+
+**Config:** none — `REGISTRY_URL` is set on the worker by Ansible (`registry.<base_domain>`).
 
 ---
 
@@ -132,63 +127,58 @@ A flow that pulls data from an external API, transforms it, writes to your Postg
 
 The worker runs in a **Docker container** (`prefect-worker`) with:
 
-- **Flow code:** `/opt/prefect/flows/` (mounted from host, synced from this repo)
+- **Flow code:** `/opt/prefect/flows/` (synced from this repo by Ansible)
 - **Docker socket:** Mounted so flows can run `docker exec`, use crane, and access other containers
 - **Registry auth:** `/root/.docker` in the container (mounted from `/opt/prefect/.docker` on the host, configured by Ansible)
 
-Secrets for flows (e.g. Storage Box SSH key) can live in deploy paths or be mounted into the worker; registry auth is in `/opt/prefect/.docker`. No Prefect secret blocks required for registry.
+Secrets for flows can live in deploy paths or be mounted into the worker; registry auth is already provided. No Prefect secret blocks required for registry operations.
 
 ---
 
 ## Logs and observability
 
-**Flow run logs:**  
-In the Prefect UI. Go to Flow Runs → pick a run → Logs tab. Prefect captures stdout/stderr from the flow and any tasks.
+**Flow run logs:**
+In the Prefect UI. Go to Flow Runs → pick a run → Logs tab.
 
-**Server container logs:**  
+**Server container logs:**
 Prefect server writes to stdout/stderr; OTEL Collector sends these to OpenObserve (**docker-containers** stream, filter by `prefect-server`). See [Monitoring](monitoring.md).
 
-**Worker logs:**  
-`docker logs prefect-worker` (worker runs as a container).
+**Worker logs:**
+`docker logs prefect-worker`
 
-**Metrics:**  
-Prefect 2 doesn't expose a metrics endpoint. If a future release adds one, we can scrape it with the OTEL Collector like Traefik.
-
-**No data to Prefect:**  
-The server runs with `--analytics-off`. No usage or telemetry is sent to Prefect.
+**No data to Prefect:**
+The server runs with `--analytics-off`. No telemetry is sent to Prefect Cloud.
 
 ---
 
 ## Architecture notes
 
-- **Server:** One Docker container. Prefect API + UI + SQLite. SQLite data in a Docker volume (`prefect-server-data`). Exposed on host port **57802**.
-- **Worker:** Runs in a Docker container. Polls the server, executes flow runs. Has Docker socket and `/opt/prefect/flows` mounted; registry auth in `/opt/prefect/.docker`. Work pool: **host-pool**.
+- **Server:** One Docker container. Prefect API + UI + SQLite in a Docker volume (`prefect-server-data`). Exposed on host port **57802**.
+- **Worker:** Docker container. Polls the server, executes flow runs as subprocesses (work pool type `process`). Has Docker socket and `/opt/prefect/flows` mounted; registry auth in `/opt/prefect/.docker`. Work pool: **host-pool**.
 - **No Prefect Cloud:** Fully self-hosted. No external dependencies.
 - **No cron:** All scheduled tasks go through Prefect so you have one place for schedules, logs, retries, and state.
-
-Flow code and `prefect.yaml` live in this repo (`prefect/`). Ansible syncs the tree to the server at `/opt/prefect/flows`. The worker runs from that path.
 
 ---
 
 ## Troubleshooting
 
-**Deployment not showing in UI:**  
+**Deployment not showing in UI:**
 1. Check `prefect/prefect.yaml` has an entry under `deployments:` for your flow.
 2. Re-run the playbook: `task ansible:run -- dev`. The register step runs `prefect deploy --all`.
 3. Check the playbook output for errors in the "Register Prefect deployments" task.
 
-**Flow run fails immediately:**  
+**Flow run fails immediately:**
 Check the flow run logs in the Prefect UI. Common causes:
 - Import error (missing module in the worker image; add it to `prefect/Dockerfile.worker`)
-- Script path wrong (flow-specific scripts live under `flows/<flow>/etc/`)
+- Flow code not found (check entrypoint path in `prefect.yaml` matches `prefect/<flow>/flow.py`)
 - Permission or auth issue (worker has Docker socket and `/opt/prefect/.docker` for registry)
 
-**Worker not picking up runs:**  
+**Worker not picking up runs:**
 1. Check the worker container: `docker ps` and `docker logs prefect-worker`.
-2. Verify the worker is connected: Prefect UI → Work Pools → **host-pool** → should show 1 worker online.
+2. Prefect UI → Work Pools → **host-pool** → should show 1 worker online.
 
-**Can't reach the UI:**  
-Ensure the tunnel is running: `task tunnel:start -- dev`. Then open http://localhost:57802/ (not https, not a different port).
+**Can't reach the UI:**
+Ensure the tunnel is running: `task tunnel:start -- dev`. Then open http://localhost:57802/.
 
 ---
 
@@ -196,5 +186,5 @@ Ensure the tunnel is running: `task tunnel:start -- dev`. Then open http://local
 
 - [Monitoring](monitoring.md) — OpenObserve logs and metrics
 - [Remote-SSH](remote-ssh.md) — SSH tunnel setup
-- [Backup (Storage Box)](backup-storage-box.md) — Backup flow design (when implemented)
-- [Registry prune](registry-prune-plan.md) — Registry prune flow (implemented; scheduled daily)
+- [Registry](registry.md) — Registry auth and operations
+- [Application deployment](application-deployment.md) — deploy-info.yml (used by registry prune for tag protection)

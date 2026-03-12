@@ -1,10 +1,8 @@
-#!/usr/bin/env python3
 """
-Registry prune: remove old image tags (keep N newest per repo by creation time).
-Protects the currently deployed tag per repo (from /opt/deploy/<app>/deploy-info.yml).
-Uses crane binary (in worker image); runs registry garbage-collect via docker exec.
+Registry prune flow: list all repos (crane catalog), prune each to 6 tags,
+protect deployed tag per repo, then run registry garbage-collect.
 
-Config in this directory (flows/registry_prune/etc/). REGISTRY_URL and DOCKER_CONFIG from env (Ansible).
+REGISTRY_URL and DOCKER_CONFIG from env (Ansible).
 """
 
 from __future__ import annotations
@@ -13,12 +11,22 @@ import json
 import os
 import subprocess
 import sys
+from io import StringIO
 from pathlib import Path
 
 import yaml
+from prefect import flow
+from prefect.logging import get_run_logger
 
-ETC_DIR = Path(__file__).resolve().parent
 DEPLOY_ROOT = Path("/opt/deploy")
+KEEP = 6
+
+OCI_LABEL_KEYS = (
+    "org.opencontainers.image.description",
+    "org.opencontainers.image.revision",
+    "org.opencontainers.image.created",
+    "org.opencontainers.image.source",
+)
 
 
 def _crane_run(args: list[str]) -> subprocess.CompletedProcess:
@@ -36,6 +44,14 @@ def _crane_fail(cmd: str, result: subprocess.CompletedProcess) -> None:
     """Raise on crane failure so the flow run fails (proper visibility in UI)."""
     msg = (result.stderr or result.stdout or "").strip() or "(no output)"
     raise RuntimeError(f"crane {cmd} failed (exit {result.returncode}): {msg}")
+
+
+def crane_catalog(registry_url: str) -> list[str]:
+    """List all repos in the registry (crane catalog). Raises on failure."""
+    result = _crane_run(["catalog", registry_url])
+    if result.returncode != 0:
+        _crane_fail(f"catalog {registry_url}", result)
+    return [r.strip() for r in result.stdout.strip().splitlines() if r.strip()]
 
 
 def crane_ls(registry_url: str, repo: str) -> list[str]:
@@ -79,15 +95,6 @@ def crane_delete(repo_at_digest: str) -> bool:
     return True
 
 
-# OCI label keys set in .github/workflows/_build-and-push.yml (log pruned snapshot)
-OCI_LABEL_KEYS = (
-    "org.opencontainers.image.description",
-    "org.opencontainers.image.revision",
-    "org.opencontainers.image.created",
-    "org.opencontainers.image.source",
-)
-
-
 def get_created_ts(config: dict) -> str:
     """Extract org.opencontainers.image.created from config Labels."""
     labels = config.get("config", {}).get("Labels", {}) or {}
@@ -114,13 +121,6 @@ def get_protected_tag_and_digest(registry_url: str, repo: str) -> tuple[str | No
     if digest and not digest.startswith("sha256:"):
         digest = f"sha256:{digest}"
     return tag, digest
-
-
-def load_config() -> dict:
-    """Load registry_prune_config.yml from this directory."""
-    path = ETC_DIR / "registry_prune_config.yml"
-    with open(path) as f:
-        return yaml.safe_load(f) or {}
 
 
 def registry_garbage_collect() -> None:
@@ -211,32 +211,25 @@ def _prune_repo(registry_url: str, repo: str, keep: int) -> int:
     return deleted_count
 
 
-def _process_repos(registry_url: str, repos: list) -> int:
-    """Run prune for each configured repo. Returns total deleted count."""
+def _process_repos(registry_url: str, repos: list[tuple[str, int]]) -> int:
+    """Run prune for each (repo, keep). Returns total deleted count."""
     deleted_count = 0
-    for repo_cfg in repos:
-        name = repo_cfg.get("name") if isinstance(repo_cfg, dict) else None
-        keep = repo_cfg.get("keep") if isinstance(repo_cfg, dict) else None
-        if not name or keep is None:
-            continue
-        repo = name.strip()
-        keep = int(keep)
+    for repo, keep in repos:
         deleted_count += _prune_repo(registry_url, repo, keep)
     return deleted_count
 
 
-def main() -> int:
-    config = load_config()
-    registry_url = os.environ.get("REGISTRY_URL") or config.get("registry_url") or ""
+def _run_prune() -> int:
+    """Run prune logic. Prints to stdout/stderr. Returns exit code (0 = success)."""
+    registry_url = os.environ.get("REGISTRY_URL") or ""
     if not registry_url:
-        print("REGISTRY_URL or config.registry_url required", file=sys.stderr)
+        print("REGISTRY_URL required", file=sys.stderr)
         return 1
-    repos = config.get("repos") or []
+    repos = crane_catalog(registry_url)
     if not repos:
-        print("No repos in config", file=sys.stderr)
-        return 1
-
-    deleted_count = _process_repos(registry_url, repos)
+        print("No repos in registry, nothing to prune.")
+        return 0
+    deleted_count = _process_repos(registry_url, [(repo, KEEP) for repo in repos])
 
     if deleted_count > 0:
         registry_garbage_collect()
@@ -247,5 +240,33 @@ def main() -> int:
     return 0
 
 
-if __name__ == "__main__":
-    sys.exit(main())
+@flow
+def registry_prune():
+    """
+    List all repos (crane catalog), prune each to 6 tags, protect deployed tag per repo,
+    then run registry garbage-collect.
+    """
+    out = StringIO()
+    err = StringIO()
+    old_stdout, old_stderr = sys.stdout, sys.stderr
+    try:
+        sys.stdout = out
+        sys.stderr = err
+        exit_code = _run_prune()
+    finally:
+        sys.stdout = old_stdout
+        sys.stderr = old_stderr
+
+    logger = get_run_logger()
+    if out.getvalue().strip():
+        for line in out.getvalue().strip().splitlines():
+            logger.info(line)
+    if err.getvalue().strip():
+        for line in err.getvalue().strip().splitlines():
+            logger.warning(line)
+
+    if exit_code != 0:
+        raise RuntimeError(
+            f"registry prune exited with {exit_code}\nstdout:\n{out.getvalue() or '(none)'}\nstderr:\n{err.getvalue() or '(none)'}"
+        )
+    return exit_code

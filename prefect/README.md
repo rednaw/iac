@@ -9,9 +9,8 @@ Requires: Docker. Flow code is synced to `/opt/prefect/flows`. Registry auth for
 
 ## Layout
 
-- **`flows/`** — One Python module per flow (or one module with multiple flows). Each flow is a `@flow` function. Entrypoints in `prefect.yaml` are `flows/<module>.py:<flow_name>`.
-- **`flows/<flow>/etc/`** — Flow-specific scripts and config
+- **`<flow>/`** — One directory per flow (e.g. `registry_prune/`), each with `flow.py` containing a `@flow` function. Entrypoints in `prefect.yaml` are `<flow>/flow.py:<flow_name>`.
 - **`common/`** — Optional. Shared `@task` functions that flows import and call.
 - **`prefect.yaml`** — Project name and `deployments` list. Deployments use `work_pool.name: host-pool`.
 
-**Adding a new flow:** Add `flows/<name>.py` (or `flows/<name>/flow.py` + `flows/<name>/etc/`), add a deployment in `prefect.yaml` with `work_pool.name: host-pool`, then re-run Ansible.
+**Adding a new flow:** Add `<name>/flow.py`, add a deployment in `prefect.yaml` with `work_pool.name: host-pool`, then re-run Ansible.

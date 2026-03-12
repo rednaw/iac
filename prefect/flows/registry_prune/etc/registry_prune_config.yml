@@ -1,8 +1,0 @@
-# Registry prune config. Used by flows/registry_prune/etc/registry_prune.py.
-# Repos are pruned to "keep" newest tags by creation time; the currently deployed
-# tag (from /opt/deploy/<app>/deploy-info.yml) is always protected.
-# REGISTRY_URL env (set in Prefect worker) overrides registry_url; default for server is registry.<base_domain>.
-registry_url: ""
-repos:
-  - name: rednaw/tientje-ketama
-    keep: 6
