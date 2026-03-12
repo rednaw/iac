@@ -1,5 +1,5 @@
-# yaml-language-server: $schema=https://json.schemastore.org/ansible-tasks.v1.json
 ---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/ansible/ansible-lint/main/src/ansiblelint/schemas/ansible.json#/$defs/tasks
 # Traefik: reverse proxy, TLS (ACME), dashboard
 # Runs after Docker, before registry (so /etc/traefik/auth exists for htpasswd).
 

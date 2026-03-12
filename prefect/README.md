@@ -1,8 +1,16 @@
-# Prefect flow code
+# Prefect project (IaC flows)
 
-This directory is synced to the server and bind-mounted into the Prefect worker container. One Ansible sync deploys both flows and scripts.
+This directory is the Prefect project. Ansible syncs it to the server at `/opt/prefect/flows`, builds the worker image from `Dockerfile.worker`, and runs `prefect deploy --all` to register deployments.
 
-- **`flows/`** — Python flow modules. One noop flow (`noop.py`) is included so `prefect deploy --all` succeeds at install time. Add more flows (e.g. `backup.py`, `registry_prune.py`) in follow-ups.
-- **`scripts/`** — Scripts that flows run (shell or Python). The worker invokes these; they live next to the flow code so one sync deploys everything.
+- **Server:** Prefect server runs in a Docker container (API + UI).
+- **Worker:** Runs in a Docker container (`prefect-worker`) with the Docker socket mounted, so flows can run `docker exec`, use crane for the registry, and access other containers. Work pool: **`host-pool`** (process type; flows run as subprocesses inside the worker container).
 
-**`prefect.yaml`** defines the project and one deployment (noop) so the server-role register step runs without error. Use the key **`deployments`** (plural)—that is what `prefect deploy --all` reads. When you add flows, add entries under `deployments` in that file.
+Requires: Docker. Flow code is synced to `/opt/prefect/flows`. Registry auth for the worker is in `/opt/prefect/.docker/config.json`.
+
+## Layout
+
+- **`<flow>/`** — One directory per flow (e.g. `registry_prune/`), each with `flow.py` containing a `@flow` function. Entrypoints in `prefect.yaml` are `<flow>/flow.py:<flow_name>`.
+- **`common/`** — Optional. Shared `@task` functions that flows import and call.
+- **`prefect.yaml`** — Project name and `deployments` list. Deployments use `work_pool.name: host-pool`.
+
+**Adding a new flow:** Add `<name>/flow.py`, add a deployment in `prefect.yaml` with `work_pool.name: host-pool`, then re-run Ansible.
