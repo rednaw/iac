@@ -4,7 +4,7 @@ import os
 import subprocess
 import yaml
 import json
-from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 
 # ANSI color codes
@@ -118,6 +118,7 @@ def _sort_key_timestamp(ts: str) -> tuple[bool, float]:
 
 
 def get_image_metadata(full_repo: str, tag: str) -> tuple[str, str, str]:
+    """Fetch digest and config for one tag. Used sequentially or from a thread."""
     tag_ref = f"{full_repo}:{tag}"
 
     digest = run(f"crane digest {tag_ref} 2>/dev/null || echo ''").strip()
@@ -154,17 +155,33 @@ def print_header():
 
 
 def print_overview(full_repo: str, tags: list[str], deployed_digest: str):
-    # Collect all image metadata
+    # Collect all image metadata in parallel (crane digest/config per tag are I/O-bound)
+    max_workers = min(20, max(4, len(tags)))
     images = []
-    for tag in tags:
-        digest, created, description = get_image_metadata(full_repo, tag)
-        images.append({
-            "tag": tag,
-            "digest": digest,
-            "created": created,
-            "description": description,
-            "is_deployed": digest and digest == deployed_digest,
-        })
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        future_to_tag = {
+            executor.submit(get_image_metadata, full_repo, tag): tag
+            for tag in tags
+        }
+        for future in as_completed(future_to_tag):
+            tag = future_to_tag[future]
+            try:
+                digest, created, description = future.result()
+                images.append({
+                    "tag": tag,
+                    "digest": digest,
+                    "created": created,
+                    "description": description,
+                    "is_deployed": digest and digest == deployed_digest,
+                })
+            except Exception:
+                images.append({
+                    "tag": tag,
+                    "digest": "",
+                    "created": "",
+                    "description": "",
+                    "is_deployed": False,
+                })
     
     # Sort by timestamp (newest first), images without timestamps go to end
     images.sort(key=lambda x: _sort_key_timestamp(x["created"]), reverse=True)

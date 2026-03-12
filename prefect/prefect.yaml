@@ -1,9 +1,12 @@
-# Prefect project config. One noop deployment so prefect deploy --all succeeds.
+# Prefect project config.
 name: iac-prefect
 
 build: []
 deployments:
-  - entrypoint: flows/noop.py:noop
-    name: noop
+  - entrypoint: registry_prune/flow.py:registry_prune
+    name: registry-prune
     work_pool:
-      name: default-agent-pool
+      name: host-pool
+    schedules:
+      - cron: "0 2 * * *"  # Daily at 02:00 UTC
+        timezone: "UTC"
