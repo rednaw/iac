@@ -2,67 +2,40 @@
 """
 Registry prune: remove old image tags (keep N newest per repo by creation time).
 Protects the currently deployed tag per repo (from /opt/deploy/<app>/deploy-info.yml).
-Runs crane via Docker; runs registry garbage-collect on the host after deletes.
+Uses crane binary (in worker image); runs registry garbage-collect via docker exec.
 
-Config and Dockerfile.crane live in this directory (flows/registry_prune/etc/).
-REGISTRY_URL from env (set by Ansible on worker).
+Config in this directory (flows/registry_prune/etc/). REGISTRY_URL and DOCKER_CONFIG from env (Ansible).
 """
 
 from __future__ import annotations
 
 import json
 import os
-import shutil
 import subprocess
 import sys
-import tempfile
 from pathlib import Path
 
 import yaml
 
 ETC_DIR = Path(__file__).resolve().parent
 DEPLOY_ROOT = Path("/opt/deploy")
-DOCKER_CONFIG_MOUNT = "/opt/deploy/.docker"
 
 
-def _crane_image() -> str:
-    """Read crane image from Dockerfile.crane in this directory (single source of truth for Renovate)."""
-    dockerfile = ETC_DIR / "Dockerfile.crane"
-    for line in dockerfile.read_text().splitlines():
-        line = line.strip()
-        if line.startswith("FROM "):
-            return line.split(maxsplit=1)[1].strip()
-    raise RuntimeError(f"No FROM line in {dockerfile}")
-
-
-def _crane_docker_run(args: list[str]) -> subprocess.CompletedProcess:
-    """Run crane in a Docker container with registry auth from /opt/deploy/.docker.
-    Uses host network so the container can reach the registry on the host.
-    Copies config to a temp dir with open perms so the container (root) can read it
-    (host /opt/deploy/.docker is 0700 so root in container would get permission denied).
-    """
-    config_src = Path(DOCKER_CONFIG_MOUNT) / "config.json"
-    if not config_src.exists():
-        return subprocess.CompletedProcess([], 1, "", "config.json not found")
-    with tempfile.TemporaryDirectory(prefix="crane-auth-") as tmp:
-        tmp_path = Path(tmp)
-        config_dst = tmp_path / "config.json"
-        shutil.copy2(config_src, config_dst)
-        config_dst.chmod(0o644)
-        run_cmd = [
-            "docker", "run", "--rm", "--network", "host",
-            "-v", f"{tmp_path}:/root/.docker:ro",
-            "-e", "DOCKER_CONFIG=/root/.docker",
-            _crane_image(),
-            *args,
-        ]
-        return subprocess.run(run_cmd, capture_output=True, text=True, timeout=120)
+def _crane_run(args: list[str]) -> subprocess.CompletedProcess:
+    """Run crane binary (worker has it; DOCKER_CONFIG is set for registry auth)."""
+    return subprocess.run(
+        ["crane", *args],
+        capture_output=True,
+        text=True,
+        timeout=120,
+        env=os.environ,
+    )
 
 
 def crane_ls(registry_url: str, repo: str) -> list[str]:
     """List tags for registry/repo."""
     ref = f"{registry_url}/{repo}"
-    result = _crane_docker_run(["ls", ref])
+    result = _crane_run(["ls", ref])
     if result.returncode != 0:
         print(f"crane ls {ref}: {result.stderr or result.stdout}", file=sys.stderr)
         return []
@@ -71,7 +44,7 @@ def crane_ls(registry_url: str, repo: str) -> list[str]:
 
 def crane_config(ref: str) -> dict:
     """Get image config JSON for ref; return parsed dict or empty dict."""
-    result = _crane_docker_run(["config", ref])
+    result = _crane_run(["config", ref])
     if result.returncode != 0 or not result.stdout.strip():
         return {}
     try:
@@ -82,7 +55,7 @@ def crane_config(ref: str) -> dict:
 
 def crane_digest(ref: str) -> str:
     """Return digest for ref (e.g. sha256:...)."""
-    result = _crane_docker_run(["digest", ref])
+    result = _crane_run(["digest", ref])
     if result.returncode != 0 or not result.stdout.strip():
         return ""
     d = result.stdout.strip()
@@ -91,7 +64,7 @@ def crane_digest(ref: str) -> str:
 
 def crane_delete(repo_at_digest: str) -> bool:
     """Delete manifest by repo@digest. Returns True on success."""
-    result = _crane_docker_run(["delete", repo_at_digest])
+    result = _crane_run(["delete", repo_at_digest])
     if result.returncode != 0:
         print(f"crane delete {repo_at_digest}: {result.stderr or result.stdout}", file=sys.stderr)
         return False

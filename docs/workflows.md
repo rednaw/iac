@@ -2,7 +2,7 @@
 
 # Workflows
 
-The platform runs scheduled tasks and multi-step workflows with [Prefect](https://www.prefect.io/). The Prefect **server** runs in a Docker container; the **worker** runs on the host (systemd) so flows can use Docker and host paths. Flow code lives in this IaC repo under `prefect/flows/`. Add flows for backups, registry pruning, or custom workflows.
+The platform runs scheduled tasks and multi-step workflows with [Prefect](https://www.prefect.io/). The Prefect **server** and **worker** run in Docker containers; the worker has the Docker socket mounted so flows can run `docker exec`, use crane for the registry, and access other containers. Flow code lives in this IaC repo under `prefect/flows/`. Add flows for backups, registry pruning, or custom workflows.
 
 ```mermaid
 flowchart LR
@@ -13,14 +13,13 @@ flowchart LR
     subgraph SERVER["Server"]
         subgraph PREFECT["Prefect"]
             PSERVER(Server container<br/>UI + API + SQLite)
-            PWORKER(Worker on host<br/>systemd, host-pool)
+            PWORKER(Worker container<br/>Docker socket, host-pool)
         end
-        DEPLOY(Deploy paths<br/>Docker socket)
+        DOCKER(Docker daemon<br/>registry, app containers)
     end
 
     FLOWS --> PWORKER
-    SCRIPTS --> PWORKER
-    PWORKER --> DEPLOY
+    PWORKER --> DOCKER
     PSERVER -->|schedules + state| PWORKER
 ```
 
@@ -76,7 +75,7 @@ def my_workflow():
     # ... more steps
 ```
 
-If you need a separate script, put it in **`prefect/flows/<flow>/etc/`** (e.g. `flows/my_workflow/etc/my_script.sh`). The worker runs on the host with project root `/opt/prefect/flows/`.
+If you need a separate script, put it in **`prefect/flows/<flow>/etc/`** (e.g. `flows/my_workflow/etc/my_script.sh`). The worker runs in a container with project root `/opt/prefect/flows/`.
 
 ### 2. Define the deployment
 
@@ -105,7 +104,7 @@ Run the server playbook:
 task ansible:run -- dev
 ```
 
-Ansible syncs `prefect/` to the server at `/opt/prefect/flows`, then runs `prefect deploy --all` from the host to register the new deployment. The worker (systemd) already has the flow code at that path; no restart needed.
+Ansible syncs `prefect/` to the server at `/opt/prefect/flows`, builds the worker image, then runs `prefect deploy --all` from a one-off container to register the new deployment. The worker container already has the flow code mounted at that path; no restart needed.
 
 ### 4. Verify
 
@@ -131,13 +130,13 @@ A flow that pulls data from an external API, transforms it, writes to your Postg
 
 ## Worker access
 
-The worker runs on the **host** (systemd service `prefect-worker`, as user `deploy`). It has:
+The worker runs in a **Docker container** (`prefect-worker`) with:
 
-- **Flow code:** `/opt/prefect/flows/` (synced from this repo)
-- **Docker:** Uses the host’s Docker (deploy user is in the docker group)
-- **Deploy paths:** `/opt/deploy` (can read deploy-info, registry auth, etc.)
+- **Flow code:** `/opt/prefect/flows/` (mounted from host, synced from this repo)
+- **Docker socket:** Mounted so flows can run `docker exec`, use crane, and access other containers
+- **Registry auth:** `/root/.docker` in the container (mounted from `/opt/prefect/.docker` on the host, configured by Ansible)
 
-Secrets (e.g. Storage Box SSH key, registry auth) are in `/opt/deploy` and deployed by Ansible. Flows read them from those paths; no Prefect secret blocks.
+Secrets for flows (e.g. Storage Box SSH key) can live in deploy paths or be mounted into the worker; registry auth is in `/opt/prefect/.docker`. No Prefect secret blocks required for registry.
 
 ---
 
@@ -150,7 +149,7 @@ In the Prefect UI. Go to Flow Runs → pick a run → Logs tab. Prefect captures
 Prefect server writes to stdout/stderr; OTEL Collector sends these to OpenObserve (**docker-containers** stream, filter by `prefect-server`). See [Monitoring](monitoring.md).
 
 **Worker logs:**  
-`journalctl -u prefect-worker` on the server (worker runs as systemd service).
+`docker logs prefect-worker` (worker runs as a container).
 
 **Metrics:**  
 Prefect 2 doesn't expose a metrics endpoint. If a future release adds one, we can scrape it with the OTEL Collector like Traefik.
@@ -163,7 +162,7 @@ The server runs with `--analytics-off`. No usage or telemetry is sent to Prefect
 ## Architecture notes
 
 - **Server:** One Docker container. Prefect API + UI + SQLite. SQLite data in a Docker volume (`prefect-server-data`). Exposed on host port **57802**.
-- **Worker:** Runs on the host (systemd, user `deploy`). Polls the server, executes flow runs. Uses host Docker and `/opt/prefect/flows`, `/opt/deploy`. Work pool: **host-pool**.
+- **Worker:** Runs in a Docker container. Polls the server, executes flow runs. Has Docker socket and `/opt/prefect/flows` mounted; registry auth in `/opt/prefect/.docker`. Work pool: **host-pool**.
 - **No Prefect Cloud:** Fully self-hosted. No external dependencies.
 - **No cron:** All scheduled tasks go through Prefect so you have one place for schedules, logs, retries, and state.
 
@@ -180,14 +179,13 @@ Flow code and `prefect.yaml` live in this repo (`prefect/`). Ansible syncs the t
 
 **Flow run fails immediately:**  
 Check the flow run logs in the Prefect UI. Common causes:
-- Import error (missing module in the host venv: `/opt/prefect/venv`)
+- Import error (missing module in the worker image; add it to `prefect/Dockerfile.worker`)
 - Script path wrong (flow-specific scripts live under `flows/<flow>/etc/`)
-- Permission issue (worker runs as `deploy`; needs docker group and read access to `/opt/deploy`)
+- Permission or auth issue (worker has Docker socket and `/opt/prefect/.docker` for registry)
 
 **Worker not picking up runs:**  
-1. Check the worker service: `systemctl status prefect-worker` on the server.
-2. Check worker logs: `journalctl -u prefect-worker -f`
-3. Verify the worker is connected: Prefect UI → Work Pools → **host-pool** → should show 1 worker online.
+1. Check the worker container: `docker ps` and `docker logs prefect-worker`.
+2. Verify the worker is connected: Prefect UI → Work Pools → **host-pool** → should show 1 worker online.
 
 **Can't reach the UI:**  
 Ensure the tunnel is running: `task tunnel:start -- dev`. Then open http://localhost:57802/ (not https, not a different port).

@@ -1,3 +1,0 @@
-# Image used by flows/registry_prune/etc/registry_prune.py (read at runtime).
-# Renovate updates this Dockerfile; the script parses the FROM line.
-FROM gcr.io/go-containerregistry/crane:v0.21.1

@@ -1,0 +1,21 @@
+# Prefect worker: runs flows in a container with Docker socket + crane for registry jobs.
+# Docker CLI from official image (Renovate updates). Crane from GitHub releases (gcr.io image is outdated).
+
+FROM docker:27-cli AS dockercli
+FROM prefecthq/prefect:2-python3.11
+
+COPY --from=dockercli /usr/local/bin/docker /usr/local/bin/docker
+
+ARG CRANE_VERSION=v0.21.2
+ARG TARGETARCH=amd64
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && case "${TARGETARCH}" in amd64) A=Linux_x86_64;; arm64) A=Linux_arm64;; *) echo "Unsupported: ${TARGETARCH}"; exit 1;; esac \
+    && curl -sSL "https://github.com/google/go-containerregistry/releases/download/${CRANE_VERSION}/go-containerregistry_${A}.tar.gz" \
+    | tar xz -C /tmp && mv /tmp/crane /usr/local/bin/crane && rm -rf /tmp/* && chmod +x /usr/local/bin/crane
+
+# Flow dependencies
+RUN pip install --no-cache-dir pyyaml
+
+# Worker runs as root; flow code and DOCKER_CONFIG are mounted at runtime
+WORKDIR /opt/prefect/flows
