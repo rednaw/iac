@@ -122,7 +122,7 @@
 - name: Ensure Prefect server container is running
   community.docker.docker_container:
     name: prefect-server
-    image: prefecthq/prefect:2-python3.11
+    image: prefecthq/prefect:3-python3.11
     state: started
     restart_policy: unless-stopped
     log_driver: json-file
