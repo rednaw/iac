@@ -119,6 +119,56 @@
     driver: bridge
     state: present
 
+- name: Ensure Prefect DB password file exists on host
+  ansible.builtin.shell: |
+    mkdir -p /opt/prefect
+    if [ ! -f /opt/prefect/.prefect-db-password ]; then
+      openssl rand -hex 16 > /opt/prefect/.prefect-db-password
+      chmod 600 /opt/prefect/.prefect-db-password
+    fi
+  changed_when: false
+
+- name: Read Prefect DB password
+  ansible.builtin.slurp:
+    src: /opt/prefect/.prefect-db-password
+  register: _prefect_db_password_slurp
+
+- name: Set Prefect DB password fact
+  ansible.builtin.set_fact:
+    _prefect_db_password: "{{ (_prefect_db_password_slurp.content | b64decode) | trim }}"
+  no_log: true
+
+- name: Ensure Prefect Postgres container is running
+  community.docker.docker_container:
+    name: prefect-db
+    image: postgres:16-alpine
+    state: started
+    restart_policy: unless-stopped
+    env:
+      POSTGRES_USER: prefect
+      POSTGRES_PASSWORD: "{{ _prefect_db_password }}"
+      POSTGRES_DB: prefect
+    volumes:
+      - prefect-db-data:/var/lib/postgresql/data
+    networks:
+      - name: prefect-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U prefect"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+  no_log: true
+
+- name: Wait for Prefect DB (pg_isready)
+  ansible.builtin.command:
+    cmd: docker exec prefect-db pg_isready -U prefect
+  register: _prefect_db_ready
+  until: _prefect_db_ready.rc == 0
+  retries: 12
+  delay: 5
+  changed_when: false
+
 - name: Ensure Prefect server container is running
   community.docker.docker_container:
     name: prefect-server
@@ -132,6 +182,8 @@
     command: prefect server start --host 0.0.0.0
     env:
       PREFECT_HOME: /data
+      PREFECT_API_DATABASE_CONNECTION_URL: "postgresql+asyncpg://prefect:{{ _prefect_db_password }}@prefect-db:5432/prefect"
+      PREFECT_UI_API_URL: "http://127.0.0.1:{{ prefect_server_port }}/api"
     ports:
       - "127.0.0.1:{{ prefect_server_port }}:4200"
     volumes:
@@ -143,7 +195,8 @@
       interval: 15s
       timeout: 5s
       retries: 3
-      start_period: 30s
+      start_period: 60s
+  no_log: true
 
 - name: Wait for Prefect server API to be ready
   ansible.builtin.uri:
