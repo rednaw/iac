@@ -58,7 +58,6 @@
       - /var/lib/openobserve:/data
     networks:
       - name: openobserve-network
-      - name: traefik
     healthcheck:
       test: ["CMD", "/openobserve", "view", "-c", "version"]
       interval: 30s

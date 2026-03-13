@@ -12,7 +12,7 @@ flowchart LR
 
     subgraph SERVER["Server"]
         subgraph PREFECT["Prefect"]
-            PSERVER(Prefect server<br/>UI + API + SQLite)
+            PSERVER(Prefect server<br/>UI + API + Postgres)
             PWORKER(Prefect worker<br/>Docker socket, host-pool)
         end
         DOCKER(Docker daemon<br/>registry, app containers)
@@ -153,7 +153,7 @@ The server runs with `--analytics-off`. No telemetry is sent to Prefect Cloud.
 
 ## Architecture notes
 
-- **Server:** One Docker container. Prefect API + UI + SQLite in a Docker volume (`prefect-server-data`). Exposed on host port **57802**.
+- **Server:** One Docker container. Prefect API + UI; database is **PostgreSQL** in container `prefect-db` (volume `prefect-db-data`). Server config in volume `prefect-server-data`. Exposed on host port **57802**.
 - **Worker:** Docker container. Polls the server, executes flow runs as subprocesses (work pool type `process`). Has Docker socket and `/opt/prefect/flows` mounted; registry auth in `/opt/prefect/.docker`. Work pool: **host-pool**.
 - **No Prefect Cloud:** Fully self-hosted. No external dependencies.
 - **No cron:** All scheduled tasks go through Prefect so you have one place for schedules, logs, retries, and state.

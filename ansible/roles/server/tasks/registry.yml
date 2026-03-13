@@ -67,12 +67,6 @@
     group: ubuntu
   no_log: true
 
-- name: Ensure registry network exists
-  community.docker.docker_network:
-    name: registry-network
-    driver: bridge
-    state: present
-
 - name: Ensure registry container is running
   community.docker.docker_container:
     name: registry
@@ -89,7 +83,6 @@
       - /var/lib/docker-registry:/var/lib/registry
       - /etc/docker-registry/config.yml:/etc/distribution/config.yml:ro
     networks:
-      - name: registry-network
       - name: traefik
     labels:
       traefik.enable: "true"
