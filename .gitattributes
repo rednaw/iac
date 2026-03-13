@@ -3,7 +3,7 @@
 # ---- Include in stats (un-vendor / force detectable) ----
 *.yml linguist-detectable=true linguist-language=YAML
 *.yaml linguist-detectable=true linguist-language=YAML
-*.md linguist-detectable=true linguist-language=Markdown
+*.md linguist-detectable=true linguist-language=Markdown linguist-documentation=false
 
 # Generated / lockfiles
 .terraform.lock.hcl linguist-generated=true
