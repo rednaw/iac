@@ -7,11 +7,11 @@ Private Docker registry for container images. **Use the devcontainer to interact
 ```mermaid
 flowchart LR
     subgraph GITHUB["GitHub Actions"]
-        A(Build & push<br/>images)
+        A(Build & push<br/>app images)
     end
     
     subgraph REGISTRY["Registry<br/>registry.<base_domain>"]
-        B(Store images<br/>rednaw/tientje-ketama<br/>iac/iac-dev)
+        B(Store app images<br/>e.g. rednaw/tientje-ketama)
     end
     
     subgraph DEVCONTAINER["Devcontainer"]
@@ -32,7 +32,7 @@ flowchart LR
 - **Hostname:** `registry.<base_domain>` (e.g. `registry.rednaw.nl`; derived from `base_domain` in SOPS secrets)
 - **Software:** [Docker Registry](https://distribution.github.io/distribution/) (image `registry:3`)
 - **Protocol:** Docker Registry API v2, served over HTTPS with HTTP Basic Auth
-- **Purpose:** Store application images (e.g. `rednaw/tientje-ketama`) and the IAC dev image (`iac/iac-dev`); used by GitHub Actions, the devcontainer, and on the server by the ubuntu and deploy users
+- **Purpose:** Store **application images** (e.g. `rednaw/tientje-ketama`) built and pushed by app repos. The **IaC dev image** (`iac-dev`) is hosted on **GitHub Container Registry (ghcr.io)** only, not in this registry.
 
 ---
 
