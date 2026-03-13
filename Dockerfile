@@ -23,9 +23,9 @@ COPY --from=mise /usr/local/bin/mise /usr/local/bin/mise
 ENV MISE_DATA_DIR=/opt/mise
 ENV MISE_GLOBAL_CONFIG_FILE=/opt/mise/mise.toml
 COPY mise.toml /opt/mise/mise.toml
-ARG GITHUB_TOKEN=
-RUN --mount=type=cache,target=/root/.cache/mise,sharing=locked \
-    GITHUB_TOKEN=${GITHUB_TOKEN} mise trust -a && mise install
+# GITHUB_TOKEN via BuildKit secret mount (not ARG) so it never appears in image history
+RUN --mount=type=secret,id=github_token --mount=type=cache,target=/root/.cache/mise,sharing=locked \
+    export GITHUB_TOKEN=$(cat /run/secrets/github_token) && mise trust -a && mise install
 ENV PATH="/opt/mise/shims:${PATH}"
 
 # Ansible + ansible-lint from declarative requirements (venv, no pipx)
