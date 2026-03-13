@@ -1,4 +1,4 @@
-name: Cleanup untagged ghcr.io images
+name: Cleanup ghcr.io iac-dev images
 
 on:
   schedule:
@@ -10,12 +10,11 @@ permissions:
 
 jobs:
   cleanup:
-    name: Delete untagged iac-dev versions
+    name: Prune old iac-dev versions (keep last 12)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/delete-package-versions@v5
         with:
           package-name: iac-dev
           package-type: container
-          delete-only-untagged-versions: 'true'
-          min-versions-to-keep: 0
+          min-versions-to-keep: 12
