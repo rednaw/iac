@@ -1,6 +1,6 @@
 # Prefect worker: runs flows in a container with Docker socket + crane for registry jobs.
 
-FROM docker:27-cli AS dockercli
+FROM docker:29-cli AS dockercli
 FROM prefecthq/prefect:2-python3.11
 COPY --from=dockercli /usr/local/bin/docker /usr/local/bin/docker
 
