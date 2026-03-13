@@ -1,0 +1,9 @@
+# GitHub Linguist: improve language bar (Ansible/Task = YAML; no separate language in Linguist)
+
+# ---- Include in stats (un-vendor / force detectable) ----
+*.yml linguist-detectable=true linguist-language=YAML
+*.yaml linguist-detectable=true linguist-language=YAML
+
+# Generated / lockfiles
+.terraform.lock.hcl linguist-generated=true
+terraform/.terraform.lock.hcl linguist-generated=true
