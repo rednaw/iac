@@ -15,6 +15,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Delete all Actions caches
-        run: gh cache delete --all --succeed-on-no-caches
+        run: gh cache delete --all --succeed-on-no-caches --repo ${{ github.repository }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
