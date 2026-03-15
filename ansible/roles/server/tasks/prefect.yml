@@ -28,6 +28,32 @@
   delegate_to: localhost
   become: false
 
+- name: Compute checksum of Prefect flow code (for idempotent sync)
+  ansible.builtin.shell: |
+    cd "{{ playbook_dir }}/../.." && find prefect -type f ! -path 'prefect/__pycache__/*' ! -name '*.pyc' | sort | xargs sha256sum 2>/dev/null | sha256sum | awk '{print $1}'
+  register: prefect_flow_code_checksum_cmd
+  delegate_to: localhost
+  become: false
+  changed_when: false
+  when: prefect_src_stat.stat.exists and prefect_src_stat.stat.isdir
+
+- name: Stat stored flow code checksum on server
+  ansible.builtin.stat:
+    path: /opt/iac/prefect/.flow-code.checksum
+  register: _prefect_flow_code_checksum_file
+  when: prefect_src_stat.stat.exists and prefect_src_stat.stat.isdir
+
+- name: Get stored flow code checksum on server
+  ansible.builtin.slurp:
+    src: /opt/iac/prefect/.flow-code.checksum
+  register: _prefect_flow_code_checksum_stored
+  when: prefect_src_stat.stat.exists and prefect_src_stat.stat.isdir and _prefect_flow_code_checksum_file.stat.exists | default(false)
+
+- name: Set fact when flow code sync is needed
+  ansible.builtin.set_fact:
+    prefect_flow_code_sync_needed: "{{ not (_prefect_flow_code_checksum_file.stat.exists | default(false)) or (_prefect_flow_code_checksum_stored.content | default('') | b64decode | trim) != (prefect_flow_code_checksum_cmd.stdout | default('') | trim) }}"
+  when: prefect_src_stat.stat.exists and prefect_src_stat.stat.isdir
+
 - name: Copy Prefect flow code from IaC repo to host
   ansible.posix.synchronize:
     src: "{{ playbook_dir }}/../../prefect/"
@@ -38,7 +64,14 @@
       - "--exclude=.git"
       - "--checksum"
       - "--omit-dir-times"
-  when: prefect_src_stat.stat.exists and prefect_src_stat.stat.isdir
+  when: prefect_src_stat.stat.exists and prefect_src_stat.stat.isdir and prefect_flow_code_sync_needed | default(true) | bool
+
+- name: Record flow code checksum after sync
+  ansible.builtin.copy:
+    content: "{{ prefect_flow_code_checksum_cmd.stdout }}"
+    dest: /opt/iac/prefect/.flow-code.checksum
+    mode: '0644'
+  when: prefect_src_stat.stat.exists and prefect_src_stat.stat.isdir and prefect_flow_code_sync_needed | default(true) | bool
 
 - name: Fix ownership of Prefect subtree (sync runs as ubuntu; design is root-owned)
   ansible.builtin.file:
@@ -116,24 +149,6 @@
     owner: root
     group: root
     mode: '0755'
-
-- name: Stat old Prefect DB password file (for migration from /opt/prefect)
-  ansible.builtin.stat:
-    path: /opt/prefect/.prefect-db-password
-  register: _prefect_old_password_file
-
-- name: Stat new Prefect DB password file
-  ansible.builtin.stat:
-    path: /opt/iac/prefect/.prefect-db-password
-  register: _prefect_new_password_file
-
-- name: Migrate Prefect DB password from old path (existing server)
-  ansible.builtin.copy:
-    src: /opt/prefect/.prefect-db-password
-    dest: /opt/iac/prefect/.prefect-db-password
-    mode: '0600'
-    remote_src: true
-  when: _prefect_old_password_file.stat.exists and not _prefect_new_password_file.stat.exists
 
 - name: Ensure Prefect DB password file exists on host (create if missing)
   ansible.builtin.shell: |
