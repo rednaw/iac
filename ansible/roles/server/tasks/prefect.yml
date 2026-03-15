@@ -1,11 +1,11 @@
 ---
 # yaml-language-server: $schema=https://raw.githubusercontent.com/ansible/ansible-lint/main/src/ansiblelint/schemas/ansible.json#/$defs/tasks
 # Prefect: server and worker in containers. Worker has Docker socket + crane for registry/backup jobs.
-# Flow code synced to /opt/prefect/flows. Worker image built from prefect/Dockerfile.worker.
+# Flow code synced to /opt/iac/prefect/flows. Registry auth shared at /opt/iac/.docker. See docs/server-layout.md.
 
 - name: Set Prefect variables
   ansible.builtin.set_fact:
-    prefect_flow_code_host_path: /opt/prefect/flows
+    prefect_flow_code_host_path: /opt/iac/prefect/flows
     prefect_server_port: 57802
     prefect_worker_image: prefect-worker
 
@@ -40,33 +40,23 @@
       - "--omit-dir-times"
   when: prefect_src_stat.stat.exists and prefect_src_stat.stat.isdir
 
-- name: Ensure Prefect worker Docker config directory exists
+- name: Fix ownership of Prefect subtree (sync runs as ubuntu; design is root-owned)
   ansible.builtin.file:
-    path: /opt/prefect/.docker
+    path: /opt/iac/prefect
     state: directory
-    mode: '0755'
+    recurse: true
     owner: root
     group: root
   when: prefect_src_stat.stat.exists and prefect_src_stat.stat.isdir
 
-- name: Configure Docker registry auth for Prefect worker container
-  ansible.builtin.copy:
-    content: |
-      {
-        "auths": {
-          "registry.{{ infrastructure_secrets.base_domain }}": {
-            "auth": "{{ (infrastructure_secrets.registry_username + ':' + infrastructure_secrets.registry_password) | b64encode }}"
-          },
-          "https://registry.{{ infrastructure_secrets.base_domain }}": {
-            "auth": "{{ (infrastructure_secrets.registry_username + ':' + infrastructure_secrets.registry_password) | b64encode }}"
-          }
-        }
-      }
-    dest: /opt/prefect/.docker/config.json
-    mode: '0644'
+
+- name: Ensure Prefect .ssh directory exists (flow-only keys, e.g. Storage Box)
+  ansible.builtin.file:
+    path: /opt/iac/prefect/.ssh
+    state: directory
     owner: root
     group: root
-  no_log: true
+    mode: '0700'
   when: prefect_src_stat.stat.exists and prefect_src_stat.stat.isdir
 
 - name: Get checksum of Dockerfile.worker (triggers rebuild when it changes)
@@ -78,13 +68,13 @@
 
 - name: Check if previous worker image build checksum exists
   ansible.builtin.stat:
-    path: /opt/prefect/.worker-image.checksum
+    path: /opt/iac/prefect/.worker-image.checksum
   register: prefect_worker_checksum_file_stat
   when: prefect_src_stat.stat.exists and prefect_src_stat.stat.isdir
 
 - name: Read previous worker image build checksum
   ansible.builtin.slurp:
-    src: /opt/prefect/.worker-image.checksum
+    src: /opt/iac/prefect/.worker-image.checksum
   register: prefect_worker_checksum_prev
   when: prefect_worker_checksum_file_stat.stat is defined and prefect_worker_checksum_file_stat.stat.exists
 
@@ -106,7 +96,7 @@
 - name: Record worker image build checksum after rebuild
   ansible.builtin.copy:
     content: "{{ prefect_dockerfile_stat.stat.checksum }}"
-    dest: /opt/prefect/.worker-image.checksum
+    dest: /opt/iac/prefect/.worker-image.checksum
     mode: '0644'
   when:
     - prefect_src_stat.stat.exists and prefect_src_stat.stat.isdir
@@ -119,18 +109,43 @@
     driver: bridge
     state: present
 
-- name: Ensure Prefect DB password file exists on host
+- name: Ensure Prefect base directory exists
+  ansible.builtin.file:
+    path: /opt/iac/prefect
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Stat old Prefect DB password file (for migration from /opt/prefect)
+  ansible.builtin.stat:
+    path: /opt/prefect/.prefect-db-password
+  register: _prefect_old_password_file
+
+- name: Stat new Prefect DB password file
+  ansible.builtin.stat:
+    path: /opt/iac/prefect/.prefect-db-password
+  register: _prefect_new_password_file
+
+- name: Migrate Prefect DB password from old path (existing server)
+  ansible.builtin.copy:
+    src: /opt/prefect/.prefect-db-password
+    dest: /opt/iac/prefect/.prefect-db-password
+    mode: '0600'
+    remote_src: true
+  when: _prefect_old_password_file.stat.exists and not _prefect_new_password_file.stat.exists
+
+- name: Ensure Prefect DB password file exists on host (create if missing)
   ansible.builtin.shell: |
-    mkdir -p /opt/prefect
-    if [ ! -f /opt/prefect/.prefect-db-password ]; then
-      openssl rand -hex 16 > /opt/prefect/.prefect-db-password
-      chmod 600 /opt/prefect/.prefect-db-password
+    if [ ! -f /opt/iac/prefect/.prefect-db-password ]; then
+      openssl rand -hex 16 > /opt/iac/prefect/.prefect-db-password
+      chmod 600 /opt/iac/prefect/.prefect-db-password
     fi
   changed_when: false
 
 - name: Read Prefect DB password
   ansible.builtin.slurp:
-    src: /opt/prefect/.prefect-db-password
+    src: /opt/iac/prefect/.prefect-db-password
   register: _prefect_db_password_slurp
 
 - name: Set Prefect DB password fact
@@ -223,11 +238,11 @@
     env:
       PREFECT_API_URL: "http://prefect-server:4200/api"
       REGISTRY_URL: "registry.{{ infrastructure_secrets.base_domain }}"
-      DOCKER_CONFIG: "/root/.docker"
+      DOCKER_CONFIG: "/opt/iac/.docker"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock"
-      - "{{ prefect_flow_code_host_path }}:/opt/prefect/flows:ro"
-      - "/opt/prefect/.docker:/root/.docker:ro"
+      - "/opt/iac:/opt/iac"
+    working_dir: /opt/iac/prefect/flows
     networks:
       - name: prefect-network
   when: prefect_src_stat.stat.exists and prefect_src_stat.stat.isdir
@@ -237,8 +252,9 @@
     docker run --rm \
       --network prefect-network \
       -e PREFECT_API_URL=http://prefect-server:4200/api \
-      -v {{ prefect_flow_code_host_path }}:/opt/prefect/flows:ro \
-      -w /opt/prefect/flows \
+      -e DOCKER_CONFIG=/opt/iac/.docker \
+      -v /opt/iac:/opt/iac \
+      -w /opt/iac/prefect/flows \
       {{ prefect_worker_image }} \
       prefect work-pool create host-pool --type process 2>&1
   register: prefect_work_pool
@@ -251,8 +267,9 @@
     docker run --rm \
       --network prefect-network \
       -e PREFECT_API_URL=http://prefect-server:4200/api \
-      -v {{ prefect_flow_code_host_path }}:/opt/prefect/flows:ro \
-      -w /opt/prefect/flows \
+      -e DOCKER_CONFIG=/opt/iac/.docker \
+      -v /opt/iac:/opt/iac \
+      -w /opt/iac/prefect/flows \
       {{ prefect_worker_image }} \
       prefect deploy --all 2>&1
   register: prefect_register

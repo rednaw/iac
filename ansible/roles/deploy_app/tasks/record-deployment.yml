@@ -41,8 +41,8 @@
       deployment:
         deployed_at: {{ deploy_timestamp.stdout }}
     dest: "{{ deploy_target }}/deploy-info.yml"
-    owner: deploy
-    group: deploy
+    owner: iac
+    group: iac
     mode: '0644'
 
 - name: Check for deploy history
@@ -54,8 +54,8 @@
   ansible.builtin.file:
     path: "{{ deploy_target }}/deploy-history.yml"
     state: touch
-    owner: deploy
-    group: deploy
+    owner: iac
+    group: iac
     mode: '0644'
   when: not deploy_history_file.stat.exists
 
@@ -73,12 +73,12 @@
         workspace: {{ workspace }}
     EOF
   become: true
-  become_user: deploy
+  become_user: iac
   changed_when: true
 
 - name: Set deploy history permissions
   ansible.builtin.file:
     path: "{{ deploy_target }}/deploy-history.yml"
-    owner: deploy
-    group: deploy
+    owner: iac
+    group: iac
     mode: '0644'

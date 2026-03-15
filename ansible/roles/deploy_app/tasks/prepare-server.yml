@@ -14,16 +14,16 @@
   ansible.builtin.file:
     path: "{{ deploy_target }}"
     state: directory
-    owner: deploy
-    group: deploy
+    owner: iac
+    group: iac
     mode: '0755'
 
 - name: Copy app secrets to .env
   ansible.builtin.copy:
     content: "{{ decrypted_app_secrets.stdout }}"
     dest: "{{ deploy_target }}/.env"
-    owner: deploy
-    group: deploy
+    owner: iac
+    group: iac
     mode: '0600'
   when: app_secrets_file.stat.exists
   no_log: true
@@ -33,8 +33,8 @@
     path: "{{ deploy_target }}/.env"
     line: "IMAGE={{ image_digest }}"
     regexp: '^IMAGE='
-    owner: deploy
-    group: deploy
+    owner: iac
+    group: iac
     mode: '0600'
     create: true
 
@@ -42,14 +42,14 @@
   ansible.builtin.copy:
     src: "{{ app_root }}/docker-compose.yml"
     dest: "{{ deploy_target }}/docker-compose.yml"
-    owner: deploy
-    group: deploy
+    owner: iac
+    group: iac
     mode: '0644'
 
 - name: Copy docker-compose.override.yml
   ansible.builtin.copy:
     src: "{{ app_root }}/.iac/docker-compose.override.yml"
     dest: "{{ deploy_target }}/docker-compose.override.yml"
-    owner: deploy
-    group: deploy
+    owner: iac
+    group: iac
     mode: '0644'

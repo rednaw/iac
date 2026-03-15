@@ -57,7 +57,7 @@ def get_current_deployed_digest(hostname: str, app_name: str, workspace: str) ->
     Return the digest of the *currently deployed* image for the workspace,
     based on the last matching entry in deploy-history.yml.
     """
-    path = f"/opt/deploy/{app_name}/deploy-history.yml"
+    path = f"/opt/iac/deploy/{app_name}/deploy-history.yml"
     content = read_remote_file(hostname, path)
     if not content:
         return ""
@@ -219,8 +219,6 @@ def main():
     hostname = get_hostname(workspace)
 
     full_repo = f"{registry}/{image_repo}"
-    # Use deploy_slug for server path so we read the same deploy-history Ansible wrote to
-    # (Ansible uses app_root basename, e.g. /opt/deploy/app, not image repo name)
     app_name = deploy_slug
 
     print(f"IMAGE: {image_repo}\n")
