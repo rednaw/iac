@@ -30,6 +30,7 @@
 
 - name: Compute checksum of Prefect flow code (for idempotent sync)
   ansible.builtin.shell: |
+    set -o pipefail
     cd "{{ playbook_dir }}/../.." && find prefect -type f ! -path 'prefect/__pycache__/*' ! -name '*.pyc' | sort | xargs sha256sum 2>/dev/null | sha256sum | awk '{print $1}'
   register: prefect_flow_code_checksum_cmd
   delegate_to: localhost
