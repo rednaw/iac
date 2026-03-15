@@ -1,0 +1,72 @@
+---
+# Configure iac user and /opt/iac tree (server layout)
+# See docs/server-layout.md. User iac runs app deploys; no home dir; shared .docker for registry auth.
+
+- name: Ensure iac user exists
+  ansible.builtin.user:
+    name: iac
+    home: /nonexistent
+    shell: /usr/sbin/nologin
+    groups: docker
+    append: false
+    create_home: false
+    system: false
+
+- name: Ensure /opt/iac root exists
+  ansible.builtin.file:
+    path: /opt/iac
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Ensure shared .docker directory exists (registry auth for iac and Prefect worker)
+  ansible.builtin.file:
+    path: /opt/iac/.docker
+    state: directory
+    owner: root
+    group: iac
+    mode: '0750'
+
+- name: Configure Docker registry auth (shared for iac user and Prefect worker)
+  ansible.builtin.copy:
+    content: |
+      {
+        "auths": {
+          "registry.{{ base_domain }}": {
+            "auth": "{{ (infrastructure_secrets.registry_username + ':' + infrastructure_secrets.registry_password) | b64encode }}"
+          },
+          "https://registry.{{ base_domain }}": {
+            "auth": "{{ (infrastructure_secrets.registry_username + ':' + infrastructure_secrets.registry_password) | b64encode }}"
+          }
+        }
+      }
+    dest: /opt/iac/.docker/config.json
+    mode: '0640'
+    owner: root
+    group: iac
+  no_log: true
+
+- name: Ensure deploy directory exists (app payload)
+  ansible.builtin.file:
+    path: /opt/iac/deploy
+    state: directory
+    owner: iac
+    group: iac
+    mode: '0755'
+
+- name: Ensure Prefect directory exists
+  ansible.builtin.file:
+    path: /opt/iac/prefect
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Ensure Ansible remote_tmp directory exists for iac user
+  ansible.builtin.file:
+    path: /tmp/.ansible-iac
+    state: directory
+    owner: iac
+    group: iac
+    mode: '0755'

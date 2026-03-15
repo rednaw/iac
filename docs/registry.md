@@ -78,10 +78,10 @@ All environments use the same credential source: SOPS-decrypted `app/.iac/iac.ym
 - **Method:** Ansible writes `~/.docker/config.json` during server setup (`ansible/roles/server/tasks/registry.yml`)
 - **When:** Automatic when the server role runs
 
-### Server – deploy user
+### Server – iac user and Prefect worker (shared)
 
-- **Method:** Ansible writes `/opt/deploy/.docker/config.json` during server setup (`ansible/roles/server/tasks/deploy-user.yml`)
-- **When:** Automatic when the server role runs. Used to pull images during application deployment
+- **Method:** Ansible writes `/opt/iac/.docker/config.json` during server setup (`ansible/roles/server/tasks/iac-user.yml`). Shared by the `iac` user (app deploys) and the Prefect worker (flows).
+- **When:** Automatic when the server role runs. Used to pull images during application deployment and by Prefect flows (e.g. registry prune). See [Server layout](server-layout.md).
 
 ---
 
@@ -147,7 +147,7 @@ crane ls registry.rednaw.nl/rednaw/tientje-ketama | grep -E '^[0-9a-f]{7}$'
 |--------|------------|
 | "No repositories found (or access denied)" | Use the devcontainer. |
 | "Could not resolve digest" / image not found | Check image exists: `crane ls registry.<base_domain>/<repo>`. Ensure tag is correct and auth is configured. |
-| Deploy fails to pull image | On the server, deploy user’s auth is in `/opt/deploy/.docker/config.json`; ensure Ansible has run and `infrastructure_secrets` contains correct `base_domain`, `registry_username`, `registry_password`. |
+| Deploy fails to pull image | On the server, deploy user’s auth is in `/opt/iac/.docker/config.json`; ensure Ansible has run and `infrastructure_secrets` contains correct `base_domain`, `registry_username`, `registry_password`. |
 | Registry unreachable from laptop | Check DNS and HTTPS for `registry.<base_domain>` (e.g. `registry.rednaw.nl`); ensure Traefik and the registry container are running on the server. |
 
 ---

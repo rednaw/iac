@@ -20,8 +20,8 @@
 - name: Install and configure Traefik
   ansible.builtin.import_tasks: traefik.yml
 
-- name: Create deploy user
-  ansible.builtin.import_tasks: deploy-user.yml
+- name: Create iac user and /opt/iac tree
+  ansible.builtin.import_tasks: iac-user.yml
 
 - name: Configure registry
   ansible.builtin.import_tasks: registry.yml

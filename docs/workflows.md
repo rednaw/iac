@@ -96,7 +96,7 @@ deployments:
 task ansible:run -- dev
 ```
 
-Ansible syncs `prefect/` to the server at `/opt/prefect/flows`, builds the worker image, then runs `prefect deploy --all` to register the new deployment.
+Ansible syncs `prefect/` to the server at `/opt/iac/prefect/flows`, builds the worker image, then runs `prefect deploy --all` to register the new deployment.
 
 ### 4. Verify
 
@@ -115,7 +115,7 @@ Keeps the 6 newest image tags per repo in the Docker registry and deletes the re
 **Logic:**
 - `crane catalog` lists all repos.
 - For each repo: `crane ls` lists tags, `crane config` reads `org.opencontainers.image.created` (set by `_build-and-push.yml`) to sort by creation time.
-- Keeps 6 newest + any tag/digest currently in `/opt/deploy/<app>/deploy-info.yml`.
+- Keeps 6 newest + any tag/digest currently in `/opt/iac/deploy/<app>/deploy-info.yml`.
 - Deletes the rest by digest (`crane delete`), logs OCI labels of removed tags to the flow run.
 - Runs `registry garbage-collect` once after all deletions.
 
@@ -127,9 +127,9 @@ Keeps the 6 newest image tags per repo in the Docker registry and deletes the re
 
 The worker runs in a **Docker container** (`prefect-worker`) with:
 
-- **Flow code:** `/opt/prefect/flows/` (synced from this repo by Ansible)
+- **Flow code:** Synced from this repo by Ansible to `/opt/iac/prefect/flows/`. See [Server layout](server-layout.md).
 - **Docker socket:** Mounted so flows can run `docker exec`, use crane, and access other containers
-- **Registry auth:** `/root/.docker` in the container (mounted from `/opt/prefect/.docker` on the host, configured by Ansible)
+- **Registry auth:** `DOCKER_CONFIG=/opt/iac/.docker` (shared with iac user; single config at `/opt/iac/.docker` on host)
 
 Secrets for flows can live in deploy paths or be mounted into the worker; registry auth is already provided. No Prefect secret blocks required for registry operations.
 
@@ -154,7 +154,7 @@ The server runs with `--analytics-off`. No telemetry is sent to Prefect Cloud.
 ## Architecture notes
 
 - **Server:** One Docker container. Prefect API + UI; database is **PostgreSQL** in container `prefect-db` (volume `prefect-db-data`). Server config in volume `prefect-server-data`. Exposed on host port **57802**.
-- **Worker:** Docker container. Polls the server, executes flow runs as subprocesses (work pool type `process`). Has Docker socket and `/opt/prefect/flows` mounted; registry auth in `/opt/prefect/.docker`. Work pool: **host-pool**.
+- **Worker:** Docker container. Polls the server, executes flow runs as subprocesses (work pool type `process`). Mounts `/opt/iac` (flow code at `/opt/iac/prefect/flows`); registry auth at `/opt/iac/.docker`. Work pool: **host-pool**.
 - **No Prefect Cloud:** Fully self-hosted. No external dependencies.
 - **No cron:** All scheduled tasks go through Prefect so you have one place for schedules, logs, retries, and state.
 
@@ -171,7 +171,7 @@ The server runs with `--analytics-off`. No telemetry is sent to Prefect Cloud.
 Check the flow run logs in the Prefect UI. Common causes:
 - Import error (missing module in the worker image; add it to `prefect/Dockerfile.worker`)
 - Flow code not found (check entrypoint path in `prefect.yaml` matches `prefect/<flow>/flow.py`)
-- Permission or auth issue (worker has Docker socket and `/opt/prefect/.docker` for registry)
+- Permission or auth issue (worker has Docker socket and `DOCKER_CONFIG=/opt/iac/.docker` for registry)
 
 **Worker not picking up runs:**
 1. Check the worker container: `docker ps` and `docker logs prefect-worker`.

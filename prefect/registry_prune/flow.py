@@ -18,7 +18,7 @@ import yaml
 from prefect import flow
 from prefect.logging import get_run_logger
 
-DEPLOY_ROOT = Path("/opt/deploy")
+DEPLOY_ROOT = Path("/opt/iac/deploy")
 KEEP = 6
 
 OCI_LABEL_KEYS = (

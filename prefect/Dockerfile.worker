@@ -12,4 +12,4 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
     && curl -sSL "https://github.com/google/go-containerregistry/releases/download/${CRANE_VERSION}/go-containerregistry_${A}.tar.gz" \
     | tar xz -C /tmp && mv /tmp/crane /usr/local/bin/crane && rm -rf /tmp/* && chmod +x /usr/local/bin/crane
 
-WORKDIR /opt/prefect/flows
+WORKDIR /opt/iac/prefect/flows

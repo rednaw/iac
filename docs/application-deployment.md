@@ -136,7 +136,7 @@ App development is **devcontainer-first**: the app repo's own devcontainer uses 
 
 ### `deploy-info.yml`
 
-**Location:** `/opt/deploy/<app>/deploy-info.yml`  
+**Location:** `/opt/iac/deploy/<app>/deploy-info.yml`  
 **Purpose:** Current deployment state  
 **Format:**
 ```yaml
@@ -160,7 +160,7 @@ deployment:
 
 ### `deploy-history.yml`
 
-**Location:** `/opt/deploy/<app>/deploy-history.yml`  
+**Location:** `/opt/iac/deploy/<app>/deploy-history.yml`  
 **Purpose:** Append-only audit trail  
 **Format:**
 ```yaml
