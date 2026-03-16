@@ -1,0 +1,42 @@
+---
+description: Follow docs/documentation-strategy.md - brief, human, visual
+globs: docs/**/*.md
+alwaysApply: false
+---
+
+# Documentation
+
+Follow `docs/documentation-strategy.md` when writing or editing docs.
+
+## AI-Specific Guidance
+
+**Aggressively trim when editing**
+- Target 150 lines or less for reference docs (100 is better)
+- Replace prose explanations with code references
+- One paragraph beats three bullets
+
+**When to reference code instead of explaining**
+- Implementation details → link to ansible/terraform/role file
+- How something works internally → point to the module
+- Step-by-step what code does → just show the path
+
+**Link to code with backticks in the link text** (renders monospace = clearly "code")
+```markdown
+❌ See ansible/roles/server/tasks/traefik.yml
+✅ See [`ansible/roles/server/tasks/traefik.yml`](../ansible/roles/server/tasks/traefik.yml)
+```
+Doc links use normal text: [Remote-SSH](remote-ssh.md).
+
+**Examples**
+
+❌ Don't write:
+> The deployment role first resolves the tag to a digest by querying the registry API, extracts metadata from the image manifest, then decrypts secrets using SOPS...
+
+✅ Write:
+> Deploy resolves the tag to a digest, decrypts secrets, and runs Docker Compose. See `ansible/roles/deploy_app/tasks/main.yml`.
+
+❌ Don't write:
+> The Ansible playbook is structured into multiple tasks files. The main.yml orchestrates the workflow, resolve-image.yml handles tag resolution, and decrypt-secrets.yml manages SOPS decryption.
+
+✅ Write:
+> Playbook: `ansible/playbooks/deploy-app.yml`. Role: `ansible/roles/deploy_app/`.
