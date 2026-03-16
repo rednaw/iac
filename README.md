@@ -7,9 +7,9 @@
 You want to self-host. Maybe you left Heroku after the pricing changes. Maybe you care about data sovereignty. Maybe you just want a €4/month server instead of a $25/month platform.
 
 Your options:
-1. **PaaS-in-a-box** (Coolify, CapRover) — Click buttons, hope it works, don't look under the hood
-2. **Kubernetes** — Spend months learning, over-engineer everything, feel clever
-3. **Wing it** — SSH in, docker-compose up, forget how you set it up, dread the next server
+1. **PaaS-in-a-box** ([Coolify](https://coolify.io/docs/), [CapRover](https://caprover.com/)) — Click buttons, don't look under the hood, accept that what you get is as good as it gets.
+2. **[Kubernetes](https://kubernetes.io/)** — Spend months learning, over-engineer everything, feel clever
+3. **Wing it** — SSH in, edit some configuration files, run docker-compose up, forget how you set it up, dread the next server
 
 None of these feel right.
 
@@ -17,10 +17,10 @@ None of these feel right.
 
 A fourth option: proper infrastructure-as-code, but approachable.
 
-- **Terraform** provisions your server (Hetzner, cheap and European)
-- **Ansible** configures it (Docker, security hardening, Traefik and more)
-- **SOPS** encrypts your secrets (committed to Git, decrypted transparently in VS Code)
-- **docker-compose** runs your apps (the format you already know)
+- **[Terraform](https://www.terraform.io/)** provisions your server (Hetzner, cheap and European)
+- **[Ansible](https://www.ansible.com/)** configures it (Docker, security hardening, Traefik and more)
+- **[SOPS](https://getsops.io/)** encrypts your secrets (committed to Git, no need for a secrets manager service)
+- **[docker compose](https://docs.docker.com/compose/)** runs your apps (the format you already know)
 
 Everything is code. Everything is versioned. Nothing is magic.
 
@@ -38,7 +38,7 @@ Build your own server and deploy you app by running a few commands.
 - **[Restic](https://restic.net/)** — Encrypted backups to Storage Box (WIP).
 - **Secrets in Git** — [SOPS](https://getsops.io/)-encrypted, no need for an external secrets manager.
 
-Work from a [DevContainer](https://containers.dev/) — All tools like [Task](https://taskfile.dev/), [Ansible](https://www.ansible.com/), [Terraform](https://www.terraform.io/), [SOPS](https://github.com/getsops/sops) and more come pre-installed and configured to work together.
+Work from a [DevContainer](https://containers.dev/) — All tools like [Task](https://taskfile.dev/), [Ansible](https://www.ansible.com/), [Terraform](https://www.terraform.io/), [SOPS](https://getsops.io/) and more come pre-installed and configured to work together.
 
 All configuration and encrypted secrets live in your application repository under `.iac/`.
 
