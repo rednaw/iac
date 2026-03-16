@@ -7,7 +7,7 @@
 This diagram shows how the various components work together:
 
 <details>
-  <summary>Architecture diagram</summary>
+  <summary>Click to expand</summary>
 
 ```mermaid
 graph TB
