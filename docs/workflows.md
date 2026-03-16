@@ -64,13 +64,6 @@ Worker container `prefect-worker` has: flow code at `/opt/iac/prefect/flows/` (s
 
 Server runs with `--analytics-off`; no telemetry to Prefect Cloud.
 
-## Troubleshooting
-
-| Problem | What to do |
-|--------|------------|
-| Deployment not in UI | Check [`prefect/prefect.yaml`](../prefect/prefect.yaml) has your flow under `deployments:`. Run `task ansible:run -- dev`. Check playbook for "Register Prefect deployments" errors. |
-| Flow run fails immediately | Flow run logs in UI. Often: import error (add module to [`prefect/Dockerfile.worker`](../prefect/Dockerfile.worker)), wrong entrypoint in prefect.yaml, or auth (worker has socket + DOCKER_CONFIG). |
-| Worker not picking up runs | `docker ps` and `docker logs prefect-worker`. UI → Work Pools → host-pool → 1 worker online. |
-| Can't reach UI | `task tunnel:start -- dev`, then http://localhost:57802/. |
+See [Troubleshooting](troubleshooting.md) for Prefect and workflow issues.
 
 See [Monitoring](monitoring.md), [Remote-SSH](remote-ssh.md), [Registry](registry.md), [Application deployment](application-deployment.md).

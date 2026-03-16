@@ -118,17 +118,6 @@ CSP and Permissions-Policy not set by default — add in app or via middleware.
 
 Key dynamic files: [`traefik-dynamic-redirects-http.yml.j2`](../ansible/roles/server/templates/traefik-dynamic-redirects-http.yml.j2) (HTTP→HTTPS), [`traefik-dynamic-middlewares.yml.j2`](../ansible/roles/server/templates/traefik-dynamic-middlewares.yml.j2) (headers, buffering), [`traefik-dynamic-app-host.yml.j2`](../ansible/roles/server/templates/traefik-dynamic-app-host.yml.j2) (cert pre-warming).
 
----
-
-## Troubleshooting
-
-| Problem | Fix |
-|---------|-----|
-| Certificates not provisioning | Check `docker logs traefik`. Ensure HTTP→HTTPS redirect excludes `/.well-known/acme-challenge` and router exists. |
-| HTTP→HTTPS not working | Verify [`traefik-dynamic-redirects-http.yml.j2`](../ansible/roles/server/templates/traefik-dynamic-redirects-http.yml.j2) priority is 10000 and excludes ACME path. |
-| Container not discovered | Check container is on `traefik` network (`docker network inspect traefik`), has `traefik.enable=true` label. |
-| IPv6 not working | Verify DNS AAAA records. Check port bindings: `docker inspect traefik \| grep -A 10 Ports`. |
-
----
+See [Troubleshooting](troubleshooting.md) for Traefik and TLS issues.
 
 Traefik runs on ports 80/443, discovers containers via Docker labels, handles TLS via Let's Encrypt HTTP-01. Network: `traefik` (external). See [`ansible/roles/server/tasks/traefik.yml`](../ansible/roles/server/tasks/traefik.yml).

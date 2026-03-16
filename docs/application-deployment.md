@@ -92,16 +92,6 @@ Shape: see [`ansible/roles/deploy_app/tasks/record-deployment.yml`](../ansible/r
 - **Taskfile:** [`tasks/Taskfile.app.yml`](../tasks/Taskfile.app.yml) — `app:deploy`, `app:versions`; reads from `.iac/iac.yml`, runs Ansible and [`scripts/application_versions.py`](../scripts/application_versions.py).
 - **Playbook:** [`ansible/playbooks/deploy-app.yml`](../ansible/playbooks/deploy-app.yml) → role [`ansible/roles/deploy_app/`](../ansible/roles/deploy_app/)**: main, resolve-image, decrypt-secrets, prepare-server, run-container, record-deployment.
 
-## Troubleshooting
+See [Troubleshooting](troubleshooting.md) for app mount, deploy, and registry issues.
 
-| Problem | What to do |
-|--------|------------|
-| No app at `/workspaces/iac/app` | Editor had no `APP_HOST_PATH`. Run `./scripts/setup-app-path.sh /path/to/app` on host, open workspace, Reopen in Container. |
-| "Could not resolve digest" | Image exists? Registry auth? See [Registry](registry.md#troubleshooting). Tag is 7 hex chars? |
-| "missing required vars" / "iac.yml not found" | App mount has `docker-compose.yml` and `.iac/` (iac.yml, .env, .sops.yaml, docker-compose.override.yml). Run setup-app-path, Reopen in Container. |
-| "Host key verification failed" | `task hostkeys:prepare -- <WORKSPACE>` then deploy. See [Troubleshooting](troubleshooting.md). |
-| Ansible playbook failures | Check playbook logs; secrets decrypted? `task server:check-status`. |
-| "Could not read deploy-info.yml" | App may not be deployed yet; SSH and app name correct? |
-| "No tags found" | Registry access; see [Registry](registry.md#troubleshooting). |
-
-See [Registry](registry.md), [Troubleshooting](troubleshooting.md), [Traefik](traefik.md), [Backups](backups.md).
+See [Registry](registry.md), [Traefik](traefik.md), [Backups](backups.md).

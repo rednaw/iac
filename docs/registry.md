@@ -42,7 +42,7 @@ Same credentials everywhere: SOPS-decrypted `app/.iac/iac.yml`. No manual `docke
 task registry:overview   # list repos and tags
 ```
 
-"No repositories found (or access denied)" → use the devcontainer. See [Troubleshooting](#troubleshooting).
+"No repositories found (or access denied)" → use the devcontainer. See [Troubleshooting](troubleshooting.md).
 
 ## Reference
 
@@ -59,13 +59,4 @@ SHA-only tags: `crane ls registry.<base_domain>/<image> | grep -E '^[0-9a-f]{7}$
 
 **On server** (via Docker context from devcontainer): `docker exec registry registry garbage-collect`. Data size: `du -sh /var/lib/docker-registry`.
 
-## Troubleshooting
-
-| Problem | What to do |
-|--------|------------|
-| "No repositories found (or access denied)" | Use the devcontainer. |
-| "Could not resolve digest" / image not found | `crane ls registry.<base_domain>/<repo>`. Check tag and auth. |
-| Deploy fails to pull | Server auth in `/opt/iac/.docker/config.json`. Ensure Ansible ran and secrets have `base_domain`, `registry_username`, `registry_password`. |
-| Registry unreachable | Check DNS/HTTPS for `registry.<base_domain>`; Traefik and registry container running. |
-
-See [Application deployment](application-deployment.md), [Secrets](secrets.md), [Private](private.md).
+See [Troubleshooting](troubleshooting.md) for registry issues. [Application deployment](application-deployment.md), [Secrets](secrets.md), [Private](private.md).

@@ -90,7 +90,7 @@ git pull
 
 ## 5. Verify decryption works
 
-Open `app/.iac/iac.yml` in VS Code. If the SOPS extension is working, you should see decrypted YAML with actual values — tokens, passwords, domain names. If it shows garbled encrypted text, check [Secrets: Troubleshooting](secrets.md#troubleshooting).
+Open `app/.iac/iac.yml` in VS Code. If the SOPS extension is working, you should see decrypted YAML with actual values — tokens, passwords, domain names. If it shows garbled encrypted text, check [Troubleshooting](troubleshooting.md).
 
 ---
 

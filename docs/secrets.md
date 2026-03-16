@@ -54,14 +54,7 @@ Public keys: `app/.iac/sops-key-*.pub`. SOPS config: `app/.iac/.sops.yaml` (run 
 
 Create `app/.iac/.env` in VS Code, add variables (dotenv), save (SOPS encrypts), commit. Ensure `.sops.yaml` exists and matches `.env` (`task secrets:generate-sops-config`). Deploy uses the decrypted dotenv for docker-compose.
 
-## Troubleshooting
-
-| Problem | What to do |
-|--------|------------|
-| "Cannot decrypt: no matching keys" | Your public key isn't in the file. Teammate opens file in VS Code, saves, commits and pushes. |
-| "SOPS key not found" | `task secrets:keygen` (in IaC repo). |
-| VS Code doesn't decrypt | SOPS extension installed? Key path set? `.sops.yaml` exists? `ls ~/.config/sops/age/keys.txt` |
-| File shows binary | Encrypted. Install SOPS extension. |
+See [Troubleshooting](troubleshooting.md) for SOPS and decrypt issues.
 
 ## CI/CD (app repo)
 
