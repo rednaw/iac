@@ -1,8 +1,13 @@
 [**<---**](../README.md)
 
-# Documentation
 
-This diagram shows the main pieces: the IaC devcontainer, your app repo, and the server. 
+## Getting started
+[Choose your path](onboarding.md): create a new project or join an existing one.
+
+This diagram shows how the various components work together:
+
+<details>
+  <summary>Architecture diagram</summary>
 
 ```mermaid
 graph TB
@@ -14,22 +19,20 @@ graph TB
     end
 
     subgraph SERVER[Ubuntu Server]
-      subgraph DMZ[dmz]
-        SEC(Security hardening<br/>Fail2ban, SSH)
+      subgraph DMZ[.]
         TRAEFIK(Traefik<br/>Reverse Proxy + TLS)
+        OBSERVE(OpenObserve<br/>Monitors system health)
+        WORKFLOWS(Prefect<br/>Run and schedule workflows)
+        REGISTRY(Docker Registry)
+        SEC(Security hardening<br/>Fail2ban, SSH)
       end
       subgraph DOCKER[Application]
         SUPPORTING_SERVICES@{ shape: cyl, label: "Supporting Services<br/>Postgres, Redis, ..." }
         APP_SERVICE(Application Service)
       end
-      subgraph SYSTEM[Internal]
-        REGISTRY(Docker Registry)
-        OBSERVE(OpenObserve<br/>Monitors system health)
-        WORKFLOWS(Prefect<br/>Run and schedule workflows)
-      end
     end
 
-    subgraph APP[Your application repo]
+    subgraph APP[Your application]
       COMPOSE@{ shape: lin-doc, label: "docker-compose.yml<br/>Application services" }
       PUSH@{ shape: subproc, label: "Github workflow<br/>Build and push" }
       IAC_YML@{ shape: lin-doc, label: ".iac/<br/>Platform config<br/>Encrypted secrets" }
@@ -46,16 +49,7 @@ graph TB
     APP_SERVICE -->|pull application image| REGISTRY
     PUSH --->|push application image| REGISTRY 
 ```
-
-The IaC devcontainer mounts four files in your local application clone so you can deploy without installing tools like Task, Ansible or Terraform on your local machine or application Devcontainer.
-
----
-
-## Onboarding
-
-[**Onboarding**](onboarding.md) — Choose your path: create a new project or join an existing one.
-
----
+</details>
 
 ## Reference
 
@@ -63,8 +57,8 @@ The IaC devcontainer mounts four files in your local application clone so you ca
 
 - [Traefik](traefik.md) — Reverse proxy, TLS, operations, adding apps
 - [Registry](registry.md) — Auth, commands, operations
-- [Monitoring](monitoring.md) — OpenObserve, dashboards, logs
-- [Workflows](workflows.md) — Scheduled tasks and multi-step workflows with Prefect
+- [OpenObserve](monitoring.md) — OpenObserve, dashboards, logs
+- [Prefect](workflows.md) — Scheduled tasks and multi-step workflows with Prefect
 
 **Application**
 
@@ -72,18 +66,15 @@ The IaC devcontainer mounts four files in your local application clone so you ca
 - [Secrets](secrets.md) — File locations, editing, SOPS, app secrets
 
 **Operations**
-
-- [Workflows](workflows.md) — Scheduled tasks and multi-step workflows with Prefect
 - [Backups](backups.md) — Hetzner automated backups (Terraform, 7 restore points)
 - [Troubleshooting](troubleshooting.md) — Common issues and fixes
-- [Upgrading dependencies](upgrading.md) — Renovate, PRs
 - [Remote-SSH](remote-ssh.md) — Connect to the server via Remote-SSH (tunnel, dashboards)
 
 **Meta**
 
 - [Private (local config)](private.md) — Local config files
 - [Code analysis](code-analysis.md) — What runs, when (CI), how to run locally
-- [Tools and technologies](technologies.md) — Link list
+- [Technologies and upgrading](technologies.md) — Tools used, Renovate, package files
 
 ---
 

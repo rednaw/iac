@@ -2,158 +2,70 @@
 
 # Registry
 
-Private Docker registry for container images. **Use the devcontainer to interact with the registry** — registry auth and tools (crane, Docker, jq) are configured automatically there.
+Private Docker registry for app images. Use the **devcontainer** to interact — auth and tools (crane, Docker) are configured there. Hostname: `registry.<base_domain>`. [Docker Registry](https://distribution.github.io/distribution/) (image `registry:3`), HTTPS + Basic Auth via Traefik. IaC dev image lives on ghcr.io only.
 
 ```mermaid
 flowchart LR
     subgraph GITHUB["GitHub Actions"]
         A(Build & push<br/>app images)
     end
-    
-    subgraph REGISTRY["Registry<br/>registry.<base_domain>"]
-        B(Store app images<br/>e.g. rednaw/tientje-ketama)
+    subgraph REGISTRY["Registry"]
+        B(Store app images)
     end
-    
     subgraph DEVCONTAINER["Devcontainer"]
         C(crane ls<br/>task registry:overview)
     end
-    
     subgraph SERVER["Server"]
-        D(Pull images<br/>for deployment)
+        D(Pull for deploy)
     end
-    
     A -->|push| B
     C -->|list/inspect| B
     D -->|pull| B
 ```
 
-## Overview
-
-- **Hostname:** `registry.<base_domain>` (e.g. `registry.rednaw.nl`; derived from `base_domain` in SOPS secrets)
-- **Software:** [Docker Registry](https://distribution.github.io/distribution/) (image `registry:3`)
-- **Protocol:** Docker Registry API v2, served over HTTPS with HTTP Basic Auth
-- **Purpose:** Store **application images** (e.g. `rednaw/tientje-ketama`) built and pushed by app repos. The **IaC dev image** (`iac-dev`) is hosted on **GitHub Container Registry (ghcr.io)** only, not in this registry.
-
----
-
-## Infrastructure
-
-The registry runs on the same Ubuntu server(s) as the applications, configured by Ansible.
-
-| Component | Details |
-|-----------|--------|
-| **Ansible role** | `ansible/roles/server/tasks/registry.yml` |
-| **Container** | `registry:3`, name `registry`, port `127.0.0.1:5001→5000` |
-| **Storage** | `/var/lib/docker-registry` on the host (bind-mounted) |
-| **Config** | `/etc/docker-registry/config.yml` (from `registry-config.yml.j2`) |
-| **Auth** | htpasswd at `/etc/traefik/auth/htpasswd` (Traefik basic-auth middleware; registry uses same credentials, `REGISTRY_AUTH=none`) |
-| **Traefik** | Proxies HTTPS `registry.<base_domain>` → registry container; Basic Auth middleware; TLS via Let's Encrypt |
-
-Credentials and domain are taken from SOPS-decrypted `app/.iac/iac.yml`:
-
-- `registry_username` / `registry_password` — used for htpasswd and for Docker client auth
-- `base_domain` — e.g. `example.com`; registry hostname is derived as `registry.<base_domain>`
-- `registry_http_secret` — registry config HTTP secret
-
----
+**Config:** [`ansible/roles/server/tasks/registry.yml`](../ansible/roles/server/tasks/registry.yml) · Storage: `/var/lib/docker-registry` · Config file: [`registry-config.yml.j2`](../ansible/roles/server/templates/registry-config.yml.j2). Credentials from SOPS `app/.iac/iac.yml` (`registry_username`, `registry_password`, `base_domain`, `registry_http_secret`).
 
 ## Authentication
 
-All environments use the same credential source: SOPS-decrypted `app/.iac/iac.yml` (`registry_username`, `registry_password`). No manual `docker login` is required.
+Same credentials everywhere: SOPS-decrypted `app/.iac/iac.yml`. No manual `docker login`.
 
-### Devcontainer
-
-- **Trigger:** `postCreateCommand` runs `.devcontainer/devcontainer-setup.sh` on container creation
-- **Effect:** The script writes to `~/.docker/config.json` inside the devcontainer so `docker`, `crane`, and `trivy` can access the private registry without manual `docker login`
-- **When:** Automatic; no manual steps. No `DOCKER_CONFIG` env var needed
-- **Tools:** Registry-related tools (e.g. **crane**, Docker CLI, jq) are automatically installed in the devcontainer via [mise](https://mise.jdx.dev/) and the image build; you can run `task registry:overview`, `crane ls`, etc. from inside the devcontainer
-
-### GitHub Actions
-
-- **Method:** In the **app** repo, set GitHub Actions **Secrets** `REGISTRY_USERNAME` and `REGISTRY_PASSWORD` (from `app/.iac/iac.yml`; decrypt in VS Code to copy). The reusable workflow `_build-and-push.yml` receives these and uses `docker/login-action@v3`.
-- **When:** One-time setup per app repo; no SOPS in CI for app builds
-
-### Server – ubuntu user
-
-- **Method:** Ansible writes `~/.docker/config.json` during server setup (`ansible/roles/server/tasks/registry.yml`)
-- **When:** Automatic when the server role runs
-
-### Server – iac user and Prefect worker (shared)
-
-- **Method:** Ansible writes `/opt/iac/.docker/config.json` during server setup (`ansible/roles/server/tasks/iac-user.yml`). Shared by the `iac` user (app deploys) and the Prefect worker (flows).
-- **When:** Automatic when the server role runs. Used to pull images during application deployment and by Prefect flows (e.g. registry prune). See [Server layout](server-layout.md).
-
----
+| Where | How |
+|-------|-----|
+| Devcontainer | [`devcontainer-setup.sh`](../.devcontainer/devcontainer-setup.sh) writes `~/.docker/config.json` on create. Crane, Docker, trivy work out of the box. |
+| GitHub Actions | In app repo: Secrets `REGISTRY_USERNAME`, `REGISTRY_PASSWORD` (copy from decrypted iac.yml). Workflow uses `docker/login-action@v3`. |
+| Server (ubuntu) | Ansible writes `~/.docker/config.json` in [`registry.yml`](../ansible/roles/server/tasks/registry.yml). |
+| Server (iac + Prefect) | Ansible writes Docker config in [`iac-user.yml`](../ansible/roles/server/tasks/iac-user.yml). Used for deploys and Prefect flows. |
 
 ## Commands
 
-### `task registry:overview`
-
-Lists all repositories and their tags (TAG, CREATED, DESCRIPTION) in the registry:
-
 ```bash
-task registry:overview
+task registry:overview   # list repos and tags
 ```
 
-If you see "No repositories found (or access denied)", see [Troubleshooting](#troubleshooting).
-
----
+"No repositories found (or access denied)" → use the devcontainer. See [Troubleshooting](#troubleshooting).
 
 ## Reference
 
-### Crane
+**Crane** (from devcontainer):
 
 | Task | Command |
 |------|--------|
-| List repos | `crane catalog registry.<base_domain>` (e.g. `registry.rednaw.nl`) |
-| List tags for an image | `crane ls registry.<base_domain>/<image>` e.g. `crane ls registry.rednaw.nl/rednaw/tientje-ketama` |
-| Get digest of a tag | `crane digest registry.<base_domain>/<image>:<tag>` |
-| Inspect manifest | `crane manifest registry.<base_domain>/<image>:<tag>` |
-| Delete a tag | `crane delete registry.<base_domain>/<image>:<tag>` |
+| List repos | `crane catalog registry.<base_domain>` |
+| List tags | `crane ls registry.<base_domain>/<image>` |
+| Digest of tag | `crane digest registry.<base_domain>/<image>:<tag>` |
+| Delete tag | `crane delete registry.<base_domain>/<image>:<tag>` |
 
-Filter SHA-like tags (e.g. for pruning):  
-`crane ls registry.<base_domain>/<image> | grep -E '^[0-9a-f]{7}$'`
+SHA-only tags: `crane ls registry.<base_domain>/<image> | grep -E '^[0-9a-f]{7}$'`
 
-### Docker
-
-| Task | Command |
-|------|--------|
-| Image a container uses | `docker inspect <container> --format '{{.Config.Image}}'` |
-| Disk usage | `docker system df` |
-| List running containers | `docker ps` |
-
-### Registry host
-
-From the devcontainer, use Docker contexts to run commands on the server: `docker context use dev` (or `prod`), then e.g. `docker exec registry registry garbage-collect`.
-
-| Task | Command |
-|------|--------|
-| Registry data size | `du -sh /var/lib/docker-registry` (or the registry’s `rootdirectory`) |
-
-### Example: list SHA-only tags for pruning
-
-```bash
-crane ls registry.rednaw.nl/rednaw/tientje-ketama | grep -E '^[0-9a-f]{7}$'
-# Then delete if safe:
-# crane delete registry.rednaw.nl/rednaw/tientje-ketama:<sha>
-```
-(Replace `rednaw.nl` with your base domain if different.)
-
----
+**On server** (via Docker context from devcontainer): `docker exec registry registry garbage-collect`. Data size: `du -sh /var/lib/docker-registry`.
 
 ## Troubleshooting
 
 | Problem | What to do |
 |--------|------------|
 | "No repositories found (or access denied)" | Use the devcontainer. |
-| "Could not resolve digest" / image not found | Check image exists: `crane ls registry.<base_domain>/<repo>`. Ensure tag is correct and auth is configured. |
-| Deploy fails to pull image | On the server, deploy user’s auth is in `/opt/iac/.docker/config.json`; ensure Ansible has run and `infrastructure_secrets` contains correct `base_domain`, `registry_username`, `registry_password`. |
-| Registry unreachable from laptop | Check DNS and HTTPS for `registry.<base_domain>` (e.g. `registry.rednaw.nl`); ensure Traefik and the registry container are running on the server. |
+| "Could not resolve digest" / image not found | `crane ls registry.<base_domain>/<repo>`. Check tag and auth. |
+| Deploy fails to pull | Server auth in `/opt/iac/.docker/config.json`. Ensure Ansible ran and secrets have `base_domain`, `registry_username`, `registry_password`. |
+| Registry unreachable | Check DNS/HTTPS for `registry.<base_domain>`; Traefik and registry container running. |
 
----
-
-## Related
-
-- [Application deployment](application-deployment.md) — How apps are deployed and how they use the registry
-- [Secrets](secrets.md) — Where registry credentials are stored (SOPS)
-- [Private](private.md) — Local config files and auth
+See [Application deployment](application-deployment.md), [Secrets](secrets.md), [Private](private.md).
