@@ -30,4 +30,4 @@ Both restore commands run `hcloud server rebuild <server-name> --image <image-id
 ## Relation to other docs
 
 - [Application deployment](application-deployment.md) — App compose should set `restart: unless-stopped` so the app survives reboot/restore.
-- [Backup with Hetzner Storage Box](backup-storage-box.md) — Service-aware backups (Postgres dumps + uploads) as a complement or alternative to image backups.
+- [Backup with Hetzner Storage Box](backup-storage-box.md) — Service-aware backups with Restic (Postgres dumps + volumes to Storage Box).

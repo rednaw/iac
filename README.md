@@ -26,11 +26,27 @@ Everything is code. Everything is versioned. Nothing is magic.
 
 ![Architecture Diagram](docs/architecture.svg)
 
+## Batteries included
+
+Build your own server and deploy you app by running a few commands.
+- **Hardened server** — SSH keys only, [fail2ban](https://linuxsecurity.com/features/what-is-fail2ban) intrusion prevention, automatic security updates.
+- **Deploy your apps** — Be in full control of what version is running.
+- **[Private Docker registry](https://docs.docker.com/get-started/docker-concepts/the-basics/what-is-a-registry/)** — Push your application image from GitHub Actions. 
+- **[Traefik](https://doc.traefik.io/traefik/) reverse proxy** — HTTPS with [Let's Encrypt](https://letsencrypt.org/), automatic routing via Docker labels.
+- **[OpenObserve](https://openobserve.ai/)** — Logs and metrics, no SaaS dependencies.
+- **[Prefect](https://www.prefect.io/)** — Schedule tasks and workflows on the server.
+- **[Restic](https://restic.net/)** — Encrypted backups to Storage Box (WIP).
+- **Secrets in Git** — [SOPS](https://getsops.io/)-encrypted, no need for an external secrets manager.
+
+Work from a [DevContainer](https://containers.dev/) — All tools like [Task](https://taskfile.dev/), [Ansible](https://www.ansible.com/), [Terraform](https://www.terraform.io/), [SOPS](https://github.com/getsops/sops) and more come pre-installed and configured to work together.
+
+All configuration and encrypted secrets live in your application repository under `.iac/`.
+
 ## Who This Is For
 
-- **Indie hackers** — Ship your side project on a €4/month VPS
-- **Small teams** — Deploy 2-5 apps without a platform team
 - **Learners** — Understand IaC properly, not through a GUI
+- **Small teams** — Deploy 2-5 apps without a platform team
+- **Indie hackers** — Ship your side project on a €4/month VPS
 - **Privacy-conscious developers** — Your data, your servers, your jurisdiction
 
 ## Who This Is Not For

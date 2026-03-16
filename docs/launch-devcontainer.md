@@ -54,7 +54,7 @@ The devcontainer has two modes:
 
 No manual login needed — `terraform`, `hcloud`, and `crane` work immediately.
 
-**If startup fails:** Check that your SOPS key is at `~/.config/sops/age/keys.txt` and that you've been added to the keyring. See [Secrets: Troubleshooting](secrets.md#troubleshooting).
+**If startup fails:** Check that your SOPS key is at `~/.config/sops/age/keys.txt` and that you've been added to the keyring. See [Troubleshooting](troubleshooting.md).
 
 ---
 
