@@ -91,6 +91,7 @@ tasks:
     dir: ansible
     silent: true
     cmds:
+      - mkdir -p .ansible
       - |
         echo ""
         echo "🔍 Linting Ansible playbooks..."

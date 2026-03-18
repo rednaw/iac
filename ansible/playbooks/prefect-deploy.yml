@@ -8,8 +8,8 @@
   gather_facts: false
   become: true
   vars:
-    # Passed at runtime: task workflow:deploy -- [dev|prod]
-    target_workspace: ""
+    # Required at runtime: task workflow:deploy -- [dev|prod]. Default allows ansible-playbook --syntax-check to pass.
+    target_workspace: "localhost"
     prefect_flow_code_host_path: /opt/iac/prefect/flows
     prefect_worker_image: prefect-worker
     repo_root: "{{ playbook_dir }}/../.."
