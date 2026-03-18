@@ -29,6 +29,7 @@
     # Fallback is SHA-256 of empty input (stdin); used when find yields no output so the pipe never fails.
     - name: Compute checksum of Prefect flow code (for idempotent sync)
       ansible.builtin.shell: |
+        set -o pipefail
         out=$(find "{{ repo_root }}/prefect" -type f ! -path '*/__pycache__/*' ! -name '*.pyc' -exec sha256sum {} + 2>/dev/null | sort -k2 | sha256sum | awk '{print $1}')
         echo "${out:-e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855}"
       register: prefect_flow_code_checksum_cmd
