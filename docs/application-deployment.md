@@ -52,6 +52,7 @@ The devcontainer mounts your app at `/workspaces/iac/app`: **`.iac/`** and **`do
 | `.iac/.env` | SOPS-encrypted app secrets (dotenv). |
 | `.iac/.sops.yaml` | SOPS config for iac.yml and .env. |
 | `.iac/docker-compose.override.yml` | Traefik labels, `traefik` network, `restart: unless-stopped`. |
+| `.iac/backup.yml` | *Optional.* Service-aware backup: retention + postgres + volumes. See [Backup with Hetzner Storage Box](backup-storage-box.md). If present, deploy copies it to the server as `backup.yml` (next to compose files); the backup flow reads it there. |
 
 Routing: override defines Traefik labels and network. See [Traefik](traefik.md#adding-an-application). App service must use `image: ${IMAGE}` (deploy sets it to digest). `restart: unless-stopped` on every service so the app comes back after reboot — see [Backups](backups.md#after-an-in-place-restore).
 

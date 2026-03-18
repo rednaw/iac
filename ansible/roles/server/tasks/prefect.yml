@@ -1,7 +1,8 @@
 ---
 # yaml-language-server: $schema=https://raw.githubusercontent.com/ansible/ansible-lint/main/src/ansiblelint/schemas/ansible.json#/$defs/tasks
 # Prefect: server and worker in containers. Worker has Docker socket + crane for registry/backup jobs.
-# Flow code synced to /opt/iac/prefect/flows. Registry auth shared at /opt/iac/.docker. See docs/server-layout.md.
+# Flow code is synced separately via prefect-deploy.yml playbook (task workflow:deploy).
+# Registry auth shared at /opt/iac/.docker. See docs/server-layout.md.
 
 - name: Set Prefect variables
   ansible.builtin.set_fact:
@@ -21,69 +22,6 @@
     state: directory
     mode: '0755'
 
-- name: Check if Prefect flow code directory exists in repo
-  ansible.builtin.stat:
-    path: "{{ playbook_dir }}/../../prefect"
-  register: prefect_src_stat
-  delegate_to: localhost
-  become: false
-
-- name: Compute checksum of Prefect flow code (for idempotent sync)
-  ansible.builtin.shell: |
-    set -o pipefail
-    cd "{{ playbook_dir }}/../.." && find prefect -type f ! -path 'prefect/__pycache__/*' ! -name '*.pyc' | sort | xargs sha256sum 2>/dev/null | sha256sum | awk '{print $1}'
-  register: prefect_flow_code_checksum_cmd
-  delegate_to: localhost
-  become: false
-  changed_when: false
-  when: prefect_src_stat.stat.exists and prefect_src_stat.stat.isdir
-
-- name: Stat stored flow code checksum on server
-  ansible.builtin.stat:
-    path: /opt/iac/prefect/.flow-code.checksum
-  register: _prefect_flow_code_checksum_file
-  when: prefect_src_stat.stat.exists and prefect_src_stat.stat.isdir
-
-- name: Get stored flow code checksum on server
-  ansible.builtin.slurp:
-    src: /opt/iac/prefect/.flow-code.checksum
-  register: _prefect_flow_code_checksum_stored
-  when: prefect_src_stat.stat.exists and prefect_src_stat.stat.isdir and _prefect_flow_code_checksum_file.stat.exists | default(false)
-
-- name: Set fact when flow code sync is needed
-  ansible.builtin.set_fact:
-    prefect_flow_code_sync_needed: "{{ not (_prefect_flow_code_checksum_file.stat.exists | default(false)) or (_prefect_flow_code_checksum_stored.content | default('') | b64decode | trim) != (prefect_flow_code_checksum_cmd.stdout | default('') | trim) }}"
-  when: prefect_src_stat.stat.exists and prefect_src_stat.stat.isdir
-
-- name: Copy Prefect flow code from IaC repo to host
-  ansible.posix.synchronize:
-    src: "{{ playbook_dir }}/../../prefect/"
-    dest: "{{ prefect_flow_code_host_path }}/"
-    delete: true
-    rsync_opts:
-      - "--exclude=__pycache__"
-      - "--exclude=.git"
-      - "--checksum"
-      - "--omit-dir-times"
-  when: prefect_src_stat.stat.exists and prefect_src_stat.stat.isdir and prefect_flow_code_sync_needed | default(true) | bool
-
-- name: Record flow code checksum after sync
-  ansible.builtin.copy:
-    content: "{{ prefect_flow_code_checksum_cmd.stdout }}"
-    dest: /opt/iac/prefect/.flow-code.checksum
-    mode: '0644'
-  when: prefect_src_stat.stat.exists and prefect_src_stat.stat.isdir and prefect_flow_code_sync_needed | default(true) | bool
-
-- name: Fix ownership of Prefect subtree (sync runs as ubuntu; design is root-owned)
-  ansible.builtin.file:
-    path: /opt/iac/prefect
-    state: directory
-    recurse: true
-    owner: root
-    group: root
-  when: prefect_src_stat.stat.exists and prefect_src_stat.stat.isdir
-
-
 - name: Ensure Prefect .ssh directory exists (flow-only keys, e.g. Storage Box)
   ansible.builtin.file:
     path: /opt/iac/prefect/.ssh
@@ -91,51 +29,6 @@
     owner: root
     group: root
     mode: '0700'
-  when: prefect_src_stat.stat.exists and prefect_src_stat.stat.isdir
-
-- name: Get checksum of Dockerfile.worker (triggers rebuild when it changes)
-  ansible.builtin.stat:
-    path: "{{ prefect_flow_code_host_path }}/Dockerfile.worker"
-    checksum_algorithm: sha256
-  register: prefect_dockerfile_stat
-  when: prefect_src_stat.stat.exists and prefect_src_stat.stat.isdir
-
-- name: Check if previous worker image build checksum exists
-  ansible.builtin.stat:
-    path: /opt/iac/prefect/.worker-image.checksum
-  register: prefect_worker_checksum_file_stat
-  when: prefect_src_stat.stat.exists and prefect_src_stat.stat.isdir
-
-- name: Read previous worker image build checksum
-  ansible.builtin.slurp:
-    src: /opt/iac/prefect/.worker-image.checksum
-  register: prefect_worker_checksum_prev
-  when: prefect_worker_checksum_file_stat.stat is defined and prefect_worker_checksum_file_stat.stat.exists
-
-- name: Set fact when worker image needs rebuild (Dockerfile changed or no previous checksum)
-  ansible.builtin.set_fact:
-    prefect_worker_rebuild: "{{ prefect_worker_checksum_prev is skipped or (prefect_worker_checksum_prev.content | default('') | b64decode | trim) != (prefect_dockerfile_stat.stat.checksum) }}"
-  when: prefect_dockerfile_stat.stat is defined
-
-- name: Build Prefect worker image
-  community.docker.docker_image:
-    name: "{{ prefect_worker_image }}"
-    source: build
-    force_source: "{{ prefect_worker_rebuild | default(true) }}"
-    build:
-      path: "{{ prefect_flow_code_host_path }}"
-      dockerfile: Dockerfile.worker
-  when: prefect_src_stat.stat.exists and prefect_src_stat.stat.isdir
-
-- name: Record worker image build checksum after rebuild
-  ansible.builtin.copy:
-    content: "{{ prefect_dockerfile_stat.stat.checksum }}"
-    dest: /opt/iac/prefect/.worker-image.checksum
-    mode: '0644'
-  when:
-    - prefect_src_stat.stat.exists and prefect_src_stat.stat.isdir
-    - prefect_worker_rebuild | default(true) | bool
-    - prefect_dockerfile_stat.stat.checksum is defined
 
 - name: Ensure Prefect network exists
   community.docker.docker_network:
@@ -261,7 +154,6 @@
     working_dir: /opt/iac/prefect/flows
     networks:
       - name: prefect-network
-  when: prefect_src_stat.stat.exists and prefect_src_stat.stat.isdir
 
 - name: Ensure Prefect work pool host-pool exists
   ansible.builtin.shell: |
@@ -276,19 +168,4 @@
   register: prefect_work_pool
   changed_when: false
   failed_when: false
-  when: prefect_src_stat.stat.exists and prefect_src_stat.stat.isdir
 
-- name: Register Prefect deployments
-  ansible.builtin.shell: |
-    docker run --rm \
-      --network prefect-network \
-      -e PREFECT_API_URL=http://prefect-server:4200/api \
-      -e DOCKER_CONFIG=/opt/iac/.docker \
-      -v /opt/iac:/opt/iac \
-      -w /opt/iac/prefect/flows \
-      {{ prefect_worker_image }} \
-      prefect deploy --all 2>&1
-  register: prefect_register
-  changed_when: false
-  failed_when: (prefect_register.rc != 0) and ('successfully created' not in (prefect_register.stdout | default('')))
-  when: prefect_src_stat.stat.exists and prefect_src_stat.stat.isdir

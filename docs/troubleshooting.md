@@ -47,7 +47,7 @@
 
 | Problem | What to do |
 |--------|------------|
-| Deployment not in UI | [`prefect/prefect.yaml`](../prefect/prefect.yaml) has your flow under `deployments:`? Run `task ansible:run -- dev`. Check playbook for "Register Prefect deployments". |
+| Deployment not in UI | [`prefect/prefect.yaml`](../prefect/prefect.yaml) has your flow under `deployments:`? Run `task workflow:deploy -- dev`. Check playbook for "Register Prefect deployments". |
 | Flow run fails immediately | Flow run logs in UI. Often: import error (add module to [`prefect/Dockerfile.worker`](../prefect/Dockerfile.worker)), wrong entrypoint in prefect.yaml, or auth (worker has socket + DOCKER_CONFIG). |
 | Worker not picking up runs | `docker ps` and `docker logs prefect-worker`. UI → Work Pools → host-pool → 1 worker online. |
 | Can't reach UI | `task tunnel:start -- dev`, then http://localhost:57802/. |

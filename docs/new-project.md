@@ -146,6 +146,8 @@ abuseipdb_api_key: ""
 
 `registry_http_secret` is used internally by the Docker registry to sign tokens — generate a random string with `openssl rand -hex 32`.
 
+`allowed_ssh_ips`: used for SSH allowlisting and by fail2ban as trusted IPs (never banned).
+
 `base_domain` drives all hostnames: `dev.<base_domain>`, `prod.<base_domain>`, `registry.<base_domain>`.
 
 Encrypt the file:
@@ -216,6 +218,10 @@ Key points:
 - `image: ${IMAGE}` is required — the deploy task sets this to the resolved image digest.
 - `restart: unless-stopped` on every service ensures your app survives reboots. See [Backups](backups.md#after-an-in-place-restore).
 - See [Traefik](traefik.md#adding-an-application) for middleware configuration.
+
+### `.iac/backup.yml` (optional — service-aware backup)
+
+If you want Storage Box backup (Postgres dumps + volume data), add `.iac/backup.yml` with `retention`, `postgres`, and `volumes`. Deploy will copy it to the server; the backup flow uses it. See [Backup with Hetzner Storage Box](backup-storage-box.md#shape-of-iacbackupyml-decided). You can add this file later when backup is enabled.
 
 ### `.github/workflows/build-and-push.yml` (CI)
 
