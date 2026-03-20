@@ -19,7 +19,7 @@ tasks:
       - sh: test -f "{{.APP_ROOT}}/.iac/iac.yml"
         msg: "Missing {{.APP_ROOT}}/.iac/iac.yml"
       - sh: test -f "{{.APP_ROOT}}/.iac/backup.yml"
-        msg: "Missing {{.APP_ROOT}}/.iac/backup.yml (Restic contract). See docs/backup-storage-box.md"
+        msg: "Missing {{.APP_ROOT}}/.iac/backup.yml (Restic contract). See docs/backups.md"
 
   restore:
     desc: "Restic restore for mounted app. Use: task backup:restore -- <dev|prod> [snapshot] [--confirm|...]"

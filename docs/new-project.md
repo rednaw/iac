@@ -216,12 +216,12 @@ networks:
 Key points:
 - Replace `example.com` with your actual domain and `3000` with your app's port.
 - `image: ${IMAGE}` is required — the deploy task sets this to the resolved image digest.
-- `restart: unless-stopped` on every service ensures your app survives reboots. See [Backups](backups.md#after-an-in-place-restore).
+- `restart: unless-stopped` on every service ensures your app survives reboots. For backup/restore, see [Backups](backups.md).
 - See [Traefik](traefik.md#adding-an-application) for middleware configuration.
 
 ### `.iac/backup.yml` (optional — service-aware backup)
 
-If you want Storage Box backup (Postgres dumps + volume data), add `.iac/backup.yml` with `retention`, `postgres`, and `volumes`. Deploy will copy it to the server; the backup flow uses it. See [Backup with Hetzner Storage Box](backup-storage-box.md#shape-of-iacbackupyml-decided). You can add this file later when backup is enabled.
+If you want Restic backup (Postgres dumps + volume data, local repo and/or Storage Box), add `.iac/backup.yml` with `retention`, `postgres`, and `volumes`. Deploy copies it to the server as `backup.yml`. See [Backups](backups.md#backupyml). You can add this file later.
 
 ### `.github/workflows/build-and-push.yml` (CI)
 

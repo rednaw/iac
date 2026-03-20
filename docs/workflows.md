@@ -4,23 +4,31 @@
 
 Scheduled tasks and multi-step workflows run on [Prefect](https://www.prefect.io/). Server and worker run in Docker on the server; the worker has the Docker socket so flows can run `docker exec`, use crane, and access containers. Flow code lives under [`prefect/`](../prefect/) (one dir per flow).
 
+<details>
+<summary>Diagram: where flow code runs, click to expand</summary>
+
 ```mermaid
-flowchart LR
-    subgraph REPO["IaC Repo"]
-        FLOWS(prefect/<br/>registry_prune/, …)
+flowchart TB
+    subgraph REPO["IaC repo (Git / devcontainer)"]
+        FLOWS["prefect/<br/>backup · registry_prune · …"]
     end
-    subgraph SERVER["Server"]
-        subgraph PREFECT["Prefect"]
-            PSERVER(Prefect server<br/>UI + API + Postgres)
-            PWORKER(Prefect worker<br/>Docker socket, host-pool)
+
+    subgraph SRV["Server"]
+        subgraph PF["Prefect containers"]
+            PSERVER["Prefect server<br/>UI · API · Postgres"]
+            PWORKER["Prefect worker<br/>Docker socket · host-pool"]
         end
-        DOCKER(Docker daemon<br/>registry, app containers)
+        DOCKER["Docker Engine<br/>apps · registry · compose"]
     end
-    FLOWS --> PWORKER
-    PWORKER --> DOCKER
-    PSERVER -->|schedules + state| PWORKER
+
+    FLOWS -->|"task workflow:deploy<br/>(Ansible sync)"| PWORKER
+    PSERVER -->|"schedules + state"| PWORKER
+    PWORKER -->|"exec / compose / crane"| DOCKER
 ```
 
+</details>
+
+---
 **Use for:** Scheduled tasks (backups, cleanup, reports), multi-step jobs (ETL, batch), server ops (registry prune, maintenance). **Not for:** Real-time or webhook handling — use your app.
 
 ## Open the UI
@@ -49,11 +57,11 @@ Deployments → pick deployment → **Run**. Flow Runs tab for logs and state.
 | Flow | File | Schedule |
 |------|------|----------|
 | Registry prune | [`prefect/registry_prune/flow.py`](../prefect/registry_prune/flow.py) | Daily 02:00 UTC |
-| Backup to Storage Box | [`prefect/backup/flow.py`](../prefect/backup/flow.py) | Daily 03:00 UTC |
+| Backup (Restic) | [`prefect/backup/flow.py`](../prefect/backup/flow.py) | Daily 03:00 UTC |
 
 **Registry prune:** Keeps 6 newest image tags per repo, deletes the rest, protects current deploy (from `deploy-info.yml`), then `registry garbage-collect`. `REGISTRY_URL` set on worker by Ansible.
 
-**Backup to Storage Box:** For each app with `backup.yml`, captures Postgres databases and volumes, runs Restic backup to Storage Box (SFTP), then forget (retention) and prune. See [Backup (Storage Box)](backup-storage-box.md).
+**Backup:** Per-app `backup.yml`: capture Postgres + volumes, Restic backup, forget/prune. [Backups](backups.md).
 
 ## Worker access
 
