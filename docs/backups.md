@@ -8,7 +8,7 @@
 
 ## Tasks (devcontainer)
 
-App mounted, `BASE_DOMAIN` set, SSH to `ubuntu@dev|prod.<domain>`.
+App mounted; SSH config hosts **`dev`** / **`prod`** (or whatever you pass after `--`). Tasks: [`tasks/Taskfile.backup.yml`](../tasks/Taskfile.backup.yml).
 
 | Task | |
 |------|---|
@@ -21,9 +21,7 @@ task backup:restore -- dev latest
 task backup:restore -- dev abc12345 --confirm
 ```
 
-Slug comes from `image_name` (same as `task app:deploy`). 
-
-Helpers (require `BACKUP_APP_SLUG`): [`scripts/restic-restore.sh`](../scripts/restic-restore.sh), [`scripts/restic-snapshots.sh`](../scripts/restic-snapshots.sh).
+Slug matches `task app:deploy` (basename of `image_name`).
 
 ## backup.yml
 
