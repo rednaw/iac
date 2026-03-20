@@ -71,9 +71,9 @@ tasks:
         echo "  task server:check-status              # Check if servers are up (checks both dev and prod)"
         echo "  task server:list-hetzner-keys         # List Hetzner SSH keys with IDs"
         echo ""
-        echo "Backups (Hetzner):"
-        echo "  task backup:list    -- [dev|prod]       # List backup images"
-        echo "  task backup:restore -- [dev|prod] <id>  # Restore from backup (destructive)"
+        echo "Backups (Restic, mounted app):"
+        echo "  task backup:snapshots -- [dev|prod]              # Local snapshots (slug from app/.iac iac.yml)"
+        echo "  task backup:restore   -- [dev|prod] [snap] [...] # Restore (same slug rule as deploy)"
 
   # Internal validation tasks - used by other tasks via deps or direct calls
   _check:sops-key:

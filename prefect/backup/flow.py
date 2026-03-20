@@ -11,14 +11,15 @@ Repository:
 from __future__ import annotations
 
 import os
+import shutil
 import subprocess
-import tempfile
 from pathlib import Path
 
 import yaml
 from prefect import flow
 from prefect.logging import get_run_logger
 
+from .capture_postgres import capture_postgres
 from .capture_volumes import capture_volumes
 
 DEPLOY_ROOT = Path("/opt/iac/deploy")
@@ -53,6 +54,11 @@ def _restic_run(cmd: list[str], env: dict[str, str], timeout: int = 600) -> subp
     return subprocess.run(full, env=env, capture_output=True, text=True, timeout=timeout)
 
 
+def _restic_check(r: subprocess.CompletedProcess, what: str) -> None:
+    if r.returncode != 0:
+        raise RuntimeError(f"{what} failed: {r.stderr or r.stdout}")
+
+
 def _restic_init_if_needed(env: dict[str, str], log) -> None:
     """Initialize restic repo if it does not exist. Idempotent (no-op if already initialized)."""
     r = _restic_run(["init"], env, timeout=60)
@@ -75,38 +81,47 @@ def _backup_app(app_slug: str, deploy_dir: Path, log) -> None:
     log.info("MEASURE: step=backup_start app=%s", app_slug)
     env = _restic_env(app_slug)
     log.info("Restic repo for %s: %s", app_slug, env.get("RESTIC_REPOSITORY", ""))
-    with tempfile.TemporaryDirectory(prefix="backup-") as tmp:
-        source_dir = Path(tmp)
-        log.info("MEASURE: step=capture_volumes app=%s", app_slug)  # correlate with OpenObserve memory
-        capture_volumes(deploy_dir, source_dir)
-        if not list(source_dir.iterdir()):
-            log.info("%s: no volume tarballs, skipping restic", app_slug)
-            return
+    staging = PREFECT_ROOT / "backup-staging" / app_slug
+    if staging.exists():
+        shutil.rmtree(staging)
+    staging.mkdir(parents=True)
+    log.info("MEASURE: step=capture_postgres app=%s", app_slug)
+    capture_postgres(deploy_dir, staging)
+    log.info("MEASURE: step=capture_volumes app=%s", app_slug)
+    capture_volumes(deploy_dir, staging)
+    if not list(staging.iterdir()):
+        log.info("%s: no postgres dumps or volume tarballs, skipping restic", app_slug)
+        return
 
-        _restic_init_if_needed(env, log)
-        log.info("MEASURE: step=restic_backup app=%s", app_slug)
-        r = _restic_run(["backup", str(source_dir)], env)
-        if r.returncode != 0:
-            raise RuntimeError(f"restic backup failed: {r.stderr or r.stdout}")
+    _restic_init_if_needed(env, log)
+    log.info("MEASURE: step=restic_backup app=%s", app_slug)
+    _restic_check(_restic_run(["backup", str(staging)], env), "restic backup")
 
-        log.info("MEASURE: step=restic_forget app=%s", app_slug)
-        r = _restic_run(
-            ["forget", "--keep-daily", str(keep_daily), "--keep-weekly", str(keep_weekly), "--keep-monthly", str(keep_monthly)],
+    log.info("MEASURE: step=restic_forget app=%s", app_slug)
+    _restic_check(
+        _restic_run(
+            [
+                "forget",
+                "--keep-daily",
+                str(keep_daily),
+                "--keep-weekly",
+                str(keep_weekly),
+                "--keep-monthly",
+                str(keep_monthly),
+            ],
             env,
-        )
-        if r.returncode != 0:
-            raise RuntimeError(f"restic forget failed: {r.stderr or r.stdout}")
+        ),
+        "restic forget",
+    )
 
-        log.info("MEASURE: step=restic_prune app=%s", app_slug)
-        r = _restic_run(["prune"], env, timeout=900)
-        if r.returncode != 0:
-            raise RuntimeError(f"restic prune failed: {r.stderr or r.stdout}")
-        log.info("MEASURE: step=backup_done app=%s", app_slug)
+    log.info("MEASURE: step=restic_prune app=%s", app_slug)
+    _restic_check(_restic_run(["prune"], env, timeout=900), "restic prune")
+    log.info("MEASURE: step=backup_done app=%s", app_slug)
 
 
 @flow
 def run_backup() -> None:
-    """For each app with backup.yml, capture volumes and back up via restic (local /tmp/backup or Storage Box if configured)."""
+    """For each app with backup.yml, capture postgres dumps and volumes, then back up via restic (local or Storage Box if configured)."""
     log = get_run_logger()
     if not DEPLOY_ROOT.is_dir():
         log.warning("Deploy root %s not found", DEPLOY_ROOT)

@@ -26,35 +26,6 @@
       delegate_to: localhost
       become: false
 
-    # Fallback is SHA-256 of empty input (stdin); used when find yields no output so the pipe never fails.
-    - name: Compute checksum of Prefect flow code (for idempotent sync)
-      ansible.builtin.shell: |
-        set -o pipefail
-        out=$(find "{{ repo_root }}/prefect" -type f ! -path '*/__pycache__/*' ! -name '*.pyc' -exec sha256sum {} + 2>/dev/null | sort -k2 | sha256sum | awk '{print $1}')
-        echo "${out:-e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855}"
-      register: prefect_flow_code_checksum_cmd
-      delegate_to: localhost
-      become: false
-      changed_when: false
-      when: prefect_src_stat.stat.exists and prefect_src_stat.stat.isdir
-
-    - name: Stat stored flow code checksum on server
-      ansible.builtin.stat:
-        path: /opt/iac/prefect/.flow-code.checksum
-      register: _prefect_flow_code_checksum_file
-      when: prefect_src_stat.stat.exists and prefect_src_stat.stat.isdir
-
-    - name: Get stored flow code checksum on server
-      ansible.builtin.slurp:
-        src: /opt/iac/prefect/.flow-code.checksum
-      register: _prefect_flow_code_checksum_stored
-      when: prefect_src_stat.stat.exists and prefect_src_stat.stat.isdir and _prefect_flow_code_checksum_file.stat.exists | default(false)
-
-    - name: Set fact when flow code sync is needed
-      ansible.builtin.set_fact:
-        prefect_flow_code_sync_needed: "{{ not (_prefect_flow_code_checksum_file.stat.exists | default(false)) or (_prefect_flow_code_checksum_stored.content | default('') | b64decode | trim) != (prefect_flow_code_checksum_cmd.stdout | default('') | trim) }}"
-      when: prefect_src_stat.stat.exists and prefect_src_stat.stat.isdir
-
     - name: Copy Prefect flow code from IaC repo to host
       ansible.posix.synchronize:
         src: "{{ repo_root }}/prefect/"
@@ -65,14 +36,8 @@
           - "--exclude=.git"
           - "--checksum"
           - "--omit-dir-times"
-      when: prefect_src_stat.stat.exists and prefect_src_stat.stat.isdir and prefect_flow_code_sync_needed | default(true) | bool
-
-    - name: Record flow code checksum after sync
-      ansible.builtin.copy:
-        content: "{{ prefect_flow_code_checksum_cmd.stdout }}"
-        dest: /opt/iac/prefect/.flow-code.checksum
-        mode: '0644'
-      when: prefect_src_stat.stat.exists and prefect_src_stat.stat.isdir and prefect_flow_code_sync_needed | default(true) | bool
+      register: prefect_sync_result
+      when: prefect_src_stat.stat.exists and prefect_src_stat.stat.isdir
 
     - name: Fix ownership of Prefect subtree (sync runs as ubuntu; design is root-owned)
       ansible.builtin.file:
@@ -133,7 +98,7 @@
         name: prefect-worker
         image: "{{ prefect_worker_image }}"
         state: started
-        restart: "{{ (prefect_flow_code_sync_needed | default(false) | bool) or (prefect_image_build.changed | default(false)) }}"
+        restart: "{{ (prefect_sync_result.changed | default(false)) or (prefect_image_build.changed | default(false)) }}"
         restart_policy: unless-stopped
         log_driver: json-file
         log_options:

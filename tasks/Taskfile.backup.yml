@@ -1,25 +1,44 @@
 # yaml-language-server: $schema=https://taskfile.dev/schema.json
 version: '3'
 
-# Hetzner backup tasks. Use: task backup:list -- dev|prod, task backup:restore -- dev|prod <image-id>, etc.
-# Server name in Hetzner = platform-<workspace> (e.g. platform-dev, platform-prod).
+# Restic restore from devcontainer → SSH → prefect-worker.
+# App identity: basename of image_name in mounted app/.iac/iac.yml (same rule as deploy to /opt/iac/deploy/<slug>).
+
+vars:
+  IAC_ROOT:
+    sh: realpath "{{.TASKFILE_DIR}}/.."
+  APP_ROOT: /workspaces/iac/app
 
 tasks:
-  list:
-    desc: "List Hetzner backup images for workspace. Use: task backup:list -- dev|prod"
-    silent: true
-    vars:
-      SERVER_NAME: "platform-{{.CLI_ARGS}}"
-    deps: [":_check:workspace"]
-    cmds:
-      - |
-        echo "Backups for server {{.SERVER_NAME}}:"
-        echo ""
-        hcloud image list --type backup -o columns=id,created,created_from,description
+  _check:app-mount:
+    desc: "(internal) Mounted app + iac.yml + backup.yml"
+    internal: true
+    preconditions:
+      - sh: test -d "{{.APP_ROOT}}"
+        msg: "App not mounted at {{.APP_ROOT}}. See docs/application-deployment.md#app-mount"
+      - sh: test -f "{{.APP_ROOT}}/.iac/iac.yml"
+        msg: "Missing {{.APP_ROOT}}/.iac/iac.yml"
+      - sh: test -f "{{.APP_ROOT}}/.iac/backup.yml"
+        msg: "Missing {{.APP_ROOT}}/.iac/backup.yml (Restic contract). See docs/backup-storage-box.md"
 
   restore:
-    desc: "Restore server from a backup image (DESTRUCTIVE). Use: task backup:restore -- dev|prod <image-id>"
+    desc: "Restic restore for mounted app. Use: task backup:restore -- <dev|prod> [snapshot] [--confirm|...]"
     dir: "{{.TASK_DIR}}"
-    deps: [":_check:workspace"]
+    deps: [":_check:workspace", "_check:app-mount"]
     cmds:
-      - "../scripts/backup-restore.sh {{.CLI_ARGS | join \" \"}}"
+      - |
+        set -euo pipefail
+        IMAGE_NAME=$(yq -r '.image_name' "{{.APP_ROOT}}/.iac/iac.yml")
+        export BACKUP_APP_SLUG="${IMAGE_NAME##*/}"
+        ../scripts/restic-restore.sh {{.CLI_ARGS | join " "}}
+
+  snapshots:
+    desc: "List local Restic snapshots for mounted app. Use: task backup:snapshots -- <dev|prod>"
+    dir: "{{.TASK_DIR}}"
+    deps: [":_check:workspace", "_check:app-mount"]
+    cmds:
+      - |
+        set -euo pipefail
+        IMAGE_NAME=$(yq -r '.image_name' "{{.APP_ROOT}}/.iac/iac.yml")
+        export BACKUP_APP_SLUG="${IMAGE_NAME##*/}"
+        ../scripts/restic-snapshots.sh {{.CLI_ARGS | join " "}}

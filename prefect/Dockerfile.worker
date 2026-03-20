@@ -1,5 +1,5 @@
 # Prefect worker: runs flows in a container with Docker socket + crane + restic + compose.
-# Compose plugin is required for backup volume capture (docker compose run ...).
+# Backup uses docker compose run <service> pg_dump (pg_dump runs in the app's db container).
 
 FROM docker:29-cli AS dockercli
 FROM docker/compose-bin:v2.24.0 AS compose
@@ -11,9 +11,11 @@ COPY --from=dockercli /usr/local/bin/docker /usr/local/bin/docker
 COPY --from=compose /docker-compose /usr/local/lib/docker/cli-plugins/docker-compose
 COPY --from=restic /usr/bin/restic /usr/local/bin/restic
 
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
 ARG CRANE_VERSION=v0.21.2
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl \
-    && rm -rf /var/lib/apt/lists/* \
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl && rm -rf /var/lib/apt/lists/* \
     && curl -sSL "https://github.com/google/go-containerregistry/releases/download/${CRANE_VERSION}/go-containerregistry_Linux_x86_64.tar.gz" \
     | tar xz -C /tmp && mv /tmp/crane /usr/local/bin/crane && rm -rf /tmp/* && chmod +x /usr/local/bin/crane
 

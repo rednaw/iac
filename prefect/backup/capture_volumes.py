@@ -1,13 +1,17 @@
-# Backup: capture volume tarballs from deploy dir using backup.yml (on server: next to compose files).
-# Synced to server with Prefect flow code. Run on server.
-# CLI: python -m prefect.backup.capture_volumes <deploy_dir> [--output-dir <dir>]
+"""Volume tar capture from backup.yml. CLI: python -m prefect.backup.capture_volumes <deploy_dir> [--output-dir <dir>]"""
 
+import shlex
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
 
 import yaml
+
+
+def _volume_slug(path: str) -> str:
+    """Tar name segment; keep in sync with restore_from_backup._path_slug."""
+    return path.strip("/").replace("/", "_") or "root"
 
 
 def capture_volumes(deploy_dir: Path, out_dir: Path | None = None) -> list[Path]:
@@ -25,24 +29,27 @@ def capture_volumes(deploy_dir: Path, out_dir: Path | None = None) -> list[Path]
     out_dir = out_dir.resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    # Use --project-directory so we don't pass -f (worker image may have docker CLI only; -f is not a global docker flag).
+    # Bind-mount out_dir: compose run stdout must not be piped to a file (stream corruption).
     result = []
     for v in volumes:
         service, path = v.get("service"), v.get("path")
         if not service or not path:
             continue
-        name = path.strip("/").replace("/", "_") or "root"
-        tar_path = out_dir / f"{service}_{name}.tar"
+        tar_name = f"{service}_{_volume_slug(path)}.tar"
+        tar_path = out_dir / tar_name
+        out_in_container = shlex.quote(f"/backup-out/{tar_name}")
+        path_q = shlex.quote(path)
         cmd = [
             "docker", "compose",
             "--project-directory", str(deploy_dir),
-            "run", "--rm", "-T", service,
-            "tar", "cf", "-", "-C", path, ".",
+            "run", "--rm", "-T",
+            "-v", f"{out_dir}:/backup-out:rw",
+            service,
+            "sh", "-c", f"tar cf {out_in_container} -C {path_q} .",
         ]
-        with open(tar_path, "wb") as f:
-            r = subprocess.run(cmd, cwd=deploy_dir, stdout=f, stderr=subprocess.PIPE)
+        r = subprocess.run(cmd, cwd=deploy_dir, stderr=subprocess.PIPE, text=True)
         if r.returncode != 0:
-            raise RuntimeError(r.stderr.decode("utf-8", errors="replace"))
+            raise RuntimeError(r.stderr or "docker compose run failed")
         result.append(tar_path)
     return result
 
