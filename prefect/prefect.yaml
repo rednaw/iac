@@ -10,3 +10,11 @@ deployments:
     schedules:
       - cron: "0 2 * * *"  # Daily at 02:00 UTC
         timezone: "UTC"
+
+  - entrypoint: backup/flow.py:run_backup
+    name: backup
+    work_pool:
+      name: host-pool
+    schedules:
+      - cron: "0 3 * * *"  # Daily at 03:00 UTC
+        timezone: "UTC"

@@ -14,6 +14,9 @@ ansible/.ansible/
 __pycache__/
 *.pyc
 
+# Restic restore scratch (restore_from_backup.py when run from repo tree)
+prefect/.restore-work/
+
 # Mounted application files
 app/
 

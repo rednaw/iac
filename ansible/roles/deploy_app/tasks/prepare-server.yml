@@ -53,3 +53,18 @@
     owner: iac
     group: iac
     mode: '0644'
+
+- name: Stat app backup.yml (optional contract file)
+  ansible.builtin.stat:
+    path: "{{ app_root }}/.iac/backup.yml"
+  register: app_backup_yml_stat
+  delegate_to: localhost
+
+- name: Copy backup.yml to server when present in app
+  ansible.builtin.copy:
+    src: "{{ app_root }}/.iac/backup.yml"
+    dest: "{{ deploy_target }}/backup.yml"
+    owner: iac
+    group: iac
+    mode: '0644'
+  when: app_backup_yml_stat.stat.exists
