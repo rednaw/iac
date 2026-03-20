@@ -35,7 +35,7 @@ Build your own server and deploy you app by running a few commands.
 - **[Traefik](https://doc.traefik.io/traefik/) reverse proxy** — HTTPS with [Let's Encrypt](https://letsencrypt.org/), automatic routing via Docker labels.
 - **[OpenObserve](https://openobserve.ai/)** — Logs and metrics, no SaaS dependencies.
 - **[Prefect](https://www.prefect.io/)** — Schedule tasks and workflows on the server.
-- **[Restic](https://restic.net/)** — Encrypted backups to Storage Box (WIP).
+- **[Restic](https://restic.net/)** — App backups (local repo and optional Storage Box). See `docs/backups.md`.
 - **Secrets in Git** — [SOPS](https://getsops.io/)-encrypted, no need for an external secrets manager.
 
 Work from a [DevContainer](https://containers.dev/) — All tools like [Task](https://taskfile.dev/), [Ansible](https://www.ansible.com/), [Terraform](https://www.terraform.io/), [SOPS](https://getsops.io/) and more come pre-installed and configured to work together.

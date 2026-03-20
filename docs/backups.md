@@ -2,32 +2,63 @@
 
 # Backups
 
-**Current setup:** Hetzner automated backups. Enabled in Terraform with `backups = true` on `hcloud_server.platform`. Seven image-level restore points; no backup scripts to run. See [Hetzner Cloud: Backups and snapshots](https://docs.hetzner.com/cloud/servers/backups-snapshots/overview) for the official documentation.
+[**Prefect**](https://www.prefect.io/) runs [**Restic**](https://restic.net/) per app: local repo under `/opt/iac/prefect/backups/<slug>`, or [Hetzner Storage Box](https://www.hetzner.com/storage/storage-box) over SFTP when the server has `RESTIC_REPOSITORY_BASE`. Optional **`.iac/backup.yml`** (see [app mount](application-deployment.md#app-mount)) defines retention, Postgres dumps, and volume paths; deploy copies it to `backup.yml` next to compose.
 
-## How it works
+**`<slug>`** = basename of `image_name` in `app/.iac/iac.yml` (same as deploy dir and [`resolve-image.yml`](../ansible/roles/deploy_app/tasks/resolve-image.yml)).
 
-- **Terraform:** The platform server (`hcloud_server.platform`, name `platform-<env>`) has `backups = true`. After `terraform apply`, Hetzner starts making automatic image backups of that server.
-- **Hetzner:** Keeps up to 7 backup images, on a schedule they choose. Billing: 20% of the server’s monthly price.
-- **What’s backed up:** Full server image (disk snapshot). Everything on the server at backup time is in the image.
+## Tasks (devcontainer)
 
-## How to restore
+App mounted; SSH config hosts **`dev`** / **`prod`** (or whatever you pass after `--`). Tasks: [`tasks/Taskfile.backup.yml`](../tasks/Taskfile.backup.yml).
 
-**From the IaC Devcontainer :**
+| Task | |
+|------|---|
+| `task backup:snapshots -- dev` | List snapshots (**local** repo on server) |
+| `task backup:restore -- dev [snapshot] [...]` | [`prefect/backup/restore_from_backup.py`](../prefect/backup/restore_from_backup.py) in `prefect-worker` |
 
-- `task backup:list -- <dev|prod>` — List backup images for the platform server (`platform-dev` or `platform-prod`). Note the `id` of the image you want.
-- `task backup:restore -- <dev|prod> <image-id>` — Restore the server from a specific backup (calls `scripts/backup-restore.sh`; prompts for confirmation).
-- `task backup:restore-latest -- <dev|prod>` — Restore from the most recent backup (prompts for confirmation).
+```bash
+task backup:snapshots -- dev
+task backup:restore -- dev latest
+task backup:restore -- dev abc12345 --confirm
+```
 
-Both restore commands run `hcloud server rebuild <server-name> --image <image-id>`: the existing server is rebuilt from the backup image in place (same server ID and IP). They are destructive and ask you to type `yes` before proceeding.
+Slug matches `task app:deploy` (basename of `image_name`).
 
-**Manually (Hetzner Cloud Console or API):** In the Hetzner Cloud Console, go to your server → Backups (or Images), or use the API/CLI.
+## backup.yml
 
-- **Restore in place:** `hcloud server rebuild <server-name> --image <image-id>` — same server ID and IP, disk replaced.
-- **New server from backup:** Create a new server using the backup image. You get a new IP and ID — update DNS and fix Terraform state (`terraform import` or manual update).
+One optional file per app at `.iac/backup.yml`.
 
-**After an in-place restore:** The server reboots with the backup disk. Platform containers (Traefik, registry, OpenObserve) have `restart_policy: unless-stopped` and come back automatically. Deployed apps only restart if their `docker-compose.yml` sets `restart: unless-stopped` for each service — see [Application deployment](application-deployment.md).
+- **`retention`:** `keep_daily`, `keep_weekly`, `keep_monthly` → `restic forget` / `prune`.
+- **`postgres`:** optional list; each entry runs `pg_dump` in the **running** service; user and DB from deploy `.env` via `user_env` / `db_env`. Output: `postgres_<service>.dump`.
+- **`volumes`:** list of `service` + `path` for tar capture (`docker compose run` + tar). Data you care about must live in **Docker volumes**, not bind mounts.
 
-## Relation to other docs
+```yaml
+retention:
+  keep_daily: 7
+  keep_weekly: 4
+  keep_monthly: 12
+postgres:
+  - service: db
+    user_env: POSTGRES_USER
+    db_env: POSTGRES_DB
+volumes:
+  - service: app
+    path: /app/uploads
+```
 
-- [Application deployment](application-deployment.md) — App compose should set `restart: unless-stopped` so the app survives reboot/restore.
-- [Backup with Hetzner Storage Box](backup-storage-box.md) — Service-aware backups with Restic (Postgres dumps + volumes to Storage Box).
+## Code
+
+| Piece | Location |
+|-------|----------|
+| Deploy `backup.yml` | [`prepare-server.yml`](../ansible/roles/deploy_app/tasks/prepare-server.yml) |
+| Capture + backup | [`capture_postgres.py`](../prefect/backup/capture_postgres.py), [`capture_volumes.py`](../prefect/backup/capture_volumes.py), [`flow.py`](../prefect/backup/flow.py) |
+| Restore (local repo) | [`restore_from_backup.py`](../prefect/backup/restore_from_backup.py) |
+
+[`flow.py`](../prefect/backup/flow.py) runs on `prefect-worker` (Docker socket). Storage Box SSH key, `known_hosts`, and Restic password: SOPS → `/opt/iac/prefect/` via Ansible. After changing flows: `task workflow:deploy`.
+
+## Hetzner Storage Box (optional)
+
+Restic talks to the box over **SFTP on port 23** (not 22). One Restic repo per app, e.g. `sftp:uXXXXX@uXXXXX.your-storagebox.de:<app_slug>`; writable area is under the box’s `/home/`. Add the box SSH key in [Hetzner Console](https://docs.hetzner.com/storage/storage-box/backup-space-ssh-keys); keep the private key and Restic repo password in SOPS for Ansible.
+
+**Rough steps:** create the box → add key in Console → SOPS + Ansible → `RESTIC_REPOSITORY_BASE` on the server (see Ansible / server Prefect role) → `task workflow:deploy`.
+
+**Restore from your laptop** (not `task backup:restore`, which targets the **local** repo on the server): decrypt SOPS for `RESTIC_PASSWORD`, then `restic -r sftp:… snapshots` and `restic restore … --target ./restore`. Under the restore tree, dumps and volume tars sit under `…/backup-staging/<slug>/`; put DBs back with `pg_restore`, files with tar / `docker compose cp` as you prefer.

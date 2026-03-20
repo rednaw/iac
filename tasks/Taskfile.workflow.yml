@@ -1,0 +1,18 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+version: '3'
+
+tasks:
+  deploy:
+    desc: "Deploy Prefect flows (use: task workflow:deploy -- dev or -- prod)"
+    dir: ansible
+    silent: true
+    vars:
+      WORKSPACE: "{{.CLI_ARGS}}"
+    deps: [":_check:workspace"]
+    cmds:
+      - task ansible:install
+      - |
+        echo "🔄 Deploying Prefect flows to workspace: {{.WORKSPACE}}..."
+        HOSTNAME=$(task hostkeys:hostname -- "{{.WORKSPACE}}")
+        PLATFORM=$(task hostkeys:platform)
+        ansible-playbook -i "${PLATFORM}-{{.WORKSPACE}}," playbooks/prefect-deploy.yml -e "ansible_host=${HOSTNAME}" -e "target_workspace=${PLATFORM}-{{.WORKSPACE}}"

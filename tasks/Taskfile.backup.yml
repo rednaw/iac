@@ -1,25 +1,66 @@
 # yaml-language-server: $schema=https://taskfile.dev/schema.json
 version: '3'
 
-# Hetzner backup tasks. Use: task backup:list -- dev|prod, task backup:restore -- dev|prod <image-id>, etc.
-# Server name in Hetzner = platform-<workspace> (e.g. platform-dev, platform-prod).
+# Backup: slug from mounted app/.iac/iac.yml; SSH + docker run prefect-worker on server.
+# CLI_ARGS → first word = SSH host; remainder → restore_from_backup.py only.
+
+vars:
+  APP_ROOT: /workspaces/iac/app
 
 tasks:
-  list:
-    desc: "List Hetzner backup images for workspace. Use: task backup:list -- dev|prod"
-    silent: true
-    vars:
-      SERVER_NAME: "platform-{{.CLI_ARGS}}"
-    deps: [":_check:workspace"]
-    cmds:
-      - |
-        echo "Backups for server {{.SERVER_NAME}}:"
-        echo ""
-        hcloud image list --type backup -o columns=id,created,created_from,description
+  _check:app-mount:
+    desc: "(internal) Mounted app + iac.yml + backup.yml"
+    internal: true
+    preconditions:
+      - sh: test -d "{{.APP_ROOT}}"
+        msg: "App not mounted at {{.APP_ROOT}}. See docs/application-deployment.md#app-mount"
+      - sh: test -f "{{.APP_ROOT}}/.iac/iac.yml"
+        msg: "Missing {{.APP_ROOT}}/.iac/iac.yml"
+      - sh: test -f "{{.APP_ROOT}}/.iac/backup.yml"
+        msg: "Missing {{.APP_ROOT}}/.iac/backup.yml (Restic contract). See docs/backups.md"
 
   restore:
-    desc: "Restore server from a backup image (DESTRUCTIVE). Use: task backup:restore -- dev|prod <image-id>"
-    dir: "{{.TASK_DIR}}"
-    deps: [":_check:workspace"]
+    desc: "Restic restore for mounted app. Use: task backup:restore -- <dev|prod> [snapshot] [--confirm|...]"
+    deps: [":_check:workspace", "_check:app-mount"]
+    silent: true
     cmds:
-      - "../scripts/backup-restore.sh {{.CLI_ARGS | join \" \"}}"
+      - |
+        set -eu
+
+        image_name=$(yq -r '.image_name' "{{.APP_ROOT}}/.iac/iac.yml")
+        slug="${image_name##*/}"
+
+        set -- {{.CLI_ARGS | join " "}}
+        ssh_host=$1
+        shift
+
+        py_args=$(bash -c 'printf "%q " "$@"' _ "$slug" "$@")
+        py_args=${py_args%% }
+
+        ssh -t "$ssh_host" "docker run --rm -i \
+          -v /var/run/docker.sock:/var/run/docker.sock \
+          -v /opt/iac:/opt/iac \
+          -w /opt/iac/prefect/flows/backup \
+          prefect-worker \
+          python3 restore_from_backup.py ${py_args}"
+
+  snapshots:
+    desc: "List local Restic snapshots for mounted app. Use: task backup:snapshots -- <dev|prod>"
+    deps: [":_check:workspace", "_check:app-mount"]
+    silent: true
+    cmds:
+      - |
+        set -eu
+
+        image_name=$(yq -r '.image_name' "{{.APP_ROOT}}/.iac/iac.yml")
+        slug="${image_name##*/}"
+
+        set -- {{.CLI_ARGS | join " "}}
+        ssh_host=$1
+
+        ssh "$ssh_host" docker run --rm \
+          -v "/opt/iac/prefect/backups/${slug}:/repo:ro" \
+          -e RESTIC_REPOSITORY=/repo \
+          -e RESTIC_PASSWORD=local \
+          prefect-worker \
+          restic --no-lock snapshots

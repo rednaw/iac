@@ -57,8 +57,8 @@ graph TB
 
 - [Traefik](traefik.md) — Reverse proxy, TLS, operations, adding apps
 - [Registry](registry.md) — Auth, commands, operations
-- [OpenObserve](monitoring.md) — OpenObserve, dashboards, logs
-- [Prefect](workflows.md) — Scheduled tasks and multi-step workflows with Prefect
+- [Observe](monitoring.md) — OpenObserve, dashboards, logs
+- [Workflows](workflows.md) — Scheduled tasks and multi-step workflows with Prefect
 
 **Application**
 
@@ -66,15 +66,12 @@ graph TB
 - [Secrets](secrets.md) — File locations, editing, SOPS, app secrets
 
 **Operations**
-- [Backups](backups.md) — Hetzner automated backups (Terraform, 7 restore points)
-- [Troubleshooting](troubleshooting.md) — Common issues and fixes
+- [Backups](backups.md) — Automated application aware backups using Restic
 - [Remote-SSH](remote-ssh.md) — Connect to the server via Remote-SSH (tunnel, dashboards)
-
-**Meta**
-
 - [Private (local config)](private.md) — Local config files
 - [Code analysis](code-analysis.md) — What runs, when (CI), how to run locally
 - [Technologies and upgrading](technologies.md) — Tools used, Renovate, package files
+- [Troubleshooting](troubleshooting.md) — Common issues and fixes
 
 ---
 

@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 """
 Validate embedded bash scripts in Taskfiles with shellcheck.
+
+Task templates are rewritten before analysis: simple {{.VAR}} → $VAR, and
+{{.CLI_ARGS | join " "}} → "${CLI_ARGS[@]}" with a small prepended stub array
+so brace syntax and word-splitting match real Task behavior without tripping
+SC1083 / SC2086.
 """
 
 import os
@@ -8,7 +13,7 @@ import re
 import subprocess
 import sys
 from pathlib import Path
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 try:
     import yaml
@@ -61,9 +66,36 @@ def extract_taskfile_scripts(taskfile_path: Path) -> List[Tuple[str, int, str, i
     return scripts
 
 
+# Task passes extra CLI tokens as {{.CLI_ARGS | join " "}}; that is not a plain {{.VAR}}.
+_CLI_ARGS_JOIN = re.compile(r"\{\{\s*\.CLI_ARGS\s*\|\s*join\s+\"\s*\"\s*\}\}")
+
+# Stub prepended when CLI_ARGS array expansion appears (matches Task's multi-arg join).
+_CLI_ARGS_STUB = (
+    "# validate-taskfiles: Task expands CLI_ARGS at runtime; stub for shellcheck only.\n"
+    "CLI_ARGS=(dev latest --confirm)\n"
+)
+_CLI_ARGS_STUB_LINES = _CLI_ARGS_STUB.count("\n")
+
+
 def replace_task_variables(script: str) -> str:
-    """Replace Task variables {{.VAR}} with $VAR for shellcheck compatibility."""
-    return re.sub(r'\{\{\.([A-Z_][A-Z0-9_]*)\}\}', r'$\1', script)
+    """Replace Task templates with shell-like placeholders for shellcheck."""
+    script = _CLI_ARGS_JOIN.sub('"${CLI_ARGS[@]}"', script)
+    script = re.sub(r"\{\{\.([A-Z_][A-Z0-9_]*)\}\}", r"$\1", script)
+    return script
+
+
+def prepare_script_for_shellcheck(script: str) -> Tuple[str, int]:
+    """
+    Apply template replacement; prepend a CLI_ARGS array stub if the script uses
+    "${CLI_ARGS[@]}" (from {{.CLI_ARGS | join " "}}).
+
+    Returns (script_for_shellcheck, stub_line_count) so callers can map
+    shellcheck line numbers back to the embedded Taskfile script.
+    """
+    replaced = replace_task_variables(script)
+    if "${CLI_ARGS[@]}" in replaced:
+        return _CLI_ARGS_STUB + replaced, _CLI_ARGS_STUB_LINES
+    return replaced, 0
 
 
 def run_shellcheck(script_content: str) -> Tuple[int, str]:
@@ -89,13 +121,21 @@ def count_issues_in_output(output: str) -> int:
     return len(set(re.findall(r'SC\d+', output)))
 
 
-def parse_shellcheck_output(output: str) -> Tuple[List[str], int]:
+def parse_shellcheck_output(output: str, stub_line_count: int = 0) -> Tuple[List[str], int]:
     """Parse shellcheck output to extract error messages with line numbers. Returns (errors, issue_count)."""
     errors = []
     issue_count = 0
     current_line_num = None
     icons = {'error': '❌', 'warning': '⚠️ ', 'info': 'ℹ️ ', 'style': '•'}
-    
+
+    def format_line_prefix(shellcheck_line: Optional[int]) -> str:
+        if not shellcheck_line:
+            return ""
+        if stub_line_count and shellcheck_line <= stub_line_count:
+            return f"Line {shellcheck_line} (stub): "
+        adjusted = shellcheck_line - stub_line_count if stub_line_count else shellcheck_line
+        return f"Line {adjusted}: "
+
     for line in output.splitlines():
         line = line.strip()
         if not line or line.startswith('For more information:'):
@@ -113,7 +153,7 @@ def parse_shellcheck_output(output: str) -> Tuple[List[str], int]:
             sc_code, level, message = match.groups()
             issue_count += 1
             icon = icons.get(level, '•')
-            line_prefix = f"Line {current_line_num}: " if current_line_num else ""
+            line_prefix = format_line_prefix(current_line_num)
             errors.append(f"  {icon} {line_prefix}SC{sc_code} ({level}): {message}")
         
         # Extract suggestion
@@ -132,14 +172,15 @@ def validate_embedded_scripts(taskfile_path: Path) -> Tuple[int, int, int]:
     extracted_scripts = extract_taskfile_scripts(taskfile_path)
     
     for task_name, cmd_idx, script_content, total_cmds in extracted_scripts:
-        exit_code, output = run_shellcheck(replace_task_variables(script_content))
+        prepared, stub_lines = prepare_script_for_shellcheck(script_content)
+        exit_code, output = run_shellcheck(prepared)
         
         if exit_code != 0:
             task_label = f"task '{task_name}'" + (f" (cmd #{cmd_idx})" if total_cmds > 1 else "")
             print(f"\n📄 {taskfile_path.name} → {task_label}", flush=True)
             
             if output and output.strip():
-                errors, issue_count = parse_shellcheck_output(output)
+                errors, issue_count = parse_shellcheck_output(output, stub_line_count=stub_lines)
                 if errors:
                     for error in errors:
                         print(error, flush=True)

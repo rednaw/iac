@@ -8,6 +8,9 @@
 # To unban an IP: sudo fail2ban-client set <jail-name> unbanip <ip-address>
 
 [DEFAULT]
+# IPs/CIDRs to never ban (inherited by all jails): localhost, this server, and allowed_ssh_ips from app/.iac/iac.yml.
+ignoreip = 127.0.0.1/8 ::1 {{ ansible_default_ipv4.address | default('') }}{% for ip in infrastructure_secrets.allowed_ssh_ips | default([]) %} {{ ip }}{% endfor %}
+
 # Default ban time: 1 hour
 bantime = 3600
 # Look back period: 10 minutes  
@@ -48,7 +51,8 @@ maxretry = 6
 bantime = 1800
 findtime = 600
 failregex = ^<HOST> -.*"(GET|POST).*HTTP.*" (401|403) .*$
-ignoreregex = ^<HOST> -.*"/v2/.*" (401|403) .*$
+# Ignore registry: path /v2/ or router name registry@docker (Traefik common log).
+ignoreregex = ^<HOST> -.*"/v2/.*" (401|403) .*$|^<HOST> -.*registry@docker.*(401|403).*$
 
 # Traefik: failed app login attempts (/api/auth/login 401|403) – filter in filter.d/traefik-login-attempts.conf
 [traefik-login-attempts]

@@ -141,39 +141,44 @@ exporters:
       Authorization: "Basic {{ openobserve_ingest_auth }}"
 
   otlp_http/traefik:
-    endpoint: http://openobserve:5080/api/default/traefik-access
+    endpoint: http://openobserve:5080/api/default
     tls:
       insecure: true
     headers:
       Authorization: "Basic {{ openobserve_ingest_auth }}"
+      stream-name: traefik-access
 
   otlp_http/docker:
-    endpoint: http://openobserve:5080/api/default/docker-containers
+    endpoint: http://openobserve:5080/api/default
     tls:
       insecure: true
     headers:
       Authorization: "Basic {{ openobserve_ingest_auth }}"
+      stream-name: docker-containers
 
   otlp_http/syslog:
-    endpoint: http://openobserve:5080/api/default/syslog
+    endpoint: http://openobserve:5080/api/default
     tls:
       insecure: true
     headers:
       Authorization: "Basic {{ openobserve_ingest_auth }}"
+      stream-name: syslog
 
   otlp_http/auth:
-    endpoint: http://openobserve:5080/api/default/auth
+    endpoint: http://openobserve:5080/api/default
     tls:
       insecure: true
     headers:
       Authorization: "Basic {{ openobserve_ingest_auth }}"
+      stream-name: auth
 
   otlp_http/fail2ban:
-    endpoint: http://openobserve:5080/api/default/fail2ban
+    endpoint: http://openobserve:5080/api/default
     tls:
       insecure: true
     headers:
       Authorization: "Basic {{ openobserve_ingest_auth }}"
+      stream-name: fail2ban
 
   # Send all metrics via Prometheus remote write (OTLP->Prometheus conversion gives dashboard-ready names)
   prometheusremotewrite:
