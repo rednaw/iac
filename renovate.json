@@ -47,44 +47,52 @@
     {
       "description": "Single PR for all mise.toml bumps (native mise + regex tools)",
       "matchFileNames": ["mise.toml"],
-      "groupName": "mise tooling"
+      "groupName": "mise tooling",
+      "commitMessageTopic": "{{#each upgrades}}{{{depName}}}{{#unless @last}}, {{/unless}}{{/each}}"
     },
     {
       "description": "Single PR for pip requirements files",
       "matchManagers": ["pip_requirements"],
-      "groupName": "Python requirements"
+      "groupName": "Python requirements",
+      "commitMessageTopic": "{{#each upgrades}}{{{depName}}}{{#unless @last}}, {{/unless}}{{/each}}"
     },
     {
       "description": "Single PR for root Dockerfile (dev image bases)",
       "matchManagers": ["dockerfile"],
       "matchPaths": ["Dockerfile"],
-      "groupName": "Devcontainer Dockerfile"
+      "groupName": "Devcontainer Dockerfile",
+      "commitMessageTopic": "{{#each upgrades}}{{{depName}}}{{#unless @last}}, {{/unless}}{{/each}}"
     },
     {
       "description": "Single PR for Prefect worker Dockerfile (FROM lines + crane regex)",
       "matchManagers": ["dockerfile", "regex"],
       "matchPaths": ["prefect/Dockerfile.worker"],
-      "groupName": "Prefect worker image"
+      "groupName": "Prefect worker image",
+      "commitMessageTopic": "{{#each upgrades}}{{{depName}}}{{#unless @last}}, {{/unless}}{{/each}}"
     },
     {
       "description": "Single PR for devcontainer.json image + features",
       "matchManagers": ["devcontainer"],
-      "groupName": "Devcontainer config"
+      "groupName": "Devcontainer config",
+      "commitMessageTopic": "{{#each upgrades}}{{{depName}}}{{#unless @last}}, {{/unless}}{{/each}}"
     },
     {
       "description": "Single PR for Terraform",
       "matchManagers": ["terraform"],
-      "groupName": "Terraform"
+      "groupName": "Terraform",
+      "commitMessageTopic": "{{#each upgrades}}{{{depName}}}{{#unless @last}}, {{/unless}}{{/each}}"
     },
     {
       "description": "Single PR for Ansible task/container pins",
       "matchManagers": ["ansible"],
-      "groupName": "Ansible server tasks"
+      "groupName": "Ansible server tasks",
+      "commitMessageTopic": "{{#each upgrades}}{{{depName}}}{{#unless @last}}, {{/unless}}{{/each}}"
     },
     {
       "description": "Single PR for Galaxy collections",
       "matchManagers": ["ansible-galaxy"],
-      "groupName": "Ansible collections"
+      "groupName": "Ansible collections",
+      "commitMessageTopic": "{{#each upgrades}}{{{depName}}}{{#unless @last}}, {{/unless}}{{/each}}"
     },
     {
       "description": "Default convenience: automerge patch, digest, minor when CI passes",
