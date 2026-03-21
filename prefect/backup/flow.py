@@ -91,6 +91,7 @@ def _backup_app(app_slug: str, deploy_dir: Path, log) -> None:
     capture_volumes(deploy_dir, staging)
     if not list(staging.iterdir()):
         log.info("%s: no postgres dumps or volume tarballs, skipping restic", app_slug)
+        shutil.rmtree(staging)
         return
 
     _restic_init_if_needed(env, log)
@@ -116,6 +117,7 @@ def _backup_app(app_slug: str, deploy_dir: Path, log) -> None:
 
     log.info("MEASURE: step=restic_prune app=%s", app_slug)
     _restic_check(_restic_run(["prune"], env, timeout=900), "restic prune")
+    shutil.rmtree(staging)
     log.info("MEASURE: step=backup_done app=%s", app_slug)
 
 

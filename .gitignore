@@ -17,6 +17,9 @@ __pycache__/
 # Restic restore scratch (restore_from_backup.py when run from repo tree)
 prefect/.restore-work/
 
+# Pulled Restic repos (task backup:download)
+.backup-repos/
+
 # Mounted application files
 app/
 
