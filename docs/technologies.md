@@ -46,7 +46,7 @@ Most versioned dependencies live in a package file; [Renovate](https://docs.reno
 
 ## Upgrading
 
-**[Renovate](https://docs.renovatebot.com/)** opens upgrade PRs. It runs in CI via [`.github/workflows/renovate.yml`](../.github/workflows/renovate.yml) (daily or manual). Config: [`renovate.json`](../renovate.json); repo secret `RENOVATE_TOKEN` (GitHub PAT with `repo` and `workflow` scope). The [`devcontainer`](https://docs.renovatebot.com/modules/manager/devcontainer/) manager updates **`image`** and **`features`** in [`.devcontainer/devcontainer.json`](../.devcontainer/devcontainer.json).
+**[Renovate](https://docs.renovatebot.com/)** opens upgrade PRs. It runs in CI via [`.github/workflows/renovate.yml`](../.github/workflows/renovate.yml) (daily or manual). Config: [`renovate.json`](../renovate.json); repo secret `RENOVATE_TOKEN` (GitHub PAT with `repo` and `workflow` scope). The [`devcontainer`](https://docs.renovatebot.com/modules/manager/devcontainer/) manager updates **`image`** and **`features`** in [`.devcontainer/devcontainer.json`](../.devcontainer/devcontainer.json). PR volume and automerge options: [Renovate strategy](renovate.md).
 
 ```mermaid
 flowchart LR
