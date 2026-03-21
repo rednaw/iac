@@ -4,7 +4,7 @@
 
 What the platform uses and how dependencies are kept up to date.
 
-All dependencies have their version pinned in a 'package file', [Renovate](https://docs.renovatebot.com/) monitors these package files and creates pull requests when new versions are released. In addtition a [Dependency Dashboard](https://github.com/rednaw/iac/issues/41) is maintained for overview.
+Most versioned dependencies live in a package file; [Renovate](https://docs.renovatebot.com/) monitors those files and opens upgrade PRs. A [Dependency Dashboard](https://github.com/rednaw/iac/issues/41) lists pending updates.
 
 
 ## Tools and technologies
@@ -22,6 +22,7 @@ All dependencies have their version pinned in a 'package file', [Renovate](https
 | [Task](https://taskfile.dev/) | Task runner for build/deploy commands | [`mise.toml`](../mise.toml) |
 | **Version management** | | |
 | [Mise](https://mise.jdx.dev/) | CLI version manager (terraform, sops, crane, …) | [`Dockerfile`](../Dockerfile), [`mise.toml`](../mise.toml) |
+| [Dev Container](https://code.visualstudio.com/docs/devcontainers/containers) | Prebuilt **`image`** and **`features`** (e.g. [Docker-outside-of-Docker](https://github.com/devcontainers/features/tree/main/src/docker-outside-of-docker)) | [`.devcontainer/devcontainer.json`](../.devcontainer/devcontainer.json) |
 | [Renovate](https://docs.renovatebot.com/) | Upgrade PRs (above) | [`.github/workflows/renovate.yml`](../.github/workflows/renovate.yml) |
 | **Application deployment** | | |
 | [Crane](https://github.com/google/go-containerregistry/tree/main/cmd/crane) | Registry CLI (catalog, digest, delete). See [Registry](registry.md) | [`mise.toml`](../mise.toml) |
@@ -45,13 +46,14 @@ All dependencies have their version pinned in a 'package file', [Renovate](https
 
 ## Upgrading
 
-**[Renovate](https://docs.renovatebot.com/)** opens upgrade PRs. It runs in CI via [`.github/workflows/renovate.yml`](../.github/workflows/renovate.yml) (daily or manual). Config: [`renovate.json`](../renovate.json); repo secret `RENOVATE_TOKEN` (GitHub PAT with `repo` and `workflow` scope).
+**[Renovate](https://docs.renovatebot.com/)** opens upgrade PRs. It runs in CI via [`.github/workflows/renovate.yml`](../.github/workflows/renovate.yml) (daily or manual). Config: [`renovate.json`](../renovate.json); repo secret `RENOVATE_TOKEN` (GitHub PAT with `repo` and `workflow` scope). The [`devcontainer`](https://docs.renovatebot.com/modules/manager/devcontainer/) manager updates **`image`** and **`features`** in [`.devcontainer/devcontainer.json`](../.devcontainer/devcontainer.json).
 
 ```mermaid
 flowchart LR
     subgraph FILES["Package files"]
         REQ@{ shape: lin-doc, label: "requirements.txt" }
         MISE@{ shape: lin-doc, label: "mise.toml" }
+        DC@{ shape: lin-doc, label: "devcontainer.json" }
         ANS@{ shape: lin-doc, label: "ansible/requirements.yml" }
         TF@{ shape: lin-doc, label: "terraform/versions.tf" }
     end
@@ -71,6 +73,7 @@ flowchart LR
 
     REQ --> MONITOR
     MISE --> MONITOR
+    DC --> MONITOR
     ANS --> MONITOR
     TF --> MONITOR
 

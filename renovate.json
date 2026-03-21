@@ -5,6 +5,7 @@
   "enabledManagers": [
     "github-actions",
     "dockerfile",
+    "devcontainer",
     "terraform",
     "ansible",
     "ansible-galaxy",
