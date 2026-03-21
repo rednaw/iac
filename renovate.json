@@ -2,6 +2,16 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:recommended"],
   "branchPrefix": "renovate-bot/",
+  "timezone": "Europe/Amsterdam",
+  "minimumReleaseAge": "3 days",
+  "dependencyDashboard": true,
+  "labels": ["dependencies"],
+  "prConcurrentLimit": 10,
+  "branchConcurrentLimit": 10,
+  "prHourlyLimit": 10,
+  "automergeType": "pr",
+  "platformAutomerge": true,
+  "ignoreTests": false,
   "enabledManagers": [
     "github-actions",
     "dockerfile",
@@ -33,26 +43,83 @@
     }
   ],
   "schedule": ["at any time"],
-  "timezone": "Europe/Amsterdam",
-  "dependencyDashboard": true,
-  "labels": ["dependencies"],
-  "prConcurrentLimit": 10,
-  "branchConcurrentLimit": 10,
-  "prHourlyLimit": 10,
-  "automergeType": "pr",
-  "ignoreTests": false,
   "packageRules": [
     {
-      "description": "Automerge testing tools if they have successfully ran the tests",
-      "groupName": "testing tools",
-      "matchPackageNames": ["tfsec", "shellcheck", "ansible-lint", "PyYAML"],
+      "description": "Single PR for all mise.toml bumps (native mise + regex tools)",
+      "matchFileNames": ["mise.toml"],
+      "groupName": "mise tooling"
+    },
+    {
+      "description": "Single PR for pip requirements files",
+      "matchManagers": ["pip_requirements"],
+      "groupName": "Python requirements"
+    },
+    {
+      "description": "Single PR for root Dockerfile (dev image bases)",
+      "matchManagers": ["dockerfile"],
+      "matchPaths": ["Dockerfile"],
+      "groupName": "Devcontainer Dockerfile"
+    },
+    {
+      "description": "Single PR for Prefect worker Dockerfile (FROM lines + crane regex)",
+      "matchManagers": ["dockerfile", "regex"],
+      "matchPaths": ["prefect/Dockerfile.worker"],
+      "groupName": "Prefect worker image"
+    },
+    {
+      "description": "Single PR for devcontainer.json image + features",
+      "matchManagers": ["devcontainer"],
+      "groupName": "Devcontainer config"
+    },
+    {
+      "description": "Single PR for Terraform",
+      "matchManagers": ["terraform"],
+      "groupName": "Terraform"
+    },
+    {
+      "description": "Single PR for Ansible task/container pins",
+      "matchManagers": ["ansible"],
+      "groupName": "Ansible server tasks"
+    },
+    {
+      "description": "Single PR for Galaxy collections",
+      "matchManagers": ["ansible-galaxy"],
+      "groupName": "Ansible collections"
+    },
+    {
+      "description": "Default convenience: automerge patch, digest, minor when CI passes",
+      "matchUpdateTypes": ["patch", "digest", "minor"],
       "automerge": true
     },
     {
-      "description": "Automerge GitHub workflows when workflows pass",
-      "groupName": "GitHub workflows",
-      "matchManagers": ["github-actions"],
-      "automerge": true
+      "description": "Never automerge major upgrades",
+      "matchUpdateTypes": ["major"],
+      "automerge": false
+    },
+    {
+      "description": "Terraform/Ansible: minor can change plans or runtime; CI has validate/syntax only (no cloud plan)",
+      "matchManagers": ["terraform", "ansible", "ansible-galaxy"],
+      "matchUpdateTypes": ["minor"],
+      "automerge": false
+    },
+    {
+      "description": "Dockerfile base images: minor needs quick glance (behaviour/ABI)",
+      "matchManagers": ["dockerfile"],
+      "matchUpdateTypes": ["minor"],
+      "automerge": false
+    },
+    {
+      "description": "Crane regex in prefect/Dockerfile.worker: minor manual (dockerfile FROM minors covered above)",
+      "matchManagers": ["regex"],
+      "matchPaths": ["prefect/Dockerfile.worker"],
+      "matchUpdateTypes": ["minor"],
+      "automerge": false
+    },
+    {
+      "description": "devcontainer image/features: minor needs glance",
+      "matchManagers": ["devcontainer"],
+      "matchUpdateTypes": ["minor"],
+      "automerge": false
     }
   ]
 }
