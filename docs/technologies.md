@@ -4,6 +4,9 @@
 
 What the platform uses and how dependencies are kept up to date.
 
+All dependencies have their version pinned in a 'package file', [Renovate](https://docs.renovatebot.com/) monitors these package files and creates pull requests when new versions are released. In addtition a [Dependency Dashboard](https://github.com/rednaw/iac/issues/41) is maintained for overview.
+
+
 ## Tools and technologies
 
 | Tool | Notes | Package file |
@@ -30,7 +33,7 @@ What the platform uses and how dependencies are kept up to date.
 | [Fail2ban](https://github.com/fail2ban/fail2ban) | Ban IPs after failed SSH/auth. See [Traefik](traefik.md#security) | [`ansible/roles/server/tasks/fail2ban.yml`](../ansible/roles/server/tasks/fail2ban.yml) |
 | **Workflows** | | |
 | [Prefect](https://www.prefect.io/) | Scheduled tasks and flows. See [Workflows](workflows.md) | [`ansible/roles/server/tasks/prefect.yml`](../ansible/roles/server/tasks/prefect.yml) |
-| [Restic](https://restic.net/) | Encrypted app backups (Prefect flow + restore). See [Backups](backups.md) | [`prefect/Dockerfile.worker`](../prefect/Dockerfile.worker) |
+| [Restic](https://restic.net/) | Encrypted app backups (Prefect flow + restore). See [Backups](backups.md) | [`mise.toml`](../mise.toml) (CLI in devcontainer/CI), [`prefect/Dockerfile.worker`](../prefect/Dockerfile.worker) (worker image) |
 | **Monitoring** | | |
 | [OpenObserve](https://openobserve.ai/) | Logs, metrics, traces. See [Monitoring](monitoring.md) | [`ansible/roles/server/tasks/openobserve.yml`](../ansible/roles/server/tasks/openobserve.yml) |
 | [OpenTelemetry Collector](https://opentelemetry.io/docs/collector/) | Sends host/container data to OpenObserve | [`ansible/roles/server/tasks/openobserve.yml`](../ansible/roles/server/tasks/openobserve.yml) |
@@ -75,8 +78,4 @@ flowchart LR
     PR --> CHECK
     CHECK --> MERGE
 ```
-
-**Dependency Dashboard:** GitHub Issues (search "Renovate Dependency Dashboard") — pending, open, closed updates. Use it to recreate or rebase PRs. Review, CI green, merge.
-
-Renovate monitors the **package file** column in the table below, plus GitHub Actions in workflow files and the devcontainer base image in [`Dockerfile`](../Dockerfile). For mise tools not in Renovate’s [mise manager](https://docs.renovatebot.com/modules/manager/mise/#supported-default-registry-tool-short-names) list, add a `# owner/repo` comment so regex can match GitHub tags (see [`mise.toml`](../mise.toml)).
 

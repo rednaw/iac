@@ -74,6 +74,8 @@ tasks:
         echo "Backups (Restic, mounted app):"
         echo "  task backup:snapshots -- [dev|prod]              # Local snapshots (slug from app/.iac iac.yml)"
         echo "  task backup:restore   -- [dev|prod] [snap] [...] # Restore (same slug rule as deploy)"
+        echo "  task backup:download  -- [dev|prod]              # Server Restic repo → .backup-repos/<slug>/"
+        echo "  task backup:upload    -- [dev|prod]              # .backup-repos/<slug>/ → server (replaces remote repo)"
 
   # Internal validation tasks - used by other tasks via deps or direct calls
   _check:sops-key:

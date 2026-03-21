@@ -2,10 +2,14 @@
 version: '3'
 
 # Backup: slug from mounted app/.iac/iac.yml; SSH + docker run prefect-worker on server.
-# CLI_ARGS → first word = SSH host; remainder → restore_from_backup.py only.
+# CLI_ARGS → first word = SSH host; restore passes further args to restore_from_backup.py.
+# download: server → .backup-repos/<slug>/ via docker tar (host dir often root-only).
+# upload: .backup-repos/<slug>/ → server (clears remote repo dir first, then tar extract; idle backups only).
 
 vars:
   APP_ROOT: /workspaces/iac/app
+  IAC_ROOT:
+    sh: realpath "{{.TASKFILE_DIR}}/.."
 
 tasks:
   _check:app-mount:
@@ -64,3 +68,39 @@ tasks:
           -e RESTIC_PASSWORD=local \
           prefect-worker \
           restic --no-lock snapshots
+
+  download:
+    desc: "Copy server's local Restic repo to .backup-repos/<slug>/ (before rebuild). Use: task backup:download -- <dev|prod>"
+    deps: [":_check:workspace", "_check:app-mount"]
+    silent: true
+    cmds:
+      - |
+        set -eu
+        image_name=$(yq -r '.image_name' "{{.APP_ROOT}}/.iac/iac.yml")
+        slug="${image_name##*/}"
+        set -- {{.CLI_ARGS | join " "}}
+        ssh_host=$1
+        dest="{{.IAC_ROOT}}/.backup-repos/${slug}"
+        mkdir -p "$dest"
+        # shellcheck disable=SC2029
+        ssh "$ssh_host" "docker run --rm -v /opt/iac/prefect/backups/${slug}:/repo:ro prefect-worker tar -c -f - -C /repo ." \
+          | tar -xf - -C "$dest"
+
+  upload:
+    desc: "Replace server's local Restic repo from .backup-repos/<slug>/ (reverse of download). Use: task backup:upload -- <dev|prod>"
+    deps: [":_check:workspace", "_check:app-mount"]
+    silent: true
+    cmds:
+      - |
+        set -eu
+        image_name=$(yq -r '.image_name' "{{.APP_ROOT}}/.iac/iac.yml")
+        slug="${image_name##*/}"
+        set -- {{.CLI_ARGS | join " "}}
+        ssh_host=$1
+        src="{{.IAC_ROOT}}/.backup-repos/${slug}"
+        test -f "${src}/config" || {
+          echo "Missing Restic repo at ${src}/config (run task backup:download first)." >&2
+          exit 1
+        }
+        # shellcheck disable=SC2029
+        tar -c -C "$src" . | ssh "$ssh_host" "docker run --rm -i -v /opt/iac/prefect/backups/${slug}:/repo prefect-worker sh -c 'find /repo -mindepth 1 -delete; tar -xf - -C /repo'"
