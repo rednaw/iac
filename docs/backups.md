@@ -14,11 +14,15 @@ App mounted; SSH config hosts **`dev`** / **`prod`** (or whatever you pass after
 |------|---|
 | `task backup:snapshots -- dev` | List snapshots (**local** repo on server) |
 | `task backup:restore -- dev [snapshot] [...]` | [`prefect/backup/restore_from_backup.py`](../prefect/backup/restore_from_backup.py) in `prefect-worker` |
+| `task backup:download -- dev` | Stream server repo **`docker run … tar`** (same volume as snapshots; avoids SSH user needing host read on root-owned paths) → **`.backup-repos/<slug>/`** (gitignored) |
+| `task backup:upload -- dev` | Reverse: **`.backup-repos/<slug>/`** → server (clears remote repo dir, then extract). Use when backup flow is **idle**; overwrites server’s copy of that repo. |
 
 ```bash
 task backup:snapshots -- dev
 task backup:restore -- dev latest
 task backup:restore -- dev abc12345 --confirm
+task backup:download -- dev
+task backup:upload -- dev
 ```
 
 Slug matches `task app:deploy` (basename of `image_name`).
@@ -53,7 +57,7 @@ volumes:
 | Capture + backup | [`capture_postgres.py`](../prefect/backup/capture_postgres.py), [`capture_volumes.py`](../prefect/backup/capture_volumes.py), [`flow.py`](../prefect/backup/flow.py) |
 | Restore (local repo) | [`restore_from_backup.py`](../prefect/backup/restore_from_backup.py) |
 
-[`flow.py`](../prefect/backup/flow.py) runs on `prefect-worker` (Docker socket). Storage Box SSH key, `known_hosts`, and Restic password: SOPS → `/opt/iac/prefect/` via Ansible. After changing flows: `task workflow:deploy`.
+[`flow.py`](../prefect/backup/flow.py) runs on `prefect-worker` (Docker socket). It writes captures under `/opt/iac/prefect/backup-staging/<slug>/`, then removes that directory after a successful run (or if there was nothing to back up) so large dumps/tars are not left on disk between schedules. Storage Box SSH key, `known_hosts`, and Restic password: SOPS → `/opt/iac/prefect/` via Ansible. After changing flows: `task workflow:deploy`.
 
 ## Hetzner Storage Box (optional)
 
