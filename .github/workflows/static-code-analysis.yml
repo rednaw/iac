@@ -33,11 +33,11 @@ jobs:
 
       # Renovate PR: build and push as <sha> (promoted to latest on merge)
       - name: Set up Docker Buildx
-        if: github.event_name == 'pull_request' && startsWith(github.head_ref, 'renovate-bot/')
+        if: github.event_name == 'pull_request' && startsWith(github.head_ref, 'renovate-tmp/')
         uses: docker/setup-buildx-action@v4
 
       - name: Build and push (Renovate PR)
-        if: github.event_name == 'pull_request' && startsWith(github.head_ref, 'renovate-bot/')
+        if: github.event_name == 'pull_request' && startsWith(github.head_ref, 'renovate-tmp/')
         uses: docker/build-push-action@v7
         with:
           context: .
@@ -51,7 +51,7 @@ jobs:
       - name: Set image output
         id: set-output
         run: |
-          if [ "${{ github.event_name }}" = "pull_request" ] && echo "${{ github.head_ref }}" | grep -q '^renovate-bot/'; then
+          if [ "${{ github.event_name }}" = "pull_request" ] && echo "${{ github.head_ref }}" | grep -q '^renovate-tmp/'; then
             echo "image=${{ env.IMAGE }}:${{ github.sha }}" >> "$GITHUB_OUTPUT"
           else
             echo "image=${{ env.IMAGE }}:latest" >> "$GITHUB_OUTPUT"
