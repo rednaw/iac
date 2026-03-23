@@ -45,88 +45,13 @@
   "schedule": ["at any time"],
   "packageRules": [
     {
-      "description": "Single PR for all mise.toml bumps (native mise + regex tools)",
-      "matchFileNames": ["mise.toml"],
-      "groupName": "mise tooling",
-      "commitMessageTopic": "{{#each upgrades}}{{{depName}}}{{#unless @last}}, {{/unless}}{{/each}}"
-    },
-    {
-      "description": "Single PR for pip requirements files",
-      "matchManagers": ["pip_requirements"],
-      "groupName": "Python requirements",
-      "commitMessageTopic": "{{#each upgrades}}{{{depName}}}{{#unless @last}}, {{/unless}}{{/each}}"
-    },
-    {
-      "description": "Single PR for root Dockerfile (dev image bases)",
-      "matchManagers": ["dockerfile"],
-      "matchPaths": ["Dockerfile"],
-      "groupName": "Devcontainer Dockerfile",
-      "commitMessageTopic": "{{#each upgrades}}{{{depName}}}{{#unless @last}}, {{/unless}}{{/each}}"
-    },
-    {
-      "description": "Single PR for Prefect worker Dockerfile (FROM lines + crane regex)",
-      "matchManagers": ["dockerfile", "regex"],
-      "matchPaths": ["prefect/Dockerfile.worker"],
-      "groupName": "Prefect worker image",
-      "commitMessageTopic": "{{#each upgrades}}{{{depName}}}{{#unless @last}}, {{/unless}}{{/each}}"
-    },
-    {
-      "description": "Single PR for devcontainer.json image + features",
-      "matchManagers": ["devcontainer"],
-      "groupName": "Devcontainer config",
-      "commitMessageTopic": "{{#each upgrades}}{{{depName}}}{{#unless @last}}, {{/unless}}{{/each}}"
-    },
-    {
-      "description": "Single PR for Terraform",
-      "matchManagers": ["terraform"],
-      "groupName": "Terraform",
-      "commitMessageTopic": "{{#each upgrades}}{{{depName}}}{{#unless @last}}, {{/unless}}{{/each}}"
-    },
-    {
-      "description": "Single PR for Ansible task/container pins",
-      "matchManagers": ["ansible"],
-      "groupName": "Ansible server tasks",
-      "commitMessageTopic": "{{#each upgrades}}{{{depName}}}{{#unless @last}}, {{/unless}}{{/each}}"
-    },
-    {
-      "description": "Single PR for Galaxy collections",
-      "matchManagers": ["ansible-galaxy"],
-      "groupName": "Ansible collections",
-      "commitMessageTopic": "{{#each upgrades}}{{{depName}}}{{#unless @last}}, {{/unless}}{{/each}}"
-    },
-    {
-      "description": "Default convenience: automerge patch, digest, minor when CI passes",
-      "matchUpdateTypes": ["patch", "digest", "minor"],
+      "description": "Automerge patch + digest when CI passes",
+      "matchUpdateTypes": ["patch", "digest"],
       "automerge": true
     },
     {
-      "description": "Never automerge major upgrades",
-      "matchUpdateTypes": ["major"],
-      "automerge": false
-    },
-    {
-      "description": "Terraform/Ansible: minor can change plans or runtime; CI has validate/syntax only (no cloud plan)",
-      "matchManagers": ["terraform", "ansible", "ansible-galaxy"],
-      "matchUpdateTypes": ["minor"],
-      "automerge": false
-    },
-    {
-      "description": "Dockerfile base images: minor needs quick glance (behaviour/ABI)",
-      "matchManagers": ["dockerfile"],
-      "matchUpdateTypes": ["minor"],
-      "automerge": false
-    },
-    {
-      "description": "Crane regex in prefect/Dockerfile.worker: minor manual (dockerfile FROM minors covered above)",
-      "matchManagers": ["regex"],
-      "matchPaths": ["prefect/Dockerfile.worker"],
-      "matchUpdateTypes": ["minor"],
-      "automerge": false
-    },
-    {
-      "description": "devcontainer image/features: minor needs glance",
-      "matchManagers": ["devcontainer"],
-      "matchUpdateTypes": ["minor"],
+      "description": "Minors and majors need a human",
+      "matchUpdateTypes": ["minor", "major"],
       "automerge": false
     }
   ]
