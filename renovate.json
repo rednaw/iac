@@ -44,14 +44,9 @@
   "schedule": ["at any time"],
   "packageRules": [
     {
-      "description": "Automerge patch + digest when CI passes",
-      "matchUpdateTypes": ["patch", "digest"],
+      "description": "Automerge minor and patch when CI passes",
+      "matchUpdateTypes": ["minor", "patch"],
       "automerge": true
-    },
-    {
-      "description": "Minors and majors need a human",
-      "matchUpdateTypes": ["minor", "major"],
-      "automerge": false
     }
   ]
 }
