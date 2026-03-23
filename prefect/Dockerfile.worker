@@ -14,7 +14,7 @@ COPY --from=restic /usr/bin/restic /usr/local/bin/restic
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-ARG CRANE_VERSION=v0.21.2
+ARG CRANE_VERSION=v0.21.3
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl && rm -rf /var/lib/apt/lists/* \
     && curl -sSL "https://github.com/google/go-containerregistry/releases/download/${CRANE_VERSION}/go-containerregistry_Linux_x86_64.tar.gz" \
     | tar xz -C /tmp && mv /tmp/crane /usr/local/bin/crane && rm -rf /tmp/* && chmod +x /usr/local/bin/crane
