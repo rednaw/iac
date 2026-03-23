@@ -133,6 +133,42 @@
   retries: 12
   delay: 5
 
+- name: Check if worker image exists locally
+  community.docker.docker_image_info:
+    name: "{{ prefect_worker_image }}"
+  register: _prefect_worker_image_info
+
+- name: Bootstrap worker image on first run (sync source + build)
+  when: _prefect_worker_image_info.images | length == 0
+  block:
+    - name: Sync Prefect source to host for initial image build
+      ansible.posix.synchronize:
+        src: "{{ playbook_dir }}/../../prefect/"
+        dest: "{{ prefect_flow_code_host_path }}/"
+        delete: true
+        rsync_opts:
+          - "--exclude=__pycache__"
+          - "--exclude=.git"
+          - "--checksum"
+          - "--omit-dir-times"
+
+    - name: Fix ownership of synced Prefect tree
+      ansible.builtin.file:
+        path: /opt/iac/prefect
+        state: directory
+        recurse: true
+        owner: root
+        group: root
+
+    - name: Build worker image
+      community.docker.docker_image:
+        name: "{{ prefect_worker_image }}"
+        source: build
+        force_source: true
+        build:
+          path: "{{ prefect_flow_code_host_path }}"
+          dockerfile: Dockerfile.worker
+
 - name: Ensure Prefect worker container is running
   community.docker.docker_container:
     name: prefect-worker
