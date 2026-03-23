@@ -10,6 +10,7 @@ tasks:
     cmds:
       - |
         TFC_ORG=$(SOPS_AGE_KEY_FILE="{{.SOPS_KEY_FILE}}" sops -d ../app/.iac/iac.yml | yq -r '.terraform_cloud_organization')
+        export TF_WORKSPACE="{{.WORKSPACE | default "dev"}}"
         if ! output=$(terraform init -backend-config="organization=${TFC_ORG}" 2>&1); then
           echo "$output"
           exit 1
@@ -24,6 +25,7 @@ tasks:
     deps: [":_check:sops-key", ":_check:workspace"]
     cmds:
       - task: init
+        vars: { WORKSPACE: "{{.WORKSPACE}}" }
       - |
         echo "📋 Planning Terraform changes for workspace: platform-{{.WORKSPACE}}..."
         terraform workspace select "{{.WORKSPACE}}"
@@ -45,6 +47,7 @@ tasks:
     deps: [":_check:sops-key", ":_check:workspace"]
     cmds:
       - task: init
+        vars: { WORKSPACE: "{{.WORKSPACE}}" }
       - |
         echo "✨ Applying Terraform changes to workspace: platform-{{.WORKSPACE}}"
         terraform workspace select "{{.WORKSPACE}}"
@@ -71,6 +74,7 @@ tasks:
     deps: [":_check:sops-key", ":_check:workspace"]
     cmds:
       - task: init
+        vars: { WORKSPACE: "{{.WORKSPACE}}" }
       - |
         echo "⚠️  WARNING: This will DESTROY all resources in workspace: platform-{{.WORKSPACE}}"
         echo "Terraform will ask for confirmation..."
@@ -96,6 +100,7 @@ tasks:
     deps: [":_check:workspace"]
     cmds:
       - task: init
+        vars: { WORKSPACE: "{{.WORKSPACE}}" }
       - |
         terraform workspace select "{{.WORKSPACE}}"
         echo "📤 Getting Terraform outputs for workspace: platform-{{.WORKSPACE}}..."
