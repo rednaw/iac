@@ -10,7 +10,7 @@ tasks:
     cmds:
       - |
         TFC_ORG=$(SOPS_AGE_KEY_FILE="{{.SOPS_KEY_FILE}}" sops -d ../app/.iac/iac.yml | yq -r '.terraform_cloud_organization')
-        export TF_WORKSPACE="{{.WORKSPACE | default "dev"}}"
+        export TF_WORKSPACE={{.WORKSPACE | default "dev"}}
         if ! output=$(terraform init -backend-config="organization=${TFC_ORG}" 2>&1); then
           echo "$output"
           exit 1
