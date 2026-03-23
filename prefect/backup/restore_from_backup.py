@@ -91,11 +91,21 @@ def main() -> None:
                     print(f"Dump not found: {dump}")
                     continue
                 print(f"Restoring DB: {service}")
-                with open(dump, "rb") as f:
+                container_dump = "/tmp/restore.dump"
+                subprocess.run(
+                    compose + ["cp", str(dump), f"{service}:{container_dump}"],
+                    cwd=deploy_dir, check=True,
+                )
+                try:
                     subprocess.run(
                         compose + ["exec", "-T", service, "pg_restore", "-U", user, "-d", db,
-                                   "--clean", "--if-exists", "--no-owner", "--no-acl", "-"],
-                        stdin=f, cwd=deploy_dir, check=True,
+                                   "--clean", "--if-exists", "--no-owner", "--no-acl", container_dump],
+                        cwd=deploy_dir, check=True,
+                    )
+                finally:
+                    subprocess.run(
+                        compose + ["exec", "-T", service, "rm", "-f", container_dump],
+                        cwd=deploy_dir, check=False,
                     )
         if do_vol:
             for entry in config.get("volumes") or []:

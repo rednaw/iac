@@ -13,11 +13,10 @@
     app_environment: "{{ 'dev' if '-dev' in inventory_hostname else 'prod' }}"
     base_domain: "{{ infrastructure_secrets.base_domain }}"
 
-- name: Set Traefik redirect target and app domains for TLS pre-warm
+- name: Set Traefik redirect target and app domains
   ansible.builtin.set_fact:
     traefik_redirect_target: "{{ app_environment }}.{{ base_domain }}"
-    # From iac.yml app_domains when set, else single redirect target
-    traefik_app_domains: "{{ infrastructure_secrets.app_domains | default([traefik_redirect_target]) }}"
+    traefik_app_domains: "{{ [app_environment + '.' + base_domain] }}"
 
 - name: Create Traefik directories
   ansible.builtin.file:
@@ -38,11 +37,18 @@
     mode: '0644'
   notify: Restart Traefik
 
-- name: Deploy Traefik dynamic redirects
+- name: Deploy Traefik dynamic redirects (www/apex → prod only)
   ansible.builtin.template:
     src: traefik-dynamic-redirects.yml.j2
     dest: /etc/traefik/dynamic/redirects.yml
     mode: '0644'
+  when: app_environment == 'prod'
+
+- name: Remove redirect config on dev (www/apex handled by prod)
+  ansible.builtin.file:
+    path: /etc/traefik/dynamic/redirects.yml
+    state: absent
+  when: app_environment != 'prod'
 
 - name: Deploy Traefik HTTP→HTTPS redirect (low priority so ACME works on :80)
   ansible.builtin.template:
