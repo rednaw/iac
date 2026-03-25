@@ -15,6 +15,10 @@ terraform {
       source  = "hetznercloud/hcloud"
       version = "~> 1.45"
     }
+    transip = {
+      source  = "aequitas/transip"
+      version = "~> 0.1"
+    }
   }
 }
 

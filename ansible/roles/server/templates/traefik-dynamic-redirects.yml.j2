@@ -9,6 +9,7 @@ http:
       tls:
         certResolver: letsencrypt
       middlewares:
+        - hsts-headers
         - redirect-to-app
       service: noop@internal
     redirect-apex:
@@ -18,6 +19,7 @@ http:
       tls:
         certResolver: letsencrypt
       middlewares:
+        - hsts-headers
         - redirect-to-app
       service: noop@internal
 
@@ -27,3 +29,7 @@ http:
         regex: "^https://(www\\.)?{{ base_domain | regex_escape() | replace('\\', '\\\\') }}(.*)"
         replacement: "https://{{ traefik_redirect_target }}$2"
         permanent: true
+    hsts-headers:
+      headers:
+        customResponseHeaders:
+          Strict-Transport-Security: "max-age=31536000; includeSubDomains"

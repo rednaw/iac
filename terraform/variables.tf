@@ -4,6 +4,17 @@ variable "hcloud_token" {
   sensitive   = true
 }
 
+variable "transip_account_name" {
+  description = "TransIP API account name"
+  type        = string
+}
+
+variable "transip_private_key" {
+  description = "TransIP API private key (PEM)"
+  type        = string
+  sensitive   = true
+}
+
 variable "ssh_keys" {
   description = "List of Hetzner Cloud SSH key IDs to authorize on the server"
   type        = list(string)

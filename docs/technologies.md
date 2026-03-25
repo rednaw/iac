@@ -14,7 +14,9 @@ Most versioned dependencies live in a package file; [Renovate](https://docs.reno
 | **Server provisioning** | | |
 | [Ansible](https://docs.ansible.com/) | Configuration management | [`requirements.txt`](../requirements.txt), [`ansible/requirements.yml`](../ansible/requirements.yml) |
 | [hcloud](https://github.com/hetznercloud/cli) | Hetzner Cloud CLI | [`mise.toml`](../mise.toml) |
-| [Terraform](https://developer.hashicorp.com/terraform) | IaC for cloud resources | [`terraform/versions.tf`](../terraform/versions.tf) |
+| [Terraform](https://developer.hashicorp.com/terraform) | IaC for cloud resources (servers, DNS) | [`terraform/versions.tf`](../terraform/versions.tf) |
+| **DNS** | | |
+| [TransIP DNS](https://www.transip.eu/knowledgebase/155-dns-and-nameservers/) | DNS records and DNSSEC managed by Terraform. | [`terraform/dns.tf`](../terraform/dns.tf) |
 | **Secrets** | | |
 | [Age](https://github.com/FiloSottile/age) | Encryption (age format) | [`mise.toml`](../mise.toml) |
 | [SOPS](https://getsops.io/) | Encrypt secrets in Git. See [Secrets](secrets.md) | [`mise.toml`](../mise.toml) |

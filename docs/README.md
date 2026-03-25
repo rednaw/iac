@@ -7,7 +7,7 @@
 This diagram shows how the various components work together:
 
 <details>
-  <summary>Click to expand</summary>
+  <summary>Click to expand diagram</summary>
 
 ```mermaid
 graph TB
@@ -53,19 +53,18 @@ graph TB
 
 ## Reference
 
-**Infrastructure**
-
+**Main components**
 - [Traefik](traefik.md) — Reverse proxy, TLS, operations, adding apps
 - [Registry](registry.md) — Auth, commands, operations
 - [Observe](monitoring.md) — OpenObserve, dashboards, logs
 - [Workflows](workflows.md) — Scheduled tasks and multi-step workflows with Prefect
 
-**Application**
-
+**Application management**
 - [Application deployment](application-deployment.md) — Commands, app mount, records, implementation details
-- [Secrets](secrets.md) — File locations, editing, SOPS, app secrets
+- [Secrets management](secrets.md) — File locations, editing, SOPS, app secrets
 
-**Operations**
+**Operations and infrastructure**
+- [DNS](dns.md) — Zone and records managed by Terraform (Hetzner DNS)
 - [Backups](backups.md) — Automated application aware backups using Restic
 - [Remote-SSH](remote-ssh.md) — Connect to the server via Remote-SSH (tunnel, dashboards)
 - [Private (local config)](private.md) — Local config files
