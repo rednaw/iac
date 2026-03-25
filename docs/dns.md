@@ -2,36 +2,30 @@
 
 # DNS
 
-DNS zones and records are managed by Terraform via the [hcloud provider](https://registry.terraform.io/providers/hetznercloud/hcloud/latest/docs), using [Hetzner DNS](https://docs.hetzner.com/networking/dns/) as the nameserver. Domain registration stays at the original registrar (e.g. TransIP); only the NS delegation points to Hetzner.
+DNS zones and records are managed by Terraform via the [aequitas/transip](https://registry.terraform.io/providers/aequitas/transip/latest) provider. TransIP acts as both registrar and authoritative DNS provider. DNSSEC is managed via `transip_domain_dnssec`.
 
 **Configuration:** [`terraform/dns.tf`](../terraform/dns.tf)
 
 ## How it works
 
-The prod workspace owns the DNS zone and all shared records. The dev workspace looks up the zone as a data source and manages only its own records. This means `terraform apply -- prod` must run before `terraform apply -- dev`.
+TransIP manages the zone automatically as registrar — no zone creation step needed. Each workspace manages the DNS records that point to its own server. Both workspaces are independent (no ordering constraint).
 
 <details>
   <summary>Click to expand diagram</summary>
 
 ```mermaid
 flowchart LR
-    subgraph registrar["Registrar (TransIP)"]
-        NS["NS delegation →<br/>Hetzner nameservers"]
-    end
-
-    subgraph hetzner["Hetzner DNS"]
+    subgraph transip["TransIP (registrar + DNS)"]
         ZONE["Zone: example.com"]
-        PROD_REC["prod A/AAAA<br/>@ A/AAAA<br/>registry A/AAAA<br/>www CNAME<br/>email anti-spoofing"]
+        PROD_REC["prod A/AAAA<br/>@ A/AAAA<br/>registry A/AAAA<br/>www CNAME<br/>email anti-spoofing<br/>DNSSEC"]
         DEV_REC["dev A/AAAA"]
     end
 
     subgraph terraform["Terraform"]
-        PROD_WS["platform-prod<br/>(creates zone + records)"]
-        DEV_WS["platform-dev<br/>(creates dev records)"]
+        PROD_WS["platform-prod"]
+        DEV_WS["platform-dev"]
     end
 
-    NS --> ZONE
-    PROD_WS --> ZONE
     PROD_WS --> PROD_REC
     DEV_WS --> DEV_REC
 ```
@@ -45,20 +39,20 @@ flowchart LR
 | **prod** | `prod` A/AAAA, `@` A/AAAA, `registry` A/AAAA | Yes — derived from server IP |
 | **prod** | `www` CNAME | Static — points to `prod.<domain>` |
 | **prod** | Null MX, SPF, DMARC | Static — email anti-spoofing |
+| **prod** | DNSSEC (`transip_domain_dnssec`) | Static — key material from TransIP |
 | **dev** | `dev` A/AAAA | Yes — derived from server IP; destroyed with dev server |
+
+## DNSSEC
+
+DNSSEC is declared as a `transip_domain_dnssec` resource in the prod workspace. The key material (key_tag, flags, algorithm, public_key) comes from TransIP's control panel once DNSSEC is enabled for the domain. Add the values to the `dns.tf` resource block and apply.
 
 ## Adding a new domain
 
-For a new app on a different domain
-1. No code changes needed in `dns.tf` — it keys off `var.base_domain` from `iac.yml`
-2. Point the new domain's NS records at Hetzner's nameservers (`hydrogen.ns.hetzner.com`, `oxygen.ns.hetzner.com`, `helium.ns.hetzner.de`)
-3. Run `terraform apply -- prod` to create the zone and records
+For a new app on a different domain:
 
-## Changing NS delegation
+- If the domain is registered at TransIP: no code changes — set `base_domain` in `iac.yml` and apply.
+- If the domain is at another registrar: delegate NS records to TransIP's nameservers (`ns0.transip.net`, `ns1.transip.nl`, `ns2.transip.eu`), then apply.
 
-This is a one-time step per domain at the registrar:
+## Credentials
 
-1. `terraform apply -- prod` to create the zone and records in Hetzner DNS
-2. Verify records resolve: `dig @hydrogen.ns.hetzner.com prod.<domain>`
-3. At the registrar, change nameservers to Hetzner's three nameservers
-4. Wait for propagation (minutes to hours): `dig NS <domain>`
+`transip_account_name` and `transip_private_key` are stored in the sops-encrypted `app/.iac/iac.yml` and passed to Terraform as `TF_VAR_` environment variables by the Taskfile. Generate the key pair at https://www.transip.eu/cp/account/api/.

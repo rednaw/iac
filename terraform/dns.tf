@@ -1,147 +1,155 @@
-# DNS zone and records for the platform.
+# DNS records and DNSSEC for the platform.
 #
-# Zone ownership: prod creates the zone, dev looks it up as a data source.
+# TransIP is both registrar and DNS provider — no zone creation needed.
 # Record ownership: each workspace manages records pointing to its own server.
-# Consequence: terraform apply -- prod must run before terraform apply -- dev.
+# DNSSEC is managed via transip_domain_dnssec (prod only).
 
 locals {
   is_prod     = local.environment == "prod"
   is_dev      = local.environment == "dev"
-  zone        = local.is_prod ? hcloud_zone.main[0].name : data.hcloud_zone.main[0].name
   server_ipv6 = hcloud_server.platform.ipv6_address
-}
-
-# ──────────────────────────────────────────────
-# Zone
-# ──────────────────────────────────────────────
-
-resource "hcloud_zone" "main" {
-  count = local.is_prod ? 1 : 0
-  name  = var.base_domain
-  mode  = "primary"
-}
-
-data "hcloud_zone" "main" {
-  count = local.is_dev ? 1 : 0
-  name  = var.base_domain
 }
 
 # ──────────────────────────────────────────────
 # Dev records (destroyed with dev server)
 # ──────────────────────────────────────────────
 
-resource "hcloud_zone_rrset" "dev_a" {
+resource "transip_dns_record" "dev_a" {
   count   = local.is_dev ? 1 : 0
-  zone    = local.zone
+  domain  = var.base_domain
   name    = "dev"
   type    = "A"
-  ttl     = 300
-  records = [{ value = hcloud_server.platform.ipv4_address }]
+  expire  = 300
+  content = [hcloud_server.platform.ipv4_address]
 }
 
-resource "hcloud_zone_rrset" "dev_aaaa" {
+resource "transip_dns_record" "dev_aaaa" {
   count   = local.is_dev ? 1 : 0
-  zone    = local.zone
+  domain  = var.base_domain
   name    = "dev"
   type    = "AAAA"
-  ttl     = 300
-  records = [{ value = local.server_ipv6 }]
+  expire  = 300
+  content = [local.server_ipv6]
 }
 
 # ──────────────────────────────────────────────
 # Prod server records
 # ──────────────────────────────────────────────
 
-resource "hcloud_zone_rrset" "prod_a" {
+resource "transip_dns_record" "prod_a" {
   count   = local.is_prod ? 1 : 0
-  zone    = local.zone
+  domain  = var.base_domain
   name    = "prod"
   type    = "A"
-  ttl     = 60
-  records = [{ value = hcloud_server.platform.ipv4_address }]
+  expire  = 60
+  content = [hcloud_server.platform.ipv4_address]
 }
 
-resource "hcloud_zone_rrset" "prod_aaaa" {
+resource "transip_dns_record" "prod_aaaa" {
   count   = local.is_prod ? 1 : 0
-  zone    = local.zone
+  domain  = var.base_domain
   name    = "prod"
   type    = "AAAA"
-  ttl     = 60
-  records = [{ value = local.server_ipv6 }]
+  expire  = 60
+  content = [local.server_ipv6]
 }
 
-resource "hcloud_zone_rrset" "apex_a" {
+resource "transip_dns_record" "apex_a" {
   count   = local.is_prod ? 1 : 0
-  zone    = local.zone
+  domain  = var.base_domain
   name    = "@"
   type    = "A"
-  ttl     = 60
-  records = [{ value = hcloud_server.platform.ipv4_address }]
+  expire  = 60
+  content = [hcloud_server.platform.ipv4_address]
 }
 
-resource "hcloud_zone_rrset" "apex_aaaa" {
+resource "transip_dns_record" "apex_aaaa" {
   count   = local.is_prod ? 1 : 0
-  zone    = local.zone
+  domain  = var.base_domain
   name    = "@"
   type    = "AAAA"
-  ttl     = 60
-  records = [{ value = local.server_ipv6 }]
+  expire  = 60
+  content = [local.server_ipv6]
 }
 
-resource "hcloud_zone_rrset" "registry_a" {
+resource "transip_dns_record" "registry_a" {
   count   = local.is_prod ? 1 : 0
-  zone    = local.zone
+  domain  = var.base_domain
   name    = "registry"
   type    = "A"
-  ttl     = 60
-  records = [{ value = hcloud_server.platform.ipv4_address }]
+  expire  = 60
+  content = [hcloud_server.platform.ipv4_address]
 }
 
-resource "hcloud_zone_rrset" "registry_aaaa" {
+resource "transip_dns_record" "registry_aaaa" {
   count   = local.is_prod ? 1 : 0
-  zone    = local.zone
+  domain  = var.base_domain
   name    = "registry"
   type    = "AAAA"
-  ttl     = 60
-  records = [{ value = local.server_ipv6 }]
+  expire  = 60
+  content = [local.server_ipv6]
 }
 
-resource "hcloud_zone_rrset" "www" {
+resource "transip_dns_record" "www" {
   count   = local.is_prod ? 1 : 0
-  zone    = local.zone
+  domain  = var.base_domain
   name    = "www"
   type    = "CNAME"
-  ttl     = 60
-  records = [{ value = "prod.${var.base_domain}." }]
+  expire  = 60
+  content = ["prod.${var.base_domain}."]
 }
 
 # ──────────────────────────────────────────────
 # Email anti-spoofing (domain does not handle email)
 # ──────────────────────────────────────────────
 
-resource "hcloud_zone_rrset" "null_mx" {
+resource "transip_dns_record" "null_mx" {
   count   = local.is_prod ? 1 : 0
-  zone    = local.zone
+  domain  = var.base_domain
   name    = "@"
   type    = "MX"
-  ttl     = 86400
-  records = [{ value = "0 ." }]
+  expire  = 86400
+  content = ["0 ."]
 }
 
-resource "hcloud_zone_rrset" "apex_spf" {
+resource "transip_dns_record" "apex_spf" {
   count   = local.is_prod ? 1 : 0
-  zone    = local.zone
+  domain  = var.base_domain
   name    = "@"
   type    = "TXT"
-  ttl     = 86400
-  records = [{ value = "\"v=spf1 -all\"" }]
+  expire  = 86400
+  content = ["v=spf1 -all"]
 }
 
-resource "hcloud_zone_rrset" "dmarc" {
+resource "transip_dns_record" "dmarc" {
   count   = local.is_prod ? 1 : 0
-  zone    = local.zone
+  domain  = var.base_domain
   name    = "_dmarc"
   type    = "TXT"
-  ttl     = 86400
-  records = [{ value = "\"v=DMARC1; p=reject;\"" }]
+  expire  = 86400
+  content = ["v=DMARC1; p=reject;"]
 }
+
+# ──────────────────────────────────────────────
+# DNSSEC (prod only — applies to the whole domain)
+# ──────────────────────────────────────────────
+#
+# transip_domain_dnssec requires at least 1 dnssec {} block with real key material
+# (key_tag, flags, algorithm, public_key) from TransIP's authoritative servers.
+#
+# To add DNSSEC management:
+#   1. Enable DNSSEC at https://www.transip.eu/cp/domein/ (or confirm it is already active)
+#   2. Retrieve the key material from the TransIP API or control panel
+#   3. Add a transip_domain_dnssec resource block with the actual values and apply
+#
+# resource "transip_domain_dnssec" "main" {
+#   count  = local.is_prod ? 1 : 0
+#   domain = var.base_domain
+#
+#   dnssec {
+#     key_tag    = <key_tag>   # 5-digit value from TransIP
+#     flags      = 257         # 256 = ZSK, 257 = KSK
+#     algorithm  = 13          # ECDSA-P256-SHA256
+#     public_key = "<base64>"
+#   }
+# }
