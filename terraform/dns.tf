@@ -134,7 +134,7 @@ resource "hcloud_zone_rrset" "apex_spf" {
   name    = "@"
   type    = "TXT"
   ttl     = 86400
-  records = [{ value = provider::hcloud::txt_record("v=spf1 -all") }]
+  records = [{ value = "\"v=spf1 -all\"" }]
 }
 
 resource "hcloud_zone_rrset" "dmarc" {
@@ -143,5 +143,5 @@ resource "hcloud_zone_rrset" "dmarc" {
   name    = "_dmarc"
   type    = "TXT"
   ttl     = 86400
-  records = [{ value = provider::hcloud::txt_record("v=DMARC1; p=reject;") }]
+  records = [{ value = "\"v=DMARC1; p=reject;\"" }]
 }
