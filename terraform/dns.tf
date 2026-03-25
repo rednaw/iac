@@ -130,26 +130,4 @@ resource "transip_dns_record" "dmarc" {
   content = ["v=DMARC1; p=reject;"]
 }
 
-# ──────────────────────────────────────────────
-# DNSSEC (prod only — applies to the whole domain)
-# ──────────────────────────────────────────────
-#
-# transip_domain_dnssec requires at least 1 dnssec {} block with real key material
-# (key_tag, flags, algorithm, public_key) from TransIP's authoritative servers.
-#
-# To add DNSSEC management:
-#   1. Enable DNSSEC at https://www.transip.eu/cp/domein/ (or confirm it is already active)
-#   2. Retrieve the key material from the TransIP API or control panel
-#   3. Add a transip_domain_dnssec resource block with the actual values and apply
-#
-# resource "transip_domain_dnssec" "main" {
-#   count  = local.is_prod ? 1 : 0
-#   domain = var.base_domain
-#
-#   dnssec {
-#     key_tag    = <key_tag>   # 5-digit value from TransIP
-#     flags      = 257         # 256 = ZSK, 257 = KSK
-#     algorithm  = 13          # ECDSA-P256-SHA256
-#     public_key = "<base64>"
-#   }
-# }
+# DNSSEC is managed by TransIP defaults/policy outside Terraform.

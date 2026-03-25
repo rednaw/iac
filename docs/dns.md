@@ -2,7 +2,7 @@
 
 # DNS
 
-DNS zones and records are managed by Terraform via the [aequitas/transip](https://registry.terraform.io/providers/aequitas/transip/latest) provider. TransIP acts as both registrar and authoritative DNS provider. DNSSEC is managed via `transip_domain_dnssec`.
+DNS zones and records are managed by Terraform via the [aequitas/transip](https://registry.terraform.io/providers/aequitas/transip/latest) provider. TransIP acts as both registrar and authoritative DNS provider. DNSSEC is managed by TransIP defaults/policy.
 
 **Configuration:** [`terraform/dns.tf`](../terraform/dns.tf)
 
@@ -39,12 +39,12 @@ flowchart LR
 | **prod** | `prod` A/AAAA, `@` A/AAAA, `registry` A/AAAA | Yes — derived from server IP |
 | **prod** | `www` CNAME | Static — points to `prod.<domain>` |
 | **prod** | Null MX, SPF, DMARC | Static — email anti-spoofing |
-| **prod** | DNSSEC (`transip_domain_dnssec`) | Static — key material from TransIP |
+| **prod** | DNSSEC | Managed by TransIP defaults/policy |
 | **dev** | `dev` A/AAAA | Yes — derived from server IP; destroyed with dev server |
 
 ## DNSSEC
 
-DNSSEC is declared as a `transip_domain_dnssec` resource in the prod workspace. The key material (key_tag, flags, algorithm, public_key) comes from TransIP's control panel once DNSSEC is enabled for the domain. Add the values to the `dns.tf` resource block and apply.
+DNSSEC is enabled and managed by TransIP defaults/policy outside Terraform.
 
 ## Adding a new domain
 
