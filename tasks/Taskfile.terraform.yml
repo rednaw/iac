@@ -2,6 +2,20 @@
 version: '3'
 
 tasks:
+  reconfigure:
+    desc: "Reconfigure Terraform backend for both workspaces after org/project switch"
+    dir: terraform
+    silent: true
+    deps: [":_check:sops-key"]
+    cmds:
+      - |
+        TFC_ORG=$(SOPS_AGE_KEY_FILE="{{.SOPS_KEY_FILE}}" sops -d ../app/.iac/iac.yml | yq -r '.terraform_cloud_organization')
+        for WORKSPACE in dev prod; do
+          export TF_WORKSPACE="${WORKSPACE}"
+          echo "🔁 Reconfiguring Terraform backend for workspace: platform-${WORKSPACE} (org: ${TFC_ORG})..."
+          terraform init -reconfigure -backend-config="organization=${TFC_ORG}"
+        done
+
   init:
     desc: "Initialize Terraform backend (runs automatically; call manually to re-initialize)"
     dir: terraform

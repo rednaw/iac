@@ -39,7 +39,7 @@ variable "server_user" {
 }
 
 variable "server_name" {
-  description = "Name of the VPS server (defaults to platform-{environment} if not specified)"
+  description = "Name of the VPS server (defaults to {base_domain-with-dashes}-{environment} if not specified)"
   type        = string
   default     = null
 }

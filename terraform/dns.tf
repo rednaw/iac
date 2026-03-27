@@ -97,6 +97,10 @@ resource "transip_dns_record" "www" {
   type    = "CNAME"
   expire  = 60
   content = ["prod.${var.base_domain}."]
+  depends_on = [
+    transip_dns_record.prod_a,
+    transip_dns_record.prod_aaaa,
+  ]
 }
 
 # ──────────────────────────────────────────────
