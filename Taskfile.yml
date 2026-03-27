@@ -8,7 +8,6 @@ vars:
     sh: echo $HOME
   SOPS_CONFIG_DIR: '{{.HOME}}/.config/sops/age'
   SOPS_KEY_FILE: '{{.SOPS_CONFIG_DIR}}/keys.txt'
-  SOPS_KEY_PUB: 'app/.iac/sops-key-{{.USERNAME}}.pub'
 
 includes:
   hostkeys: tasks/Taskfile.hostkeys.yml
