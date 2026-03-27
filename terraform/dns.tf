@@ -19,7 +19,7 @@ resource "transip_dns_record" "dev_a" {
   domain  = var.base_domain
   name    = "dev"
   type    = "A"
-  expire  = 300
+  expire  = 60
   content = [hcloud_server.platform.ipv4_address]
 }
 
@@ -28,7 +28,7 @@ resource "transip_dns_record" "dev_aaaa" {
   domain  = var.base_domain
   name    = "dev"
   type    = "AAAA"
-  expire  = 300
+  expire  = 60
   content = [local.server_ipv6]
 }
 
