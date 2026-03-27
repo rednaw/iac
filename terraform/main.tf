@@ -6,7 +6,7 @@ resource "hcloud_firewall" "platform" {
       error_message = "Invalid CIDR blocks found in allowed_ssh_ips. All values must be valid CIDR format (e.g., 1.2.3.4/32 or 1.2.3.4/24)."
     }
   }
-  name = "platform-firewall-${local.environment}"
+  name = "${local.project_slug}-firewall-${local.environment}"
 
   # SSH access
   rule {

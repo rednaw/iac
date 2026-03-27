@@ -37,6 +37,7 @@ tasks:
         echo "Infrastructure as Code"
         echo ""
         echo "Terraform commands:"
+        echo "  task terraform:reconfigure            # Reconfigure backend after org/project change (dev+prod)"
         echo "  task terraform:plan    -- [dev|prod]  # Plan changes"
         echo "  task terraform:apply   -- [dev|prod]  # Apply changes"
         echo "  task terraform:destroy -- [dev|prod]  # Destroy resources"

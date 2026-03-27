@@ -1,6 +1,7 @@
 locals {
   environment = replace(terraform.workspace, "platform-", "")
-  server_name = var.server_name != null ? var.server_name : "platform-${local.environment}"
+  server_name = var.server_name != null ? var.server_name : "${local.project_slug}-${local.environment}"
+  project_slug = replace(local.base_domain, ".", "-")
 
   # Aliases used by providers.tf and outputs.tf
   hcloud_token = var.hcloud_token
