@@ -2,7 +2,7 @@
 # Backup uses docker compose run <service> pg_dump (pg_dump runs in the app's db container).
 
 FROM docker:29-cli AS dockercli
-FROM docker/compose-bin:v2.40.3 AS compose
+FROM docker/compose-bin:v5.1.2 AS compose
 FROM restic/restic:0.18.1 AS restic
 FROM prefecthq/prefect:3-python3.11
 
