@@ -89,7 +89,7 @@
 - name: Ensure Traefik container is running
   community.docker.docker_container:
     name: traefik
-    image: traefik:v3.6.14
+    image: traefik:v3.6.15
     state: started
     restart_policy: unless-stopped
     ports:
