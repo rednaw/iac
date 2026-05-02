@@ -68,7 +68,7 @@
 - name: Ensure OTEL Collector container is running (Linux host metrics + Docker + logs -> OpenObserve)
   community.docker.docker_container:
     name: otel-collector
-    image: otel/opentelemetry-collector-contrib:0.150.1
+    image: otel/opentelemetry-collector-contrib:0.151.0
     state: started
     restart_policy: unless-stopped
     # Cap memory so backpressure does not grow unbounded
