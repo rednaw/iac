@@ -9,7 +9,7 @@
   "prConcurrentLimit": 10,
   "branchConcurrentLimit": 10,
   "automergeType": "pr",
-  "platformAutomerge": true,
+  "platformAutomerge": false,
   "ignoreTests": false,
   "enabledManagers": [
     "github-actions",
