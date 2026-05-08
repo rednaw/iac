@@ -1,0 +1,26 @@
+---
+# Platform role: app-serving services on top of the base role.
+# Composes Traefik, the iac user/tree, Docker registry, OpenObserve,
+# and Prefect. Depends on roles/base/ for fail2ban package, Docker, etc.
+#
+# Order preserves the previous monolithic roles/server/ execution order so
+# behavior is identical. See roles/platform/README.md for the cross-component
+# dependencies that justify keeping these together on one host.
+
+- name: Configure fail2ban Traefik jails
+  ansible.builtin.import_tasks: fail2ban-traefik.yml
+
+- name: Install and configure Traefik
+  ansible.builtin.import_tasks: traefik.yml
+
+- name: Create iac user and /opt/iac tree
+  ansible.builtin.import_tasks: iac-user.yml
+
+- name: Configure registry
+  ansible.builtin.import_tasks: registry.yml
+
+- name: Configure OpenObserve
+  ansible.builtin.import_tasks: openobserve.yml
+
+- name: Configure Prefect
+  ansible.builtin.import_tasks: prefect.yml

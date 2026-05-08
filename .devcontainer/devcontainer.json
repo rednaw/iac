@@ -41,7 +41,11 @@
   },
 
   "remoteUser": "vscode",
-  
+
+  "remoteEnv": {
+    "ANSIBLE_CONFIG": "/workspaces/iac/ansible/ansible.cfg"
+  },
+
   "postCreateCommand": "bash .devcontainer/devcontainer-setup.sh",
   "features": {
     "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}

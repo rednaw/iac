@@ -189,7 +189,7 @@ Phase 1 keeps the platform on one host on purpose. A future split (dedicated DB,
 
 To preserve that path, enforce during implementation:
 
-- **Keep each platform task file self-contained.** [`roles/platform/tasks/main.yml`](../../ansible/roles/server/tasks/main.yml) stays a flat import chain. No cross-component glue in `main.yml`; if two components need `iac-user`, both `include_tasks` it -- don't rely on ordering.
+- **Keep each platform task file self-contained.** [`roles/platform/tasks/main.yml`](../../ansible/roles/platform/tasks/main.yml) stays a flat import chain. No cross-component glue in `main.yml`; if two components need `iac-user`, both `include_tasks` it -- don't rely on ordering.
 - **Document co-location assumptions.** Add `roles/platform/README.md` listing the implicit cross-component links (paths, Docker networks, shared directories). Future-you needs this map to design the split.
 - **Parameterize `modules/server` firewall.** Module takes `additional_firewall_rules` as input. `terraform/platform/` adds 80/443. A future `platform-data` host opens Postgres on a private IP only -- same pattern as VPN/honeypot will use.
 - **Internal tasks take paths as parameters.** `_ansible:run` receives playbook, inventory, hostname; `_terraform:*` receives `TF_DIR` and workspace prefix label. No hardcoded `playbooks/server.yml` or `terraform/` paths inside the internals.

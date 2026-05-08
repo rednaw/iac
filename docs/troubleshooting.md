@@ -57,6 +57,6 @@
 | Problem | What to do |
 |--------|------------|
 | Certificates not provisioning | `docker logs traefik`. HTTP→HTTPS redirect must exclude `/.well-known/acme-challenge`; router exists. |
-| HTTP→HTTPS not working | [`traefik-dynamic-redirects-http.yml.j2`](../ansible/roles/server/templates/traefik-dynamic-redirects-http.yml.j2) priority 10000 and excludes ACME path. |
+| HTTP→HTTPS not working | [`traefik-dynamic-redirects-http.yml.j2`](../ansible/roles/platform/templates/traefik-dynamic-redirects-http.yml.j2) priority 10000 and excludes ACME path. |
 | Container not discovered | Container on `traefik` network (`docker network inspect traefik`), has `traefik.enable=true` label. |
 | IPv6 not working | DNS AAAA records. Port bindings: `docker inspect traefik \| grep -A 10 Ports`. |

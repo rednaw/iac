@@ -1,0 +1,22 @@
+---
+# Traefik-specific fail2ban jails. Depends on base role (fail2ban package and
+# DEFAULT/sshd jail). Reads Traefik access logs (/var/log/traefik/access.log)
+# produced by the traefik task on the same host.
+
+- name: Deploy fail2ban filters for Traefik jails
+  ansible.builtin.copy:
+    src: "{{ item.src }}"
+    dest: "/etc/fail2ban/filter.d/{{ item.dest }}"
+    mode: '0644'
+  loop:
+    - { src: fail2ban-filter-traefik-login-attempts.conf, dest: traefik-login-attempts.conf }
+    - { src: fail2ban-filter-traefik-forbidden.conf, dest: traefik-forbidden.conf }
+    - { src: fail2ban-filter-traefik-badbots.conf, dest: traefik-badbots.conf }
+  notify: Restart fail2ban
+
+- name: Configure fail2ban Traefik jails
+  ansible.builtin.template:
+    src: fail2ban-traefik.conf.j2
+    dest: /etc/fail2ban/jail.d/traefik.conf
+    mode: '0644'
+  notify: Restart fail2ban

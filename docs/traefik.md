@@ -27,7 +27,7 @@ flowchart LR
 ```
 
 **Dashboard:** Via SSH tunnel — see [Remote-SSH](remote-ssh.md)  
-**Configuration:** [`ansible/roles/server/tasks/traefik.yml`](../ansible/roles/server/tasks/traefik.yml)  
+**Configuration:** [`ansible/roles/platform/tasks/traefik.yml`](../ansible/roles/platform/tasks/traefik.yml)  
 **Logs:** `/var/log/traefik/access.log`
 
 ---
@@ -58,7 +58,7 @@ networks:
 ```
 
 **Required middlewares:**
-- `app-headers` — Security headers (X-Frame-Options, HSTS, etc.). Defined in [`traefik-dynamic-middlewares.yml.j2`](../ansible/roles/server/templates/traefik-dynamic-middlewares.yml.j2)
+- `app-headers` — Security headers (X-Frame-Options, HSTS, etc.). Defined in [`traefik-dynamic-middlewares.yml.j2`](../ansible/roles/platform/templates/traefik-dynamic-middlewares.yml.j2)
 - `app-buffering` — 20MB request limit
 
 **TLS domains:** List app domains in `app/.iac/iac.yml` under `app_domains` for Let's Encrypt pre-warming.
@@ -113,11 +113,11 @@ CSP and Permissions-Policy not set by default — add in app or via middleware.
 
 | Type | Location | Notes |
 |------|----------|-------|
-| Static | `/etc/traefik/traefik.yml` | Template: [`traefik.yml.j2`](../ansible/roles/server/templates/traefik.yml.j2). Requires restart. |
-| Dynamic | `/etc/traefik/dynamic/` | Templates: [`traefik-dynamic-*.yml.j2`](../ansible/roles/server/templates/). Hot-reloaded. |
+| Static | `/etc/traefik/traefik.yml` | Template: [`traefik.yml.j2`](../ansible/roles/platform/templates/traefik.yml.j2). Requires restart. |
+| Dynamic | `/etc/traefik/dynamic/` | Templates: [`traefik-dynamic-*.yml.j2`](../ansible/roles/platform/templates/). Hot-reloaded. |
 
-Key dynamic files: [`traefik-dynamic-redirects-http.yml.j2`](../ansible/roles/server/templates/traefik-dynamic-redirects-http.yml.j2) (HTTP→HTTPS), [`traefik-dynamic-middlewares.yml.j2`](../ansible/roles/server/templates/traefik-dynamic-middlewares.yml.j2) (headers, buffering), [`traefik-dynamic-app-host.yml.j2`](../ansible/roles/server/templates/traefik-dynamic-app-host.yml.j2) (cert pre-warming).
+Key dynamic files: [`traefik-dynamic-redirects-http.yml.j2`](../ansible/roles/platform/templates/traefik-dynamic-redirects-http.yml.j2) (HTTP→HTTPS), [`traefik-dynamic-middlewares.yml.j2`](../ansible/roles/platform/templates/traefik-dynamic-middlewares.yml.j2) (headers, buffering), [`traefik-dynamic-app-host.yml.j2`](../ansible/roles/platform/templates/traefik-dynamic-app-host.yml.j2) (cert pre-warming).
 
 See [Troubleshooting](troubleshooting.md) for Traefik and TLS issues.
 
-Traefik runs on ports 80/443, discovers containers via Docker labels, handles TLS via Let's Encrypt HTTP-01. Network: `traefik` (external). See [`ansible/roles/server/tasks/traefik.yml`](../ansible/roles/server/tasks/traefik.yml).
+Traefik runs on ports 80/443, discovers containers via Docker labels, handles TLS via Let's Encrypt HTTP-01. Network: `traefik` (external). See [`ansible/roles/platform/tasks/traefik.yml`](../ansible/roles/platform/tasks/traefik.yml).

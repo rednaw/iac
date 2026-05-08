@@ -38,7 +38,7 @@ When suggesting diagnostics, say where the command runs: "in the devcontainer" o
 
 | Area | Path | Doc |
 |------|------|-----|
-| **Server config** | `ansible/roles/server/tasks/*.yml` | [docs/](docs/) (Traefik, registry, monitoring, workflows) |
+| **Server config** | `ansible/roles/base/tasks/*.yml` (hardened Ubuntu + Docker), `ansible/roles/platform/tasks/*.yml` (Traefik, registry, OpenObserve, Prefect) | [docs/](docs/) (Traefik, registry, monitoring, workflows) |
 | **App deployment** | `ansible/roles/deploy_app/tasks/*.yml` | [docs/application-deployment](docs/application-deployment.md) |
 | **Provisioning** | `terraform/*.tf` | docs/new-project, backups |
 | **Workflows** | `prefect/<name>/flow.py`, `prefect/prefect.yaml` | [docs/workflows](docs/workflows.md) |
@@ -51,19 +51,24 @@ When suggesting diagnostics, say where the command runs: "in the devcontainer" o
 
 ## Server components (Ansible roles/tasks order)
 
-Server role (`ansible/roles/server/tasks/main.yml`) imports in order:
+[`playbooks/server.yml`](ansible/playbooks/server.yml) imports `roles: [base, platform]`.
+
+**`ansible/roles/base/`** — hardened Ubuntu + Docker (reusable for any server purpose):
 1. **base** — users, packages, firewall  
 2. **unattended-upgrades** — auto security updates  
-3. **ssh** — hardening (key-only, fail2ban)  
-4. **fail2ban** — ssh brute-force protection  
+3. **ssh** — hardening (key-only)  
+4. **fail2ban** — package + base jail (DEFAULT + sshd)  
 5. **docker** — Docker + compose  
-6. **traefik** — reverse proxy, TLS, labels  
-7. **iac-user** — iac user (no home) + /opt/iac tree + shared registry auth  
-8. **registry** — self-hosted Docker registry (GHCR hosts IaC dev image only)  
-9. **openobserve** — logs + metrics (OTEL collector)  
-10. **prefect** — Postgres DB, server, worker (Docker socket + flows)
 
-See `ansible/roles/server/tasks/<component>.yml` for each. Templates in `roles/server/templates/`.
+**`ansible/roles/platform/`** — app-serving services on top of base:
+1. **fail2ban-traefik** — Traefik jails + filters  
+2. **traefik** — reverse proxy, TLS, labels  
+3. **iac-user** — iac user (no home) + /opt/iac tree + shared registry auth  
+4. **registry** — self-hosted Docker registry (GHCR hosts IaC dev image only)  
+5. **openobserve** — logs + metrics (OTEL collector)  
+6. **prefect** — Postgres DB, server, worker (Docker socket + flows)
+
+Co-location assumptions documented in [`ansible/roles/platform/README.md`](ansible/roles/platform/README.md).
 
 ---
 
@@ -102,7 +107,7 @@ See `task` (or `task <namespace>`) for full list.
 **Prefect**  
 - Flows: `prefect/<name>/flow.py` (e.g. `registry_prune/flow.py`).  
 - Deployment: `prefect/prefect.yaml` (schedules, work pool).  
-- Server + worker: deployed by Ansible (`ansible/roles/server/tasks/prefect.yml`).
+- Server + worker: deployed by Ansible (`ansible/roles/platform/tasks/prefect.yml`).
 
 **GitHub Actions**  
 - IaC dev image: build/cache on GHCR (`:latest`, `:buildcache`, `:sha` tags).  

@@ -1,0 +1,49 @@
+# Fail2ban Traefik jails
+#
+# Inherits [DEFAULT] (ignoreip, bantime, findtime, AbuseIPDB action) from
+# base's /etc/fail2ban/jail.d/base.conf -- fail2ban merges all jail.d/*.conf
+# into one configuration space.
+
+# Traefik: auth failures (dashboard, app auth, etc.)
+# Registry /v2/ 401s are excluded: unauthenticated GET /v2/ is normal (clients probe then send credentials).
+[traefik-auth]
+enabled = true
+backend = polling
+port = http,https
+logpath = /var/log/traefik/access.log
+maxretry = 6
+bantime = 1800
+findtime = 600
+failregex = ^<HOST> -.*"(GET|POST).*HTTP.*" (401|403) .*$
+# Ignore registry: path /v2/ or router name registry@docker (Traefik common log).
+ignoreregex = ^<HOST> -.*"/v2/.*" (401|403) .*$|^<HOST> -.*registry@docker.*(401|403).*$
+
+# Traefik: failed app login attempts (/api/auth/login 401|403) – filter in filter.d/traefik-login-attempts.conf
+[traefik-login-attempts]
+enabled = true
+backend = polling
+port = http,https
+logpath = /var/log/traefik/access.log
+maxretry = 8
+bantime = 3600
+findtime = 600
+
+# Traefik: repeated 403 Forbidden – filter in filter.d/traefik-forbidden.conf
+[traefik-forbidden]
+enabled = true
+backend = polling
+port = http,https
+logpath = /var/log/traefik/access.log
+maxretry = 5
+bantime = 3600
+findtime = 600
+
+# Traefik: known bad/scanner paths – filter in filter.d/traefik-badbots.conf
+[traefik-badbots]
+enabled = true
+backend = polling
+port = http,https
+logpath = /var/log/traefik/access.log
+maxretry = 3
+bantime = 86400
+findtime = 600
