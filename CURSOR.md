@@ -71,8 +71,8 @@ See `ansible/roles/server/tasks/<component>.yml` for each. Templates in `roles/s
 
 Root `Taskfile.yml` includes `tasks/Taskfile.*.yml`. Common namespaces:
 
-- **terraform** — `task terraform:plan -- <env>`, `task terraform:apply -- <env>`  
-- **ansible** — `task ansible:run -- <env>` (apply server config)  
+- **platform:provision:** — `task platform:provision:plan -- <env>`, `task platform:provision:apply -- <env>` (Terraform: cloud server, firewall, DNS)  
+- **platform:configure:** — `task platform:configure:bootstrap -- <env>`, `task platform:configure:apply -- <env>` (Ansible: server config)  
 - **app** — `task app:deploy -- <env> <sha>`, `task app:versions -- <env>`  
 - **secrets** — `task secrets:init-keys`, `task secrets:decrypt`  
 - **server** — `task server:check-status -- <env>`, `task server:ssh -- <env>`  

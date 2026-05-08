@@ -193,8 +193,8 @@ Deployment config is directly editable. No source code clutter. The workspace fi
 
 ```bash
 # Platform infra (no app needed)
-task platform:plan -- dev
-task platform:run -- dev
+task platform:provision:plan -- dev
+task platform:configure:apply -- dev
 
 # App deployment (specify which app)
 task app:deploy -- dev app1 abc123f

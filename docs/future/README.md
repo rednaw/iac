@@ -34,7 +34,7 @@ Decomposes the repo so different server types compose from shared building block
 | Step | What | Verifiable by |
 |------|------|---------------|
 | **1a. Task layer** | Extract `_terraform:*`, `_ansible:*` internal tasks. Rename `terraform:*`+`ansible:*` to `platform:*`. | All existing `task` commands still work under new names. |
-| **1b. Ansible** | Split `roles/server/` into `roles/base/` + `roles/platform/`. | `task platform:run -- dev` produces identical server state. |
+| **1b. Ansible** | Split `roles/server/` into `roles/base/` + `roles/platform/`. | `task platform:configure:apply -- dev` produces identical server state. |
 | **1c. Terraform** | Extract `modules/server/`, move root to `terraform/platform/`. | `terraform plan` shows zero changes. |
 
 Design: **[Repo restructuring](restructuring.md)**

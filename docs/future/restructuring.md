@@ -55,8 +55,8 @@ flowchart TB
 
     subgraph tskTarget ["Task"]
         tskInternal["_internal tasks<br/>_terraform:plan, _ansible:run<br/>SOPS decrypt, shared logic"]
-        tskPlat["platform:plan/apply/run/..."]
-        tskOther["other:plan/apply/run/..."]
+        tskPlat["platform:provision:*<br/>platform:configure:*"]
+        tskOther["other:provision:*<br/>other:configure:*"]
         tskPlatSpecific["app: / workflow: / tunnel:<br/>backup: / registry:<br/>platform-specific, unchanged"]
         tskInternal --> tskPlat
         tskInternal --> tskOther
@@ -123,19 +123,19 @@ Migration: current `terraform/` becomes `terraform/platform/`. State stays in Te
 
 ## Task: purpose-based namespaces
 
-Currently namespaces are by **tool** (`terraform:plan`, `ansible:run`). With multiple server purposes the mental model shifts to **what you're managing**: `platform:plan`. Both the current commands and any future purpose call the same underlying logic with different parameters.
+Currently namespaces are by **tool** (`terraform:plan`, `ansible:run`). With multiple server purposes the mental model shifts to **what you're managing**, split into two phases that mirror the underlying tools: `platform:provision:*` (Terraform) and `platform:configure:*` (Ansible). Both the current commands and any future purpose call the same underlying internals with different parameters.
 
-### Rename `terraform:*` + `ansible:*` to `platform:*`
+### Rename `terraform:*` + `ansible:*` to `platform:provision:*` and `platform:configure:*`
 
 | Before | After |
 |--------|-------|
-| `task terraform:plan -- dev` | `task platform:plan -- dev` |
-| `task terraform:apply -- dev` | `task platform:apply -- dev` |
-| `task terraform:destroy -- dev` | `task platform:destroy -- dev` |
-| `task terraform:output -- dev` | `task platform:output -- dev` |
-| `task terraform:reconfigure` | `task platform:reconfigure` |
-| `task ansible:bootstrap -- dev` | `task platform:bootstrap -- dev` |
-| `task ansible:run -- dev` | `task platform:run -- dev` |
+| `task terraform:plan -- dev` | `task platform:provision:plan -- dev` |
+| `task terraform:apply -- dev` | `task platform:provision:apply -- dev` |
+| `task terraform:destroy -- dev` | `task platform:provision:destroy -- dev` |
+| `task terraform:output -- dev` | `task platform:provision:output -- dev` |
+| `task terraform:reconfigure` | `task platform:provision:reconfigure` |
+| `task ansible:bootstrap -- dev` | `task platform:configure:bootstrap -- dev` |
+| `task ansible:run -- dev` | `task platform:configure:apply -- dev` |
 
 ### Stays the same (inherently platform-specific)
 
@@ -168,15 +168,17 @@ The SOPS-decrypt-and-export block is currently copy-pasted across `plan`, `apply
 Each purpose namespace is a thin wrapper:
 
 ```
-platform:plan  -->  _terraform:plan  (dir=terraform/platform, label=platform)
-vpn:plan       -->  _terraform:plan  (dir=terraform/vpn, label=vpn)
+platform:provision:plan  -->  _terraform:plan  (TF_DIR=terraform,         PREFIX=platform)
+vpn:provision:plan       -->  _terraform:plan  (TF_DIR=terraform/vpn,     PREFIX=vpn)
+platform:configure:apply -->  _ansible:run     (PLAYBOOK=playbooks/server.yml)
+vpn:configure:apply      -->  _ansible:run     (PLAYBOOK=playbooks/vpn.yml)
 ```
 
 ### Hostname resolution
 
 `hostkeys:hostname` today is a `case` statement with only `dev`/`prod`. Change to a data-driven pattern where the purpose provides a prefix:
 
-- `platform:run -- dev` resolves to `dev.<base_domain>` (unchanged behavior)
+- `platform:configure:apply -- dev` resolves to `dev.<base_domain>` (unchanged behavior)
 - New purposes resolve to `{purpose}-{env}.<base_domain>` (e.g. `vpn-dev.<base_domain>`)
 
 ---
@@ -200,7 +202,7 @@ Explicitly **not** doing in Phase 1+2: private networking (Hetzner Cloud Network
 
 | Risk | Mitigation |
 |------|-----------|
-| Ansible role split breaks platform | Run `task platform:run -- dev` after split, diff the result. Same role chain, same outcome. |
+| Ansible role split breaks platform | Run `task platform:configure:apply -- dev` after split, diff the result. Same role chain, same outcome. |
 | Terraform module extraction breaks state | Don't rename resources inside the module. Use `moved` blocks if needed. Plan should show zero changes. |
 | fail2ban split (mixed generic + Traefik) | Keep SSH jail in `base`, move Traefik jails to `platform`. Test independently. |
 | Two Terraform roots = duplicated provider config | ~5 lines each. Acceptable at this scale. |

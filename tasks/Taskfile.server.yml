@@ -14,7 +14,7 @@ tasks:
             echo "  ✅ Server is up and ubuntu user is accessible ($HOSTNAME)"
           elif ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=accept-new -o BatchMode=yes "root@$HOSTNAME" "echo 'Server is up'" >/dev/null 2>&1; then
             echo "  ✅ Server is up ($HOSTNAME)"
-            echo "  ⚠️  Root access available, run 'task ansible:bootstrap -- $WORKSPACE' to set up ubuntu user"
+            echo "  ⚠️  Root access available, run 'task platform:configure:bootstrap -- $WORKSPACE' to set up ubuntu user"
           else
             echo "  ❌ Server is not reachable ($HOSTNAME)"
             ERR=$(ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new -o BatchMode=yes "ubuntu@$HOSTNAME" "echo" 2>&1) || true
