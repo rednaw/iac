@@ -74,6 +74,10 @@ graph TB
 
 ---
 
+**[Future plans](future/README.md)** — Roadmap for multiple server types (VPN, honeypot) and platform enhancements (Grafana). Blocked by repo restructuring.
+
+---
+
 **Other**
 
 - [Contributing](../CONTRIBUTING.md) · [Documentation strategy](documentation-strategy.md)

@@ -1,0 +1,18 @@
+---
+# Base role: hardened Ubuntu + Docker. Reusable for any server purpose
+# (platform, vpn, honeypot, ...). No platform-specific services.
+
+- name: Configure base system
+  ansible.builtin.import_tasks: base.yml
+
+- name: Configure unattended upgrades
+  ansible.builtin.import_tasks: unattended-upgrades.yml
+
+- name: Harden SSH
+  ansible.builtin.import_tasks: ssh.yml
+
+- name: Configure fail2ban (base jail)
+  ansible.builtin.import_tasks: fail2ban.yml
+
+- name: Install Docker
+  ansible.builtin.import_tasks: docker.yml

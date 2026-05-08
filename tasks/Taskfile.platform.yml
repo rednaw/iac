@@ -1,0 +1,100 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+#
+# Public commands for the "platform" server purpose.
+#
+# Two phases (mirror the underlying tools):
+#   provision:* — Terraform lifecycle (cloud server, firewall, DNS)
+#   configure:* — Ansible lifecycle (what runs on the server)
+#
+# Thin wrappers over _terraform:* and _ansible:* internals; future server
+# purposes (vpn, honeypot, ...) follow the same shape with different params.
+version: '3'
+
+vars:
+  TF_DIR: terraform/platform
+  PREFIX: platform
+  SECRETS_SCRIPT: scripts/platform-tf-secrets.sh
+  PLAYBOOK_SERVER: playbooks/server.yml
+  PLAYBOOK_BOOTSTRAP: playbooks/bootstrap.yml
+
+tasks:
+  provision:reconfigure:
+    desc: "Reconfigure Terraform backend after org/project change (dev+prod)"
+    cmds:
+      - task: :_terraform:reconfigure
+        vars:
+          TF_DIR: '{{.TF_DIR}}'
+          PREFIX: '{{.PREFIX}}'
+
+  provision:plan:
+    desc: "Plan provisioning changes (use: task platform:provision:plan -- dev or -- prod)"
+    vars:
+      WORKSPACE: "{{.CLI_ARGS}}"
+    deps: [":_check:workspace"]
+    cmds:
+      - task: :_terraform:plan
+        vars:
+          TF_DIR: '{{.TF_DIR}}'
+          WORKSPACE: '{{.WORKSPACE}}'
+          PREFIX: '{{.PREFIX}}'
+          SECRETS_SCRIPT: '{{.SECRETS_SCRIPT}}'
+
+  provision:apply:
+    desc: "Apply provisioning changes (use: task platform:provision:apply -- dev or -- prod)"
+    vars:
+      WORKSPACE: "{{.CLI_ARGS}}"
+    deps: [":_check:workspace"]
+    cmds:
+      - task: :_terraform:apply
+        vars:
+          TF_DIR: '{{.TF_DIR}}'
+          WORKSPACE: '{{.WORKSPACE}}'
+          PREFIX: '{{.PREFIX}}'
+          SECRETS_SCRIPT: '{{.SECRETS_SCRIPT}}'
+
+  provision:destroy:
+    desc: "Destroy provisioned resources (use: task platform:provision:destroy -- dev or -- prod)"
+    vars:
+      WORKSPACE: "{{.CLI_ARGS}}"
+    deps: [":_check:workspace"]
+    cmds:
+      - task: :_terraform:destroy
+        vars:
+          TF_DIR: '{{.TF_DIR}}'
+          WORKSPACE: '{{.WORKSPACE}}'
+          PREFIX: '{{.PREFIX}}'
+          SECRETS_SCRIPT: '{{.SECRETS_SCRIPT}}'
+
+  provision:output:
+    desc: "Show provisioning outputs (use: task platform:provision:output -- dev or -- prod)"
+    vars:
+      WORKSPACE: "{{.CLI_ARGS}}"
+    deps: [":_check:workspace"]
+    cmds:
+      - task: :_terraform:output
+        vars:
+          TF_DIR: '{{.TF_DIR}}'
+          WORKSPACE: '{{.WORKSPACE}}'
+          PREFIX: '{{.PREFIX}}'
+
+  configure:bootstrap:
+    desc: "One-time bootstrap as root (use: task platform:configure:bootstrap -- dev or -- prod)"
+    vars:
+      WORKSPACE: "{{.CLI_ARGS}}"
+    deps: [":_check:workspace"]
+    cmds:
+      - task: :_ansible:bootstrap
+        vars:
+          WORKSPACE: '{{.WORKSPACE}}'
+          PLAYBOOK: '{{.PLAYBOOK_BOOTSTRAP}}'
+
+  configure:apply:
+    desc: "Apply server configuration (use: task platform:configure:apply -- dev or -- prod)"
+    vars:
+      WORKSPACE: "{{.CLI_ARGS}}"
+    deps: [":_check:workspace"]
+    cmds:
+      - task: :_ansible:run
+        vars:
+          WORKSPACE: '{{.WORKSPACE}}'
+          PLAYBOOK: '{{.PLAYBOOK_SERVER}}'

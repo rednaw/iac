@@ -14,9 +14,9 @@ Most versioned dependencies live in a package file; [Renovate](https://docs.reno
 | **Server provisioning** | | |
 | [Ansible](https://docs.ansible.com/) | Configuration management | [`requirements.txt`](../requirements.txt), [`ansible/requirements.yml`](../ansible/requirements.yml) |
 | [hcloud](https://github.com/hetznercloud/cli) | Hetzner Cloud CLI | [`mise.toml`](../mise.toml) |
-| [Terraform](https://developer.hashicorp.com/terraform) | IaC for cloud resources (servers, DNS) | [`terraform/versions.tf`](../terraform/versions.tf) |
+| [Terraform](https://developer.hashicorp.com/terraform) | IaC for cloud resources (servers, DNS) | [`terraform/platform/versions.tf`](../terraform/platform/versions.tf) |
 | **DNS** | | |
-| [TransIP DNS](https://www.transip.eu/knowledgebase/155-dns-and-nameservers/) | DNS records and DNSSEC managed by Terraform. | [`terraform/dns.tf`](../terraform/dns.tf) |
+| [TransIP DNS](https://www.transip.eu/knowledgebase/155-dns-and-nameservers/) | DNS records and DNSSEC managed by Terraform. | [`terraform/platform/dns.tf`](../terraform/platform/dns.tf) |
 | **Secrets** | | |
 | [Age](https://github.com/FiloSottile/age) | Encryption (age format) | [`mise.toml`](../mise.toml) |
 | [SOPS](https://getsops.io/) | Encrypt secrets in Git. See [Secrets](secrets.md) | [`mise.toml`](../mise.toml) |
@@ -29,17 +29,17 @@ Most versioned dependencies live in a package file; [Renovate](https://docs.reno
 | **Application deployment** | | |
 | [Crane](https://github.com/google/go-containerregistry/tree/main/cmd/crane) | Registry CLI (catalog, digest, delete). See [Registry](registry.md) | [`mise.toml`](../mise.toml) |
 | [Docker](https://www.docker.com/) | Containers | [`prefect/Dockerfile.worker`](../prefect/Dockerfile.worker) |
-| [Docker Registry](https://distribution.github.io/distribution/) | Image storage. See [Registry](registry.md) | [`ansible/roles/server/tasks/registry.yml`](../ansible/roles/server/tasks/registry.yml) |
+| [Docker Registry](https://distribution.github.io/distribution/) | Image storage. See [Registry](registry.md) | [`ansible/roles/platform/tasks/registry.yml`](../ansible/roles/platform/tasks/registry.yml) |
 | **Web server and TLS** | | |
-| [Traefik](https://doc.traefik.io/traefik/) | Reverse proxy, Let's Encrypt. See [Traefik](traefik.md) | [`ansible/roles/server/tasks/traefik.yml`](../ansible/roles/server/tasks/traefik.yml) |
+| [Traefik](https://doc.traefik.io/traefik/) | Reverse proxy, Let's Encrypt. See [Traefik](traefik.md) | [`ansible/roles/platform/tasks/traefik.yml`](../ansible/roles/platform/tasks/traefik.yml) |
 | **Intrusion prevention** | | |
-| [Fail2ban](https://github.com/fail2ban/fail2ban) | Ban IPs after failed SSH/auth. See [Traefik](traefik.md#security) | [`ansible/roles/server/tasks/fail2ban.yml`](../ansible/roles/server/tasks/fail2ban.yml) |
+| [Fail2ban](https://github.com/fail2ban/fail2ban) | Ban IPs after failed SSH/auth. See [Traefik](traefik.md#security) | [`ansible/roles/base/tasks/fail2ban.yml`](../ansible/roles/base/tasks/fail2ban.yml) (SSH jail) + [`ansible/roles/platform/tasks/fail2ban-traefik.yml`](../ansible/roles/platform/tasks/fail2ban-traefik.yml) (Traefik jails) |
 | **Workflows** | | |
-| [Prefect](https://www.prefect.io/) | Scheduled tasks and flows. See [Workflows](workflows.md) | [`ansible/roles/server/tasks/prefect.yml`](../ansible/roles/server/tasks/prefect.yml) |
+| [Prefect](https://www.prefect.io/) | Scheduled tasks and flows. See [Workflows](workflows.md) | [`ansible/roles/platform/tasks/prefect.yml`](../ansible/roles/platform/tasks/prefect.yml) |
 | [Restic](https://restic.net/) | Encrypted app backups (Prefect flow + restore). See [Backups](backups.md) | [`mise.toml`](../mise.toml) (CLI in devcontainer/CI), [`prefect/Dockerfile.worker`](../prefect/Dockerfile.worker) (worker image) |
 | **Monitoring** | | |
-| [OpenObserve](https://openobserve.ai/) | Logs, metrics, traces. See [Monitoring](monitoring.md) | [`ansible/roles/server/tasks/openobserve.yml`](../ansible/roles/server/tasks/openobserve.yml) |
-| [OpenTelemetry Collector](https://opentelemetry.io/docs/collector/) | Sends host/container data to OpenObserve | [`ansible/roles/server/tasks/openobserve.yml`](../ansible/roles/server/tasks/openobserve.yml) |
+| [OpenObserve](https://openobserve.ai/) | Logs, metrics, traces. See [Monitoring](monitoring.md) | [`ansible/roles/platform/tasks/openobserve.yml`](../ansible/roles/platform/tasks/openobserve.yml) |
+| [OpenTelemetry Collector](https://opentelemetry.io/docs/collector/) | Sends host/container data to OpenObserve | [`ansible/roles/platform/tasks/openobserve.yml`](../ansible/roles/platform/tasks/openobserve.yml) |
 | **Testing / linting** | | |
 | [Ansible Lint](https://docs.ansible.com/projects/lint/) | Ansible best practices | [`requirements.txt`](../requirements.txt) |
 | [ShellCheck](https://www.shellcheck.net/) | Shell script checks | [`mise.toml`](../mise.toml) |
@@ -57,7 +57,7 @@ flowchart LR
         MISE@{ shape: lin-doc, label: "mise.toml" }
         DC@{ shape: lin-doc, label: "devcontainer.json" }
         ANS@{ shape: lin-doc, label: "ansible/requirements.yml" }
-        TF@{ shape: lin-doc, label: "terraform/versions.tf" }
+        TF@{ shape: lin-doc, label: "terraform/platform/versions.tf" }
     end
 
     subgraph RENOVATE["Renovate"]

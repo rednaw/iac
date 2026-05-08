@@ -22,8 +22,8 @@ Follow `docs/documentation-strategy.md` when writing or editing docs.
 
 **Link to code with backticks in the link text** (renders monospace = clearly "code")
 ```markdown
-❌ See ansible/roles/server/tasks/traefik.yml
-✅ See [`ansible/roles/server/tasks/traefik.yml`](../ansible/roles/server/tasks/traefik.yml)
+❌ See ansible/roles/platform/tasks/traefik.yml
+✅ See [`ansible/roles/platform/tasks/traefik.yml`](../ansible/roles/platform/tasks/traefik.yml)
 ```
 Doc links use normal text: [Remote-SSH](remote-ssh.md).
 

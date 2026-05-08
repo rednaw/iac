@@ -50,7 +50,7 @@ Deployments → pick deployment → **Run**. Flow Runs tab for logs and state.
 3. **Deploy** — `task workflow:deploy -- dev`. Syncs `prefect/` to `/opt/iac/prefect/flows`, builds worker image if needed, runs `prefect deploy --all`.
 4. **Verify** — Prefect UI → Deployments; your deployment and next run time should appear.
 
-**Note:** Initial server setup with `task ansible:run` creates Prefect infrastructure (containers, network, directories) but does **not** sync flows. Run `task workflow:deploy` after setup or when flow code changes.
+**Note:** Initial server setup with `task platform:configure:apply` creates Prefect infrastructure (containers, network, directories) but does **not** sync flows. Run `task workflow:deploy` after setup or when flow code changes.
 
 ## Flows
 

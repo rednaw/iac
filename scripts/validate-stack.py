@@ -74,7 +74,7 @@ def main():
     print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
     print("1️⃣  Applying Terraform changes...")
     print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-    exit_code = run_task("terraform:apply", workspace)
+    exit_code = run_task("platform:provision:apply", workspace)
     if exit_code != 0:
         print("\n❌ Step failed: Applying Terraform changes")
         sys.exit(exit_code)
@@ -93,7 +93,7 @@ def main():
     print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
     print("3️⃣  Bootstrapping server (one-time setup as root)...")
     print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-    exit_code = run_task("ansible:bootstrap", workspace)
+    exit_code = run_task("platform:configure:bootstrap", workspace)
     if exit_code != 0:
         print("\n❌ Step failed: Bootstrapping server")
         sys.exit(exit_code)
@@ -103,7 +103,7 @@ def main():
     print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
     print("4️⃣  Running full Ansible playbook...")
     print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-    exit_code = run_task("ansible:run", workspace)
+    exit_code = run_task("platform:configure:apply", workspace)
     if exit_code != 0:
         print("\n❌ Step failed: Running Ansible playbook")
         sys.exit(exit_code)
@@ -113,7 +113,7 @@ def main():
     print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
     print("5️⃣  Destroying infrastructure...")
     print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-    exit_code = run_task("terraform:destroy", workspace)
+    exit_code = run_task("platform:provision:destroy", workspace)
     if exit_code != 0:
         print("\n❌ Step failed: Destroying infrastructure")
         sys.exit(exit_code)
