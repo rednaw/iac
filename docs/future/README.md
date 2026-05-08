@@ -6,8 +6,8 @@ The repo currently supports one server type ("the platform") and one app at a ti
 
 ```mermaid
 flowchart LR
-    restructure["Phase 1<br/>Restructuring"]
-    dx["Phase 2<br/>Secrets & mounts"]
+    restructure["Phase 1<br/>Restructuring<br/>(done)"]
+    dx["Phase 2<br/>Secrets & mounts<br/>(next)"]
 
     subgraph servers ["New server types"]
         vpn["VPN server"]
@@ -23,13 +23,18 @@ flowchart LR
     restructure --> dx
     dx --> servers
     restructure -.->|not strictly blocked| enhancements
+
+    classDef done fill:#d4edda,stroke:#28a745,color:#155724
+    classDef next fill:#fff3cd,stroke:#ffc107,color:#856404
+    class restructure done
+    class dx next
 ```
 
 ---
 
-## Phase 1 — Restructuring
+## Phase 1 — Restructuring (complete)
 
-Decomposes the repo so different server types compose from shared building blocks. Three sequential steps, each independently deployable and verifiable:
+Decomposed the repo so different server types compose from shared building blocks. Three sequential steps, each independently deployable and verifiable:
 
 | Step | What | Verifiable by | Status |
 |------|------|---------------|--------|
@@ -41,7 +46,7 @@ Design: **[Repo restructuring](restructuring.md)**
 
 ---
 
-## Phase 2 — Secrets and mounts
+## Phase 2 — Secrets and mounts (next)
 
 Moves from "clone and use" to "fork and use." Infra secrets (`secrets/infra.yml`) live in the fork, committed and SOPS-encrypted. App config (per-app `iac.yml` — just image name and domains) stays in each app repo. Single directory mount replaces the per-app mount.
 
