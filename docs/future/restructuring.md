@@ -212,8 +212,8 @@ Explicitly **not** doing in Phase 1+2: private networking (Hetzner Cloud Network
 
 ## Implementation order
 
-| Phase | What |
-|-------|------|
-| **1. Restructure Task layer** | Extract internal tasks (`_terraform:*`, `_ansible:*`). Rename `terraform:*`+`ansible:*` to `platform:*`. Update help text and docs. |
-| **2. Restructure Ansible** | Split `roles/server/` into `roles/base/` + `roles/platform/`. Verify platform unchanged. |
-| **3. Restructure Terraform** | Extract `modules/server/`, move root to `platform/`. Verify zero-diff plan. |
+| Phase | What | Status |
+|-------|------|--------|
+| **1. Restructure Task layer** | Extract internal tasks (`_terraform:*`, `_ansible:*`). Rename `terraform:*`+`ansible:*` to `platform:*`. Update help text and docs. | Done |
+| **2. Restructure Ansible** | Split `roles/server/` into `roles/base/` + `roles/platform/`. Verify platform unchanged. | Done |
+| **3. Restructure Terraform** | Extract `modules/server/`, move root to `platform/`. Verify zero-diff plan. | Pending |
