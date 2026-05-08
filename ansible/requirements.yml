@@ -1,5 +1,5 @@
 # Ansible Collection Requirements
-# Install with: task ansible:install
+# Installed automatically by platform:configure:bootstrap / platform:configure:apply / workflow:deploy.
 # Versions are pinned for reproducibility. Renovate will create PRs for updates.
 
 collections:

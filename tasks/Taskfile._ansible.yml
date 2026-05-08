@@ -1,0 +1,48 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+#
+# Internal Ansible tasks. Not callable from CLI; called by purpose namespaces
+# (e.g. platform:configure:apply -> _ansible:run).
+#
+# Parameters consumers pass:
+#   WORKSPACE  Environment (e.g. "dev", "prod")
+#   PLAYBOOK   Playbook path relative to ansible/ (e.g. "playbooks/server.yml")
+#
+# Tasks run from ansible/. Inventory hostname is "<base_domain_prefix>-<workspace>"
+# (e.g. tientjeketama-dev), resolved via hostkeys:platform.
+version: '3'
+
+tasks:
+  install:
+    desc: "(internal) Install Ansible collections"
+    internal: true
+    dir: ansible
+    silent: true
+    cmds:
+      - echo "📦 Installing Ansible collections..."
+      - ansible-galaxy collection install -r requirements.yml
+
+  bootstrap:
+    desc: "(internal) Bootstrap server as root"
+    internal: true
+    dir: ansible
+    silent: true
+    cmds:
+      - task: install
+      - |
+        echo "NOTE: This step connects as root using your Hetzner SSH key to set up the ubuntu user."
+        HOSTNAME=$(task hostkeys:hostname -- "{{.WORKSPACE}}")
+        PLATFORM=$(task hostkeys:platform)
+        ansible-playbook -i "${PLATFORM}-{{.WORKSPACE}}," "{{.PLAYBOOK}}" -e "ansible_host=${HOSTNAME}"
+
+  run:
+    desc: "(internal) Run Ansible playbook"
+    internal: true
+    dir: ansible
+    silent: true
+    cmds:
+      - task: install
+      - |
+        echo "⚙️  Running Ansible playbook for workspace: {{.WORKSPACE}}..."
+        HOSTNAME=$(task hostkeys:hostname -- "{{.WORKSPACE}}")
+        PLATFORM=$(task hostkeys:platform)
+        ansible-playbook -i "${PLATFORM}-{{.WORKSPACE}}," "{{.PLAYBOOK}}" -e "ansible_host=${HOSTNAME}"

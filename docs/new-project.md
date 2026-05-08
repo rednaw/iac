@@ -279,14 +279,13 @@ The workspace names must match — the platform derives the environment from the
 From the IaC devcontainer:
 
 ```bash
-task terraform:init -- dev
-task terraform:apply -- dev
+task platform:provision:apply -- dev
 ```
 
 This creates the Hetzner server, firewall, and network. Get the server IP:
 
 ```bash
-task terraform:output -- dev
+task platform:provision:output -- dev
 ```
 
 ---
@@ -315,11 +314,11 @@ DNS must resolve before Ansible runs — Traefik needs it for Let's Encrypt cert
 ## 12. Bootstrap and configure the server
 
 ```bash
-task ansible:bootstrap -- dev
-task ansible:run -- dev
+task platform:configure:bootstrap -- dev
+task platform:configure:apply -- dev
 ```
 
-`ansible:bootstrap` does first-time setup (users, Docker, firewall). `ansible:run` installs everything else (Traefik, registry, OpenObserve, monitoring).
+`platform:configure:bootstrap` does first-time setup (users, Docker, firewall). `platform:configure:apply` installs everything else (Traefik, registry, OpenObserve, monitoring).
 
 When Ansible finishes, you have:
 - Traefik serving HTTPS with Let's Encrypt
@@ -346,4 +345,4 @@ Your app should be live at `https://dev.<base_domain>`.
 - **Production:** Repeat steps 10–13 with `prod` instead of `dev`.
 - **Adding people:** When someone joins, they follow [Joining](joining.md). You add their SOPS key and re-encrypt — see [Secrets: Adding a new person](secrets.md#adding-a-new-person).
 - **Operations:** [Application deployment](application-deployment.md), [Troubleshooting](troubleshooting.md), [Monitoring](monitoring.md).
-- **IP changes:** If your IP changes, update `allowed_ssh_ips` in `iac.yml` and run `task terraform:apply -- dev`.
+- **IP changes:** If your IP changes, update `allowed_ssh_ips` in `iac.yml` and run `task platform:provision:apply -- dev`.

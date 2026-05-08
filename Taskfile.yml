@@ -11,9 +11,10 @@ vars:
 
 includes:
   hostkeys: tasks/Taskfile.hostkeys.yml
-  terraform: tasks/Taskfile.terraform.yml
+  _terraform: tasks/Taskfile._terraform.yml
+  _ansible: tasks/Taskfile._ansible.yml
+  platform: tasks/Taskfile.platform.yml
   secrets: tasks/Taskfile.secrets.yml
-  ansible: tasks/Taskfile.ansible.yml
   workflow: tasks/Taskfile.workflow.yml
   server: tasks/Taskfile.server.yml
   tunnel: tasks/Taskfile.tunnel.yml
@@ -35,16 +36,16 @@ tasks:
       - |
         echo "Infrastructure as Code"
         echo ""
-        echo "Terraform commands:"
-        echo "  task terraform:reconfigure            # Reconfigure backend after org/project change (dev+prod)"
-        echo "  task terraform:plan    -- [dev|prod]  # Plan changes"
-        echo "  task terraform:apply   -- [dev|prod]  # Apply changes"
-        echo "  task terraform:destroy -- [dev|prod]  # Destroy resources"
-        echo "  task terraform:output  -- [dev|prod]  # Show outputs"
+        echo "Platform — Provision (Terraform: cloud server, firewall, DNS):"
+        echo "  task platform:provision:plan        -- [dev|prod] # Plan changes"
+        echo "  task platform:provision:apply       -- [dev|prod] # Apply changes"
+        echo "  task platform:provision:destroy     -- [dev|prod] # Destroy resources"
+        echo "  task platform:provision:output      -- [dev|prod] # Show outputs"
+        echo "  task platform:provision:reconfigure                # Reconfigure Terraform backend (dev+prod)"
         echo ""
-        echo "Ansible commands:"
-        echo "  task ansible:bootstrap -- [dev|prod]  # One-time bootstrap as root"
-        echo "  task ansible:run       -- [dev|prod]  # Full server config"
+        echo "Platform — Configure (Ansible: what runs on the server):"
+        echo "  task platform:configure:bootstrap   -- [dev|prod] # One-time bootstrap as root"
+        echo "  task platform:configure:apply       -- [dev|prod] # Apply server configuration"
         echo ""
         echo "Workflow (Prefect):"
         echo "  task workflow:deploy  -- [dev|prod]   # Deploy Prefect flows"
@@ -90,7 +91,7 @@ tasks:
     internal: true
     preconditions:
       - sh: '[ -n "{{.CLI_ARGS}}" ]'
-        msg: "Workspace required. Pass dev or prod after -- (e.g. task ansible:run -- dev)"
+        msg: "Workspace required. Pass dev or prod after -- (e.g. task platform:configure:apply -- dev)"
       - sh: 'W=$(echo "{{.CLI_ARGS}}" | awk "{print \$1}"); [ "$W" = "dev" ] || [ "$W" = "prod" ]'
         msg: "Invalid workspace. Use: dev or prod after --"
 

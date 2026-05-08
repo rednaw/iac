@@ -1,0 +1,12 @@
+---
+# Handlers for platform role.
+# Restart fail2ban lives in roles/base/handlers/main.yml -- platform tasks
+# notify it via cross-role handler resolution.
+
+- name: Restart Traefik
+  ansible.builtin.command: docker restart traefik
+  changed_when: true
+
+- name: Restart OTEL Collector
+  ansible.builtin.command: docker restart otel-collector
+  changed_when: true

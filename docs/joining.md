@@ -128,10 +128,10 @@ To run Ansible, deploy, and troubleshoot on the server, you need your SSH key re
    ```
 
    ```bash
-   task terraform:apply -- dev
+   task platform:provision:apply -- dev
    ```
 
-If your IP changes later (e.g. different network, VPN), update `allowed_ssh_ips` in `iac.yml` and run `task terraform:apply -- dev` again.
+If your IP changes later (e.g. different network, VPN), update `allowed_ssh_ips` in `iac.yml` and run `task platform:provision:apply -- dev` again.
 
 ---
 
@@ -147,7 +147,7 @@ task app:versions -- dev
 # Expected: table of available image tags with dates and descriptions
 # The → arrow shows which version is currently deployed
 
-task terraform:plan -- dev
+task platform:provision:plan -- dev
 # Expected: runs without login prompts, shows "No changes" or planned changes
 
 task server:list-hetzner-keys

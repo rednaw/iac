@@ -7,4 +7,4 @@
 
 # Generated / lockfiles
 .terraform.lock.hcl linguist-generated=true
-terraform/.terraform.lock.hcl linguist-generated=true
+terraform/**/.terraform.lock.hcl linguist-generated=true

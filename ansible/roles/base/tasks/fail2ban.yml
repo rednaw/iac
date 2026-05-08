@@ -1,0 +1,28 @@
+---
+# Fail2ban package + base jail (DEFAULT inherited by all jails, SSH jail).
+# Platform-specific jails (Traefik) live in roles/platform/tasks/fail2ban-traefik.yml.
+
+- name: Install fail2ban
+  ansible.builtin.apt:
+    name: fail2ban
+    state: present
+
+- name: Set AbuseIPDB API key from SOPS secrets
+  ansible.builtin.set_fact:
+    abuseipdb_api_key: "{{ infrastructure_secrets.abuseipdb_api_key | default('') }}"
+  when: infrastructure_secrets is defined
+  failed_when: false
+  no_log: true
+
+- name: Configure fail2ban base jail (DEFAULT + sshd)
+  ansible.builtin.template:
+    src: fail2ban-base.conf.j2
+    dest: /etc/fail2ban/jail.d/base.conf
+    mode: '0644'
+  notify: Restart fail2ban
+
+- name: Ensure fail2ban is running
+  ansible.builtin.systemd:
+    name: fail2ban
+    enabled: true
+    state: started

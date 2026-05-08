@@ -1,0 +1,111 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+#
+# Internal Terraform tasks. Not callable from CLI; called by purpose namespaces
+# (e.g. platform:provision:plan -> _terraform:plan).
+#
+# Parameters consumers pass:
+#   TF_DIR          Terraform root directory (e.g. "terraform")
+#   WORKSPACE       Terraform workspace (e.g. "dev", "prod")
+#   PREFIX          Workspace prefix label for log output (e.g. "platform")
+#   SECRETS_SCRIPT  Sourceable script that exports TF_VAR_* (e.g. "scripts/platform-tf-secrets.sh")
+#
+# Tasks run from the IaC repo root; Terraform invocations use -chdir={{.TF_DIR}}.
+version: '3'
+
+tasks:
+  reconfigure:
+    desc: "(internal) Reconfigure Terraform backend for both workspaces"
+    internal: true
+    silent: true
+    deps: [":_check:sops-key"]
+    cmds:
+      - |
+        TFC_ORG=$(SOPS_AGE_KEY_FILE="{{.SOPS_KEY_FILE}}" sops -d app/.iac/iac.yml | yq -r '.terraform_cloud_organization')
+        for WORKSPACE in dev prod; do
+          export TF_WORKSPACE="${WORKSPACE}"
+          echo "🔁 Reconfiguring Terraform backend for workspace: {{.PREFIX}}-${WORKSPACE} (org: ${TFC_ORG})..."
+          terraform -chdir="{{.TF_DIR}}" init -reconfigure -backend-config="organization=${TFC_ORG}"
+        done
+
+  init:
+    desc: "(internal) Initialize Terraform backend"
+    internal: true
+    silent: true
+    deps: [":_check:sops-key"]
+    cmds:
+      - |
+        TFC_ORG=$(SOPS_AGE_KEY_FILE="{{.SOPS_KEY_FILE}}" sops -d app/.iac/iac.yml | yq -r '.terraform_cloud_organization')
+        export TF_WORKSPACE='{{.WORKSPACE | default "dev"}}'
+        if ! output=$(terraform -chdir="{{.TF_DIR}}" init -backend-config="organization=${TFC_ORG}" 2>&1); then
+          echo "$output"
+          exit 1
+        fi
+
+  plan:
+    desc: "(internal) Plan Terraform changes"
+    internal: true
+    silent: true
+    deps: [":_check:sops-key"]
+    cmds:
+      - task: init
+        vars: { TF_DIR: '{{.TF_DIR}}', WORKSPACE: '{{.WORKSPACE}}' }
+      - |
+        echo "📋 Planning Terraform changes for workspace: {{.PREFIX}}-{{.WORKSPACE}}..."
+        terraform -chdir="{{.TF_DIR}}" workspace select "{{.WORKSPACE}}"
+        export SOPS_KEY_FILE="{{.SOPS_KEY_FILE}}"
+        # shellcheck disable=SC1090
+        . "./{{.SECRETS_SCRIPT}}"
+        terraform -chdir="{{.TF_DIR}}" plan
+
+  apply:
+    desc: "(internal) Apply Terraform changes"
+    internal: true
+    silent: true
+    deps: [":_check:sops-key"]
+    cmds:
+      - task: init
+        vars: { TF_DIR: '{{.TF_DIR}}', WORKSPACE: '{{.WORKSPACE}}' }
+      - |
+        echo "✨ Applying Terraform changes to workspace: {{.PREFIX}}-{{.WORKSPACE}}"
+        terraform -chdir="{{.TF_DIR}}" workspace select "{{.WORKSPACE}}"
+        export SOPS_KEY_FILE="{{.SOPS_KEY_FILE}}"
+        # shellcheck disable=SC1090
+        . "./{{.SECRETS_SCRIPT}}"
+        echo "🔑 Removing old host key for workspace from known_hosts..."
+        task hostkeys:prepare -- "{{.WORKSPACE}}"
+        terraform -chdir="{{.TF_DIR}}" apply
+        echo "🔑 Accepting new host key..."
+        HOSTNAME=$(task hostkeys:hostname -- "{{.WORKSPACE}}")
+        ssh -o StrictHostKeyChecking=accept-new -o ConnectTimeout=5 -o BatchMode=yes "ubuntu@${HOSTNAME}" "echo" >/dev/null 2>&1 || true
+
+  destroy:
+    desc: "(internal) Destroy Terraform resources"
+    internal: true
+    silent: true
+    deps: [":_check:sops-key"]
+    cmds:
+      - task: init
+        vars: { TF_DIR: '{{.TF_DIR}}', WORKSPACE: '{{.WORKSPACE}}' }
+      - |
+        echo "⚠️  WARNING: This will DESTROY all resources in workspace: {{.PREFIX}}-{{.WORKSPACE}}"
+        echo "Terraform will ask for confirmation..."
+        echo ""
+        terraform -chdir="{{.TF_DIR}}" workspace select "{{.WORKSPACE}}"
+        export SOPS_KEY_FILE="{{.SOPS_KEY_FILE}}"
+        # shellcheck disable=SC1090
+        . "./{{.SECRETS_SCRIPT}}"
+        terraform -chdir="{{.TF_DIR}}" destroy
+        echo "🧹 Cleaning server host key from known_hosts..."
+        task hostkeys:prepare -- "{{.WORKSPACE}}"
+        echo "✅ Host key removed"
+
+  output:
+    desc: "(internal) Show Terraform outputs"
+    internal: true
+    cmds:
+      - task: init
+        vars: { TF_DIR: '{{.TF_DIR}}', WORKSPACE: '{{.WORKSPACE}}' }
+      - |
+        terraform -chdir="{{.TF_DIR}}" workspace select "{{.WORKSPACE}}"
+        echo "📤 Getting Terraform outputs for workspace: {{.PREFIX}}-{{.WORKSPACE}}..."
+        terraform -chdir="{{.TF_DIR}}" output

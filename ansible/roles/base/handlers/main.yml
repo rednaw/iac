@@ -1,5 +1,7 @@
 ---
-# Handlers for server role
+# Handlers for base role.
+# Restart fail2ban is also notified by roles/platform/tasks/fail2ban-traefik.yml
+# (handlers from all roles in a play merge into the play's handler space).
 
 - name: Restart sshd
   ansible.builtin.systemd:
@@ -14,11 +16,3 @@
 - name: Reload systemd
   ansible.builtin.systemd:
     daemon_reload: true
-
-- name: Restart OTEL Collector
-  ansible.builtin.command: docker restart otel-collector
-  changed_when: true
-
-- name: Restart Traefik
-  ansible.builtin.command: docker restart traefik
-  changed_when: true

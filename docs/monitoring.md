@@ -30,7 +30,7 @@ OpenObserve is not exposed publicly (no DNS). Use an SSH tunnel to the server, t
 
 ## Dashboards
 
-Three dashboards are pre-installed: **Host Metrics**, **Docker Container Metrics**, and **Traefik Metrics**. Ansible manages them — it creates each dashboard on first run and updates it when the source JSON changes. To add or modify a dashboard, edit the file in `ansible/roles/server/files/` and re-run the playbook, or make changes directly in the OpenObserve UI.
+Three dashboards are pre-installed: **Host Metrics**, **Docker Container Metrics**, and **Traefik Metrics**. Ansible manages them — it creates each dashboard on first run and updates it when the source JSON changes. To add or modify a dashboard, edit the file in `ansible/roles/platform/files/` and re-run the playbook, or make changes directly in the OpenObserve UI.
 
 ## Logs
 

@@ -4,7 +4,7 @@
 
 DNS zones and records are managed by Terraform via the [aequitas/transip](https://registry.terraform.io/providers/aequitas/transip/latest) provider. TransIP acts as both registrar and authoritative DNS provider. DNSSEC is managed by TransIP defaults/policy.
 
-**Configuration:** [`terraform/dns.tf`](../terraform/dns.tf)
+**Configuration:** [`terraform/platform/dns.tf`](../terraform/platform/dns.tf)
 
 ## How it works
 

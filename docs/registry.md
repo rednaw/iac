@@ -23,7 +23,7 @@ flowchart LR
     D -->|pull| B
 ```
 
-**Config:** [`ansible/roles/server/tasks/registry.yml`](../ansible/roles/server/tasks/registry.yml) · Storage: `/var/lib/docker-registry` · Config file: [`registry-config.yml.j2`](../ansible/roles/server/templates/registry-config.yml.j2). Credentials from SOPS `app/.iac/iac.yml` (`registry_username`, `registry_password`, `base_domain`, `registry_http_secret`).
+**Config:** [`ansible/roles/platform/tasks/registry.yml`](../ansible/roles/platform/tasks/registry.yml) · Storage: `/var/lib/docker-registry` · Config file: [`registry-config.yml.j2`](../ansible/roles/platform/templates/registry-config.yml.j2). Credentials from SOPS `app/.iac/iac.yml` (`registry_username`, `registry_password`, `base_domain`, `registry_http_secret`).
 
 ## Authentication
 
@@ -33,8 +33,8 @@ Same credentials everywhere: SOPS-decrypted `app/.iac/iac.yml`. No manual `docke
 |-------|-----|
 | Devcontainer | [`devcontainer-setup.sh`](../.devcontainer/devcontainer-setup.sh) writes `~/.docker/config.json` on create. Crane, Docker, trivy work out of the box. |
 | GitHub Actions | In app repo: Secrets `REGISTRY_USERNAME`, `REGISTRY_PASSWORD` (copy from decrypted iac.yml). Workflow uses `docker/login-action@v3`. |
-| Server (ubuntu) | Ansible writes `~/.docker/config.json` in [`registry.yml`](../ansible/roles/server/tasks/registry.yml). |
-| Server (iac + Prefect) | Ansible writes Docker config in [`iac-user.yml`](../ansible/roles/server/tasks/iac-user.yml). Used for deploys and Prefect flows. |
+| Server (ubuntu) | Ansible writes `~/.docker/config.json` in [`registry.yml`](../ansible/roles/platform/tasks/registry.yml). |
+| Server (iac + Prefect) | Ansible writes Docker config in [`iac-user.yml`](../ansible/roles/platform/tasks/iac-user.yml). Used for deploys and Prefect flows. |
 
 ## Commands
 
