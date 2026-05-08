@@ -43,7 +43,14 @@
   "remoteUser": "vscode",
 
   "remoteEnv": {
-    "ANSIBLE_CONFIG": "/workspaces/iac/ansible/ansible.cfg"
+    "ANSIBLE_CONFIG": "/workspaces/iac/ansible/ansible.cfg",
+    "SOPS_AGE_KEY_FILE": "/home/vscode/.config/sops/age/keys.txt",
+    // The VS Code extension host launches without the user's interactive shell
+    // PATH, so mise shims must be exposed explicitly. Mise itself also needs its
+    // data dir + global config to resolve which tool version a shim points to.
+    "PATH": "/opt/mise/shims:${containerEnv:PATH}",
+    "MISE_DATA_DIR": "/opt/mise",
+    "MISE_GLOBAL_CONFIG_FILE": "/opt/mise/mise.toml"
   },
 
   "postCreateCommand": "bash .devcontainer/devcontainer-setup.sh",
