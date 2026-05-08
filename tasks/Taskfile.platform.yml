@@ -11,7 +11,7 @@
 version: '3'
 
 vars:
-  TF_DIR: terraform
+  TF_DIR: terraform/platform
   PREFIX: platform
   SECRETS_SCRIPT: scripts/platform-tf-secrets.sh
   PLAYBOOK_SERVER: playbooks/server.yml

@@ -61,7 +61,7 @@ tasks:
   terraform:validate:
     desc: Validate Terraform configuration
     silent: true
-    dir: terraform
+    dir: terraform/platform
     cmds:
       - |
         echo "🔍 Validating Terraform configuration..."
@@ -77,7 +77,7 @@ tasks:
 
   terraform:security:
     desc: Run Terraform security scan (tfsec)
-    dir: terraform
+    dir: terraform/platform
     silent: true
     cmds:
       - |

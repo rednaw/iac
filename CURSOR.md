@@ -40,7 +40,7 @@ When suggesting diagnostics, say where the command runs: "in the devcontainer" o
 |------|------|-----|
 | **Server config** | `ansible/roles/base/tasks/*.yml` (hardened Ubuntu + Docker), `ansible/roles/platform/tasks/*.yml` (Traefik, registry, OpenObserve, Prefect) | [docs/](docs/) (Traefik, registry, monitoring, workflows) |
 | **App deployment** | `ansible/roles/deploy_app/tasks/*.yml` | [docs/application-deployment](docs/application-deployment.md) |
-| **Provisioning** | `terraform/*.tf` | docs/new-project, backups |
+| **Provisioning** | `terraform/platform/*.tf` (platform root composing `terraform/modules/server/`) | docs/new-project, backups |
 | **Workflows** | `prefect/<name>/flow.py`, `prefect/prefect.yaml` | [docs/workflows](docs/workflows.md) |
 | **Automation** | `Taskfile.yml`, `tasks/Taskfile.*.yml` | Inline comments + docs |
 | **CI** | `.github/workflows/*.yml` | docs/code-analysis, registry |
@@ -98,7 +98,7 @@ See `task` (or `task <namespace>`) for full list.
 
 **Terraform**  
 - Workspaces: `dev` / `prod`. State in Terraform Cloud.  
-- Variables: `terraform/variables.tf`, locals in `locals.tf`, outputs in `outputs.tf`.
+- Variables: `terraform/platform/variables.tf`, locals in `locals.tf`, outputs in `outputs.tf`. Shared VPS provisioning lives in `terraform/modules/server/`.
 
 **Taskfiles**  
 - Root `Taskfile.yml` includes `tasks/Taskfile.*.yml`.  

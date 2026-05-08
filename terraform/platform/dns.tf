@@ -2,12 +2,13 @@
 #
 # TransIP is both registrar and DNS provider — no zone creation needed.
 # Record ownership: each workspace manages records pointing to its own server.
-# DNSSEC is managed via transip_domain_dnssec (prod only).
+# DNSSEC is managed by TransIP defaults/policy outside Terraform.
 
 locals {
   is_prod     = local.environment == "prod"
   is_dev      = local.environment == "dev"
-  server_ipv6 = hcloud_server.platform.ipv6_address
+  server_ipv4 = module.server.ipv4_address
+  server_ipv6 = module.server.ipv6_address
 }
 
 # ──────────────────────────────────────────────
@@ -20,7 +21,7 @@ resource "transip_dns_record" "dev_a" {
   name    = "dev"
   type    = "A"
   expire  = 60
-  content = [hcloud_server.platform.ipv4_address]
+  content = [local.server_ipv4]
 }
 
 resource "transip_dns_record" "dev_aaaa" {
@@ -42,7 +43,7 @@ resource "transip_dns_record" "prod_a" {
   name    = "prod"
   type    = "A"
   expire  = 60
-  content = [hcloud_server.platform.ipv4_address]
+  content = [local.server_ipv4]
 }
 
 resource "transip_dns_record" "prod_aaaa" {
@@ -60,7 +61,7 @@ resource "transip_dns_record" "apex_a" {
   name    = "@"
   type    = "A"
   expire  = 60
-  content = [hcloud_server.platform.ipv4_address]
+  content = [local.server_ipv4]
 }
 
 resource "transip_dns_record" "apex_aaaa" {
@@ -78,7 +79,7 @@ resource "transip_dns_record" "registry_a" {
   name    = "registry"
   type    = "A"
   expire  = 60
-  content = [hcloud_server.platform.ipv4_address]
+  content = [local.server_ipv4]
 }
 
 resource "transip_dns_record" "registry_aaaa" {
@@ -133,5 +134,3 @@ resource "transip_dns_record" "dmarc" {
   expire  = 86400
   content = ["v=DMARC1; p=reject;"]
 }
-
-# DNSSEC is managed by TransIP defaults/policy outside Terraform.
