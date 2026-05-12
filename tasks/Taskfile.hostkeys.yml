@@ -11,7 +11,7 @@ tasks:
     silent: true
     preconditions:
       - sh: '[ -n "${BASE_DOMAIN:-}" ]'
-        msg: "BASE_DOMAIN must be set by devcontainer (from base_domain in iac.yml)"
+        msg: "BASE_DOMAIN must be set by devcontainer (from base_domain in secrets/infra.yml)"
     cmds:
       - echo "${BASE_DOMAIN%%.*}"
 
