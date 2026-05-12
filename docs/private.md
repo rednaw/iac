@@ -2,7 +2,7 @@
 
 # Private (host config)
 
-What must exist on your machine **outside** the project. Never in Git. The devcontainer mounts `~/.ssh` and `~/.config/sops` from the host; everything else (hcloud, Terraform token, registry auth) is configured inside the container from the encrypted secrets in `.iac/iac.yml` in your project.
+What must exist on your machine **outside** Git-tracked repos. The devcontainer mounts **`~/.ssh`** and **`~/.config/sops`** from the host. Registry auth, Terraform Cloud token, and **hcloud** are generated inside the container from SOPS **`secrets/infra.yml`** in your **IaC fork** ([Secrets](secrets.md), [Launch devcontainer](launch-devcontainer.md)).
 
 | File (on host) | Purpose | Created by |
 |----------------|--------|------------|

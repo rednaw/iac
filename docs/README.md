@@ -16,6 +16,7 @@ graph TB
         SOPS(SOPS<br/>Secrets Management)
         TF(Terraform)
         ANS(Ansible)
+        INFRA_SEC@{ shape: lin-doc, label: "secrets/infra.yml<br/>(fork, SOPS)" }
     end
 
     subgraph SERVER[Ubuntu Server]
@@ -32,13 +33,13 @@ graph TB
       end
     end
 
-    subgraph APP[Your application]
-      COMPOSE@{ shape: lin-doc, label: "docker-compose.yml<br/>Application services" }
-      PUSH@{ shape: subproc, label: "Github workflow<br/>Build and push" }
-      IAC_YML@{ shape: lin-doc, label: ".iac/<br/>Platform config<br/>Encrypted secrets" }
+    subgraph APP[Your applications]
+      COMPOSE@{ shape: lin-doc, label: "Per-app .iac/<br/>docker-compose.yml" }
+      PUSH@{ shape: subproc, label: "GitHub workflow<br/>Build & push" }
+      IAC_YML@{ shape: lin-doc, label: "Per-app .iac/<br/>iac.yml + .env" }
     end
 
-    IAC --->|mount| APP
+    IAC --->|bind parent dir → apps/| APP
 
     TASK -->|orchestrate| TF
     TASK -->|orchestrate| ANS
@@ -64,7 +65,7 @@ graph TB
 - [Secrets management](secrets.md) — File locations, editing, SOPS, app secrets
 
 **Operations and infrastructure**
-- [DNS](dns.md) — Zone and records managed by Terraform (Hetzner DNS)
+- [DNS](dns.md) — Zone and records managed by Terraform ([TransIP](https://www.transip.nl/) provider)
 - [Backups](backups.md) — Automated application aware backups using Restic
 - [Remote-SSH](remote-ssh.md) — Connect to the server via Remote-SSH (tunnel, dashboards)
 - [Private (local config)](private.md) — Local config files
@@ -74,7 +75,7 @@ graph TB
 
 ---
 
-**[Future plans](future/README.md)** — Roadmap for multiple server types (VPN, honeypot) and platform enhancements (Grafana). Blocked by repo restructuring.
+**[Future plans](future/README.md)** — Multiple server types (VPN, honeypot), Grafana, and related enhancements.
 
 ---
 

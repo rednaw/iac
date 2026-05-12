@@ -2,21 +2,23 @@
 
 # Troubleshooting
 
-**Secrets / SOPS / iac.yml**
+**Secrets / SOPS**
 
 | Problem | What to do |
 |--------|------------|
-| "app/.iac/iac.yml not found" or "cannot decrypt" | Create the file and encrypt it. See [Secrets](secrets.md). |
-| "Cannot decrypt: no matching keys" | Your public key isn't in the file. Teammate opens file in VS Code, saves, commits and pushes. |
-| "SOPS key not found" | `task secrets:keygen` (in IaC repo). Key must be at `~/.config/sops/age/keys.txt` on host (mounted). |
-| VS Code doesn't decrypt | SOPS extension installed? Key path set? `.sops.yaml` exists? `ls ~/.config/sops/age/keys.txt` |
-| File shows binary | Encrypted. Install SOPS extension. |
+| **`secrets/infra.yml` missing or cannot decrypt** | Fork setup: run **`task secrets:init`** or follow [Secrets](secrets.md). Ensure **`~/.config/sops/age/keys.txt`** exists and you are a recipient. |
+| App **`Forbidden infrastructure key` on deploy** | Move infra fields out of **`apps/<app>/.iac/iac.yml`** into **`secrets/infra.yml`**. App **`iac.yml`** is plain YAML with **`image_name`** / **`app_domains`** only. |
+| **`.iac/.env` cannot decrypt** | Your age pubkey must be in that app repo’s **`.iac/.sops.yaml`**. Teammate re-saves **`.env`** after adding you. |
+| "Cannot decrypt: no matching keys" | For infra: teammate opens **`secrets/infra.yml`**, saves, commits. For app: same on **`.iac/.env`**. |
+| "SOPS key not found" | `task secrets:keygen` from IaC repo. Private key at **`~/.config/sops/age/keys.txt`** (bind-mounted from host). |
+| VS Code doesn't decrypt | SOPS extension installed? **`sops.defaults.ageKeyFile`** in devcontainer? **`.sops.yaml`** next to the encrypted file? |
+| File shows ciphertext | Install / enable SOPS extension, or use **`sops`** CLI with **`SOPS_AGE_KEY_FILE`**. |
 
 **Terraform**
 
 | Problem | What to do |
 |--------|------------|
-| "Error: authentication required" | In devcontainer: SOPS key in place, `app/.iac/iac.yml` has `terraform_cloud_token`. Startup script sets `TF_TOKEN_app_terraform_io` in shell profile. Outside devcontainer: `terraform login` or create `~/.terraform.d/credentials.tfrc.json`. |
+| "Error: authentication required" | In devcontainer: **`secrets/infra.yml`** decrypts and contains **`terraform_cloud_token`**; startup writes **`~/.terraform.d/credentials.tfrc.json`**. Outside devcontainer: **`terraform login`** or credentials file manually. |
 
 **Connection / SSH**
 
@@ -31,17 +33,18 @@
 |--------|------------|
 | "No repositories found" or "access denied" | Use the devcontainer (registry auth is written on first open). |
 | "Could not resolve digest" / image not found | `crane ls registry.<base_domain>/<repo>`. Check tag and auth. Tag for deploy is 7 hex chars? |
-| Deploy fails to pull | Server auth in `/opt/iac/.docker/config.json`. Ansible ran? Secrets have `base_domain`, `registry_username`, `registry_password`. |
+| Deploy fails to pull | Server auth **`/opt/iac/.docker/config.json`**. Ansible ran? **`secrets/infra.yml`** includes **`base_domain`**, **`registry_username`**, **`registry_password`**. |
 | Registry unreachable | DNS/HTTPS for `registry.<base_domain>`; Traefik and registry container running. |
 
 **Application deployment**
 
 | Problem | What to do |
 |--------|------------|
-| No app at `/workspaces/iac/app` | Editor had no `APP_HOST_PATH`. Run `./scripts/setup-app-path.sh /path/to/app` on host, Reopen in Container. |
-| "missing required vars" / "iac.yml not found" | App mount has `docker-compose.yml` and `.iac/` (iac.yml, .env, .sops.yaml). Run setup-app-path, Reopen in Container. |
-| Ansible playbook failures | Playbook logs; secrets decrypted? `task server:check-status`. |
-| "Could not read deploy-info.yml" | App may not be deployed yet; SSH and app name correct? |
+| **`App missing …/.iac/…`** or empty **`apps/<app>`** | Clone the app repo as a **sibling** of **`iac/`** under the same parent folder ([Launch devcontainer](launch-devcontainer.md)). Rebuild/reopen devcontainer if you moved folders. |
+| **`Usage: task app:deploy -- <env> <app> <sha>`** | Pass **three** words after **`--`**: environment, **directory basename** under **`apps/`**, and 7-char SHA. |
+| **`Forbidden infrastructure key`** | Infra keys belong in **`secrets/infra.yml`**, not **`apps/<app>/.iac/iac.yml`**. |
+| Ansible playbook failures | Playbook logs; **`secrets/infra.yml`** decrypts? **`task server:check-status`**. |
+| "Could not read deploy-info.yml" | App may not be deployed yet; SSH host and **`<app>`** name match **`apps/<app>`**? |
 
 **Prefect / Workflows**
 

@@ -1,97 +1,89 @@
 [**<---**](onboarding.md)
 
-# New project (bootstrapping from scratch)
+# New project (from scratch)
 
-Create the full platform from zero: secrets, server, Traefik, registry, monitoring. When done you have a running server ready for app deployment.
+Create the full platform from zero: fork-local infra secrets, server, Traefik, registry, monitoring. When done you have a running server ready for app deployment.
 
-All platform config lives in your **app repo** under **`.iac/`** (not in the IaC repo). The [tientje-ketama](https://github.com/rednaw/tientje-ketama) app is a working reference — use its `.iac/` directory as an example throughout this guide.
+- **Infrastructure secrets** live in your **IaC fork** under **`secrets/infra.yml`** (SOPS). Upstream keeps **`secrets/`** gitignored; you **`git add -f secrets/`** in the fork.
+- **Per-app contract** lives in each **application repo** under **`.iac/`** — plain **`iac.yml`** (`image_name`, `app_domains`), SOPS **`.env`**, and a single **`.iac/docker-compose.yml`** for deploy.
+
+Use **[tientje-ketama](https://github.com/rednaw/tientje-ketama)** as a reference for **`.iac/`** layout and Traefik labels.
 
 **What you need before starting:**
 
 - Editor and extensions: see [Onboarding: Before you start](onboarding.md#before-you-start)
 - A [Hetzner Cloud](https://console.hetzner.cloud/) account
 - A domain name you control (for DNS records)
-- An app repo with at least a `docker-compose.yml`
+- An application repo (Docker-based); optional repo-root **`docker-compose.yml`** for **local** dev only — deploy uses **`.iac/docker-compose.yml`** only
 
 ---
 
-## 1. Prepare your app repo
+## 1. Directory layout on your machine
 
-In your **app repo**, create the initial structure:
+The devcontainer bind-mounts **the parent directory of the IaC repo** to **`/workspaces/iac/apps/`** ([`.devcontainer/devcontainer.json`](../.devcontainer/devcontainer.json)). Put the IaC clone and each app repo as **siblings** under one folder:
+
+```
+~/projects/
+├── my-app/          # your application repo — folder name = `<app>` in task CLI
+└── iac/             # IaC fork (clone here)
+```
 
 ```bash
-mkdir -p .iac
-mkdir -p .github/workflows
+mkdir -p ~/projects && cd ~/projects
+git clone <your-iac-fork-url> iac
+git clone <your-app-repo-url> my-app
 ```
 
-> **Important:** Create `.github/workflows/build-and-push.yml` now (even as a stub). The devcontainer bind-mounts this path; if the file is missing, the container will fail to start.
+Inside the container, **`my-app`** is **`/workspaces/iac/apps/my-app/`**. Deploy commands use that basename: **`task app:deploy -- dev my-app <sha>`**.
 
-Create a minimal stub for now (you will fill it in at step 5):
+---
+
+## 2. Prepare your app repo
+
+In **`my-app`** (paths relative to the app repo):
 
 ```bash
-touch .github/workflows/build-and-push.yml
+mkdir -p .iac .github/workflows
+touch .github/workflows/build-and-push.yml   # replace with real workflow in §7
 ```
 
-Your app repo should now look like:
+Example tree:
 
 ```
-your-app/
-├── docker-compose.yml          # Your app stack
-├── .iac/                       # Empty for now
+my-app/
+├── docker-compose.yml          # optional — local dev only; not used by platform deploy
+├── .iac/                       # filled in §7
 └── .github/workflows/
-    └── build-and-push.yml      # Stub (will fill in step 5)
+    └── build-and-push.yml
 ```
 
 ---
 
-## 2. Clone the IaC repo and set the app path
+## 3. Open the devcontainer
 
-```bash
-git clone <iac-repo-url> iac
-cd iac
-./scripts/setup-app-path.sh /path/to/your/app
-```
+Open **`iac/iac.code-workspace`** in VS Code/Cursor, then **Reopen in Container** (Cmd+Shift+P → Dev Containers: Reopen in Container).
 
-The script writes `APP_HOST_PATH` to your shell profile so the devcontainer knows where your app lives.
-
-- **macOS:** Takes effect immediately (via `launchctl`).
-- **Linux:** Log out and back in, or run `source ~/.profile`.
+Until **`secrets/infra.yml`** exists and decrypts, Task/SOPS/Terraform/Ansible are available but registry auth, Terraform Cloud, and **hcloud** are typically **not** wired yet.
 
 ---
 
-## 3. Open the devcontainer (bootstrap mode)
+## 4. Initialise infra secrets (IaC repo)
 
-Open `iac.code-workspace` in VS Code/Cursor, then **Reopen in Container** (Cmd+Shift+P → Dev Containers: Reopen in Container).
-
-Since `.iac/iac.yml` doesn't exist yet, the devcontainer starts in **bootstrap mode**: all tools work (Task, SOPS, Terraform, Ansible) but it won't configure registry, Terraform Cloud, or hcloud credentials. That's fine — you need the tools to create the secrets file.
-
----
-
-## 4. Generate SOPS keys
-
-Inside the devcontainer:
+From the IaC repo root inside the container:
 
 ```bash
-task secrets:keygen
-task secrets:generate-sops-config
+cd /workspaces/iac
+task secrets:init
 ```
 
-This creates:
+This ensures **`~/.config/sops/age/keys.txt`**, writes **`secrets/sops-key-<username>.pub`**, **`secrets/.sops.yaml`**, and an encrypted template **`secrets/infra.yml`**.
 
-| File | What it is |
-|------|-----------|
-| `~/.config/sops/age/keys.txt` | Your private key (never share, never commit) |
-| `app/.iac/sops-key-<username>.pub` | Your public key (commit to app repo) |
-| `app/.iac/.sops.yaml` | SOPS config for encrypting `iac.yml` and `.env` |
-
-> **Important:** Back up your private key (`~/.config/sops/age/keys.txt`) to a secure location (password manager, encrypted drive). It cannot be recovered if lost.
-
-Commit in the **app repo**:
+Commit **`secrets/`** in your **fork** (force-add because **`secrets/`** is gitignored upstream):
 
 ```bash
-cd /workspaces/iac/app
-git add .iac/sops-key-*.pub .iac/.sops.yaml
-git commit -m "Add SOPS key and config"
+cd /workspaces/iac
+git add -f secrets/
+git commit -m "Add fork-local infra secrets"
 git push
 ```
 
@@ -99,133 +91,66 @@ git push
 
 ## 5. Create external accounts
 
-Create the following accounts and tokens. You'll put all values into `iac.yml` in the next step.
+Create the following accounts and tokens. You will paste values into **`secrets/infra.yml`** next.
 
 | What | Where to get it |
 |------|-----------------|
 | **Hetzner Cloud API token** | [Hetzner Console](https://console.hetzner.cloud/) → Security → API tokens → Create (Read & Write) |
-| **Hetzner SSH key** | Upload `~/.ssh/id_rsa.pub` in Hetzner Console → Project → Security → SSH keys. Note the key **ID** (numeric). If you don't have a key yet: `ssh-keygen -t ed25519` |
-| **Your IP** | Your current public IP in CIDR form, e.g. `203.0.113.50/32`. Find it at [whatismyipaddress.com](https://whatismyipaddress.com/) |
-| **Terraform Cloud** | Create an account at [app.terraform.io](https://app.terraform.io). Create an organization. Create an API token under User Settings → Tokens |
-| **Registry credentials** | Choose a username and password for your self-hosted Docker registry |
-| **OpenObserve credentials** | Choose a username (email format, e.g. `admin@observe.local`) and password for monitoring |
+| **Hetzner SSH key** | Upload `~/.ssh/id_ed25519.pub` (or `id_rsa.pub`) in Hetzner Console → Project → Security → SSH keys. Note the numeric key **ID**. |
+| **Your IP** | Current public IP in CIDR form, e.g. `203.0.113.50/32` ([whatismyipaddress.com](https://whatismyipaddress.com/)) |
+| **Terraform Cloud** | [app.terraform.io](https://app.terraform.io) — organization + API token (User Settings → Tokens) |
+| **Registry credentials** | Choose username and password for the self-hosted Docker registry |
+| **OpenObserve credentials** | Username (email-style, e.g. `admin@observe.local`) and password |
+| **TransIP** (if DNS there) | API key pair from [TransIP API](https://www.transip.eu/cp/account/api/) |
 
 ---
 
-## 6. Create and encrypt `app/.iac/iac.yml`
+## 6. Edit `secrets/infra.yml`
 
-Inside the devcontainer, create `.iac/iac.yml` in the **app repo** with your values.
+Open **`secrets/infra.yml`** in VS Code (SOPS extension decrypts on open). Fill fields from the template (`base_domain`, `hcloud_token`, `ssh_keys`, `allowed_ssh_ips`, registry, Terraform Cloud, OpenObserve, TransIP, etc.). Generate **`registry_http_secret`** with `openssl rand -hex 32`.
 
-Here's a complete template (tientje-ketama uses this structure):
+**Save** to re-encrypt. Commit and push (**`git add -f secrets/`** when needed).
+
+Reload the window or run **`bash .devcontainer/devcontainer-setup.sh`** so **`~/.docker/config.json`**, Terraform Cloud credentials, and **hcloud** are written.
+
+---
+
+## 7. App contract under `.iac/`
+
+All paths below are under **`/workspaces/iac/apps/<app>/`** (e.g. **`.../apps/my-app/`**).
+
+### `.iac/iac.yml` (plain YAML — **not** SOPS)
+
+Only app-facing keys; **`task app:deploy`** rejects infrastructure keys (they must stay in **`secrets/infra.yml`**).
 
 ```yaml
-base_domain: example.com
 image_name: myorg/myapp
 app_domains:
   - dev.example.com
   - example.com
-
-hcloud_token: hcloud_XXXXXXXXXXXXX
-ssh_keys:
-  - "12345678"
-allowed_ssh_ips:
-  - "203.0.113.50/32"
-
-registry_username: myreguser
-registry_password: my-strong-password
-registry_http_secret: "$(openssl rand -hex 32)"
-
-terraform_cloud_token: XXXXXXX.atlasv1.XXXXXXXXXX
-terraform_cloud_organization: my-org
-
-openobserve_username: admin@observe.local
-openobserve_password: my-observe-password
-
-abuseipdb_api_key: ""
 ```
 
-`registry_http_secret` is used internally by the Docker registry to sign tokens — generate a random string with `openssl rand -hex 32`.
+### `.iac/.env` (SOPS dotenv)
 
-`allowed_ssh_ips`: used for SSH allowlisting and by fail2ban as trusted IPs (never banned).
-
-`base_domain` drives all hostnames: `dev.<base_domain>`, `prod.<base_domain>`, `registry.<base_domain>`.
-
-Encrypt the file:
+Runtime secrets for Compose (database passwords, etc.). Add **`.iac/.sops.yaml`** with **`creation_rules`** that encrypt **`.env`** only (not **`iac.yml`**). Point **`age:`** at your recipients — often the same public key material as in **`secrets/`** (see [tientje-ketama `.iac/.sops.yaml`](https://github.com/rednaw/tientje-ketama/blob/main/.iac/.sops.yaml)).
 
 ```bash
-cd /workspaces/iac/app
-sops --encrypt --in-place .iac/iac.yml
+cd /workspaces/iac/apps/my-app
+# Create .iac/.env and .iac/.sops.yaml, then:
+sops --encrypt --in-place .iac/.env
 ```
 
-Commit the **encrypted** file (never commit the plain text version):
+### `.iac/docker-compose.yml` (single deploy file)
 
-```bash
-git add .iac/iac.yml
-git commit -m "Add encrypted platform config"
-git push
-```
+One Compose file that Ansible copies to the server: services, **`image: ${IMAGE}`** for the routed app service, Traefik **labels**, external **`traefik`** network, **`restart: unless-stopped`**. See [Traefik](traefik.md#adding-an-application).
 
----
+### `.iac/backup.yml` (optional)
 
-## 7. Create the remaining `.iac/` files
+Restic contract — see [Backups](backups.md#backupyml).
 
-Still in the app repo, create:
+### `.github/workflows/build-and-push.yml`
 
-### `.iac/.env` (app runtime secrets)
-
-SOPS-encrypted dotenv for your app. Start with a minimal file:
-
-```bash
-# In VS Code: create app/.iac/.env, add your vars, save (SOPS extension encrypts)
-# Or from the CLI:
-echo "# App secrets" > /workspaces/iac/app/.iac/.env
-cd /workspaces/iac/app && sops --encrypt --in-place .iac/.env
-```
-
-### `.iac/docker-compose.override.yml` (Traefik routing)
-
-This adds Traefik labels, the `traefik` network, and restart policies. It's applied on the server during deploy alongside your main `docker-compose.yml`.
-
-Example (tientje-ketama pattern):
-
-```yaml
-services:
-  app:
-    image: ${IMAGE}
-    labels:
-      traefik.enable: "true"
-      traefik.http.routers.app.rule: "Host(`dev.example.com`) || Host(`example.com`)"
-      traefik.http.routers.app.entrypoints: "websecure"
-      traefik.http.routers.app.tls.certresolver: "letsencrypt"
-      traefik.http.routers.app.middlewares: "app-headers,app-buffering"
-      traefik.http.services.app.loadbalancer.server.port: "3000"
-    networks:
-      - default
-      - traefik
-    restart: unless-stopped
-
-  # Add restart to every other service too (db, redis, etc.)
-  db:
-    restart: unless-stopped
-
-networks:
-  traefik:
-    external: true
-```
-
-Key points:
-- Replace `example.com` with your actual domain and `3000` with your app's port.
-- `image: ${IMAGE}` is required — the deploy task sets this to the resolved image digest.
-- `restart: unless-stopped` on every service ensures your app survives reboots. For backup/restore, see [Backups](backups.md).
-- See [Traefik](traefik.md#adding-an-application) for middleware configuration.
-
-### `.iac/backup.yml` (optional — service-aware backup)
-
-If you want Restic backup (Postgres dumps + volume data, local repo and/or Storage Box), add `.iac/backup.yml` with `retention`, `postgres`, and `volumes`. Deploy copies it to the server as `backup.yml`. See [Backups](backups.md#backupyml). You can add this file later.
-
-### `.github/workflows/build-and-push.yml` (CI)
-
-Replace the stub from step 1 with the actual workflow:
+Use the reusable workflow from your IaC repo, for example:
 
 ```yaml
 on:
@@ -239,27 +164,25 @@ jobs:
       REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
 ```
 
-Then set up GitHub Actions in your app repo (Settings → Secrets and variables → Actions):
+In the app repo (GitHub → Settings → Secrets and variables → Actions):
 
-- **Variables:** `REGISTRY_URL` = `registry.<base_domain>`, `IMAGE_NAME` = your `image_name` value
-- **Secrets:** `REGISTRY_USERNAME`, `REGISTRY_PASSWORD` (same values as in `iac.yml`)
+- **Variables:** `REGISTRY_URL` = `registry.<base_domain>`, `IMAGE_NAME` = same as **`image_name`** in **`iac.yml`**
+- **Secrets:** `REGISTRY_USERNAME`, `REGISTRY_PASSWORD` — same values as in **`secrets/infra.yml`**
 
-### Commit everything
+### Commit the app repo
 
 ```bash
-cd /workspaces/iac/app
-git add .iac/ .github/
+cd /workspaces/iac/apps/my-app
+git add .iac .github
 git commit -m "Add .iac contract and build workflow"
 git push
 ```
 
 ---
 
-## 8. Reopen the devcontainer (operational mode)
+## 8. Reload devcontainer after infra secrets
 
-Close the devcontainer and reopen it. Now that `.iac/iac.yml` exists and is decryptable, it starts in **operational mode**: it decrypts secrets and configures registry auth, Terraform Cloud, and hcloud automatically.
-
-See [Launch the IaC devcontainer](launch-devcontainer.md) for details.
+After **`secrets/infra.yml`** decrypts successfully, reopen the devcontainer (or reload the window) so registry / Terraform Cloud / **hcloud** are configured. See [Launch the IaC devcontainer](launch-devcontainer.md).
 
 ---
 
@@ -268,21 +191,19 @@ See [Launch the IaC devcontainer](launch-devcontainer.md) for details.
 In [Terraform Cloud](https://app.terraform.io):
 
 1. Create workspaces **`platform-dev`** and **`platform-prod`** in your organization.
-2. In each workspace, set **Execution Mode** to **Local** (Settings → General → Execution Mode).
+2. Set **Execution Mode** to **Local** on each (Settings → General).
 
-The workspace names must match — the platform derives the environment from the name (`platform-dev` → `dev`).
+Workspace names must match — the platform derives the environment from the name (`platform-dev` → **`dev`**).
 
 ---
 
 ## 10. Provision the server
 
-From the IaC devcontainer:
-
 ```bash
 task platform:provision:apply -- dev
 ```
 
-This creates the Hetzner server, firewall, and network. Get the server IP:
+Server IP:
 
 ```bash
 task platform:provision:output -- dev
@@ -292,22 +213,15 @@ task platform:provision:output -- dev
 
 ## 11. Set up DNS
 
-Point your domain at the server IP. Create these DNS records at your DNS provider:
+Point your domain at the server IP. Typical records:
 
 | Type | Name | Value |
 |------|------|-------|
-| A | `dev.<base_domain>` | Server IP from step 10 |
+| A | `dev.<base_domain>` | Server IP |
 | A | `registry.<base_domain>` | Same IP |
-| A | `<base_domain>` (if used for prod) | Same IP |
+| A | `<base_domain>` (prod) | Same IP if used |
 
-For example, if your `base_domain` is `example.com` and the server IP is `203.0.113.10`:
-
-```
-dev.example.com       A  203.0.113.10
-registry.example.com  A  203.0.113.10
-```
-
-DNS must resolve before Ansible runs — Traefik needs it for Let's Encrypt certificates.
+DNS must resolve before Ansible configures Traefik (Let's Encrypt).
 
 ---
 
@@ -318,31 +232,24 @@ task platform:configure:bootstrap -- dev
 task platform:configure:apply -- dev
 ```
 
-`platform:configure:bootstrap` does first-time setup (users, Docker, firewall). `platform:configure:apply` installs everything else (Traefik, registry, OpenObserve, monitoring).
-
-When Ansible finishes, you have:
-- Traefik serving HTTPS with Let's Encrypt
-- A private Docker registry at `registry.<base_domain>`
-- OpenObserve for monitoring (via SSH tunnel — see [Remote-SSH](remote-ssh.md))
-
 ---
 
 ## 13. Deploy your app
 
-Push a commit to your app's `main` branch. The CI workflow builds and pushes the image to the registry. Then:
+Push to **`main`** so CI builds and pushes the image. Then:
 
 ```bash
-task app:versions -- dev     # List available versions
-task app:deploy -- dev <sha> # Deploy (e.g. task app:deploy -- dev 706c88c)
+task app:versions -- dev my-app
+task app:deploy -- dev my-app <sha>
 ```
 
-Your app should be live at `https://dev.<base_domain>`.
+Replace **`my-app`** with your repo folder name under **`apps/`**.
 
 ---
 
 ## What's next
 
-- **Production:** Repeat steps 10–13 with `prod` instead of `dev`.
-- **Adding people:** When someone joins, they follow [Joining](joining.md). You add their SOPS key and re-encrypt — see [Secrets: Adding a new person](secrets.md#adding-a-new-person).
+- **Production:** Repeat with **`prod`** instead of **`dev`**.
+- **Adding people:** [Joining](joining.md) · infra keyring in **`secrets/`**, app **`.env`** keyring in the app repo — [Secrets](secrets.md).
 - **Operations:** [Application deployment](application-deployment.md), [Troubleshooting](troubleshooting.md), [Monitoring](monitoring.md).
-- **IP changes:** If your IP changes, update `allowed_ssh_ips` in `iac.yml` and run `task platform:provision:apply -- dev`.
+- **IP changes:** Update **`allowed_ssh_ips`** in **`secrets/infra.yml`**, commit, then **`task platform:provision:apply -- dev`**.

@@ -50,9 +50,9 @@ DNSSEC is enabled and managed by TransIP defaults/policy outside Terraform.
 
 For a new app on a different domain:
 
-- If the domain is registered at TransIP: no code changes — set `base_domain` in `iac.yml` and apply.
+- If the domain is registered at TransIP: no code changes — set **`base_domain`** in **`secrets/infra.yml`** and apply.
 - If the domain is at another registrar: delegate NS records to TransIP's nameservers (`ns0.transip.net`, `ns1.transip.nl`, `ns2.transip.eu`), then apply.
 
 ## Credentials
 
-`transip_account_name` and `transip_private_key` are stored in the sops-encrypted `app/.iac/iac.yml` and passed to Terraform as `TF_VAR_` environment variables by the Taskfile. Generate the key pair at https://www.transip.eu/cp/account/api/.
+`transip_account_name` and `transip_private_key` are stored in the SOPS-encrypted **`secrets/infra.yml`** (IaC fork) and passed to Terraform as **`TF_VAR_*`** by the Taskfile. Generate the key pair at https://www.transip.eu/cp/account/api/.

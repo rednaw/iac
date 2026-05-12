@@ -2,7 +2,7 @@
 
 Composes the app-serving services on top of [`roles/base/`](../base/). Imported by [`playbooks/server.yml`](../../playbooks/server.yml) (after `base`).
 
-Runs in this order to preserve the previous monolithic execution order:
+Runs in this order so Traefik, registry auth paths, fail2ban log readers, and Prefect stay consistent:
 
 1. fail2ban-traefik (jails reading Traefik logs)
 2. traefik (reverse proxy)
@@ -13,7 +13,7 @@ Runs in this order to preserve the previous monolithic execution order:
 
 ## Co-location assumptions
 
-Components are split into separate task files for readability, but they assume **single-host co-location**. Splitting any component to a different host requires interface contracts (private network, secret distribution, etc.) — see [`docs/future/restructuring.md`](../../../docs/future/restructuring.md#extensibility-notes).
+Components are split into separate task files for readability, but they assume **single-host co-location**. Splitting components to different hosts needs explicit interfaces (networking, secrets) — see [`docs/future/restructuring.md`](../../../docs/future/restructuring.md#discipline-for-future-splits).
 
 | Cross-component link | Producer | Consumer(s) |
 |---|---|---|

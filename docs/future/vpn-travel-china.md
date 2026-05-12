@@ -4,7 +4,7 @@
 
 Self-hosted VPN on a **dedicated Hetzner VPS** for personal use (MacBook Pro + iPhone) during a trip to China. Managed by this IaC project. **Not legal advice** -- check current rules before you travel.
 
-**Prerequisite:** The [repo restructuring](restructuring.md) (composable Ansible roles, Terraform module, purpose-based Task namespaces) must be done first. This document assumes it is complete.
+**Prerequisite:** [Repo layout](restructuring.md) — composable Ansible (**`base`** + purpose roles), shared Terraform **`modules/server`**, purpose-based Task namespaces. This document assumes that layout is in place.
 
 ---
 
@@ -68,7 +68,7 @@ Check the OpenObserve dashboard through your VPN tunnel when needed. If the prod
 
 ## How it fits in the repo
 
-Uses the composable patterns from the [restructuring](restructuring.md):
+Uses patterns from [repo layout](restructuring.md):
 
 ### Terraform
 
@@ -106,7 +106,7 @@ Uses the composable patterns from the [restructuring](restructuring.md):
 
 ### Secrets
 
-VPN secrets added to `app/.iac/iac.yml`:
+VPN secrets added to **`secrets/infra.yml`** (fork-local, SOPS-encrypted); keep VPN-specific keys separate from app **`apps/<app>/.iac/`** secrets.
 
 | Secret | Purpose |
 |--------|---------|
@@ -168,9 +168,9 @@ Configure all three in the client apps before departure. Switching is a tap.
 
 | Phase | What | When |
 |-------|------|------|
-| **1. VPN Terraform** | `terraform/vpn/` composing the server module. | After restructuring |
-| **2. VPN Ansible** | `roles/vpn/` (WireGuard first -- validates full pipeline). | After restructuring |
-| **3. VPN Task namespace** | `tasks/Taskfile.vpn.yml` calling shared internal tasks. | After restructuring |
+| **1. VPN Terraform** | `terraform/vpn/` composing the server module. | Foundation |
+| **2. VPN Ansible** | `roles/vpn/` (WireGuard first -- validates full pipeline). | Foundation |
+| **3. VPN Task namespace** | `tasks/Taskfile.vpn.yml` calling shared internal tasks. | Foundation |
 | **4. Xray REALITY** | Add Xray container + REALITY inbound. Test with FoXray. | Middle |
 | **5. Xray WS+TLS** | Second inbound, cert automation. | Middle |
 | **6. Singapore prod** | `task vpn:apply -- prod`. Test latency. | Before trip |

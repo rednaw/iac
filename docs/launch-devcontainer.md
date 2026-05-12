@@ -2,74 +2,64 @@
 
 # Launch the IaC devcontainer
 
-The IaC devcontainer provides a standardized environment with all tools pre-installed (Task, Terraform, Ansible, SOPS, crane, Docker CLI, and more via [mise](https://mise.jdx.dev/)). On startup it decrypts your secrets file and configures registry, Terraform Cloud, and hcloud automatically.
+The IaC devcontainer ships Task, Terraform, Ansible, SOPS, crane, Docker CLI, and more via [mise](https://mise.jdx.dev/). On startup it decrypts **fork-local** **`secrets/infra.yml`** and configures registry auth, Terraform Cloud, and **hcloud** when possible.
 
-**Before this:** Install Docker, VS Code or Cursor, and the required extensions — see [Onboarding: Before you start](onboarding.md#before-you-start). If you're creating a new project, complete [New project](new-project.md) through the secrets file. If you're joining, complete [Joining](joining.md) through the SOPS keyring.
+**Before this:** Docker, VS Code or Cursor, and the extensions in [Onboarding: Before you start](onboarding.md#before-you-start). New projects: [New project](new-project.md) through **`secrets/infra.yml`**. Joining: [Joining](joining.md) through the infra keyring.
+
+---
+
+## 1. Workspace layout on the host
+
+The devcontainer mounts **`${localWorkspaceFolder}/..`** → **`/workspaces/iac/apps`** ([`.devcontainer/devcontainer.json`](../.devcontainer/devcontainer.json)).
+
+**Convention:** Open **`iac/iac.code-workspace`** from your IaC clone, with **application repos as sibling directories** of **`iac/`** (same parent folder). Each sibling appears inside the container as **`/workspaces/iac/apps/<folder>/`**.
+
+| Host (example) | Inside container |
+|----------------|------------------|
+| `~/projects/iac/` (workspace root) | `/workspaces/iac` |
+| `~/projects/my-app/` | `/workspaces/iac/apps/my-app/` |
 
 ---
 
-## 1. Set your app path
-
-On the **host** (not inside the devcontainer):
-
-```bash
-./scripts/setup-app-path.sh /path/to/your/app
-```
-
-The devcontainer bind-mounts three paths from your app repo:
-
-| Mount | Purpose |
-|-------|---------|
-| `.iac/` | Platform config and secrets |
-| `docker-compose.yml` | Your app stack |
-| `.github/workflows/build-and-push.yml` | CI workflow |
-
-If any of these files are missing, the container will fail to start. For a new app, create them first ([New project: step 1](new-project.md#1-prepare-your-app-repo)).
-
----
 
 ## 2. Open the workspace
 
-1. Open `iac.code-workspace` in VS Code/Cursor (File → Open Workspace from File).
-2. **Reopen in Container** when prompted (or Cmd+Shift+P → Dev Containers: Reopen in Container).
+1. Clone the IaC repo and app repo(s) as siblings (see [New project §1](new-project.md#1-directory-layout-on-your-machine) or [Joining §1](joining.md#1-clone-repos-with-sibling-layout)).
+2. Open **`iac/iac.code-workspace`** in VS Code/Cursor (**File → Open Workspace from File**).
+3. **Reopen in Container** when prompted, or Cmd+Shift+P → **Dev Containers: Reopen in Container**.
 
-Your app appears at `/workspaces/iac/app` inside the container.
+Add folders to the multi-root workspace ( **`iac.code-workspace`** ) if you want each **`apps/<name>/`** in the sidebar — optional; tasks still resolve **`apps/<name>`** by basename.
 
 ---
 
 ## 3. What happens on startup
 
-The devcontainer has two modes:
+When **`secrets/infra.yml`** is missing or your age key cannot decrypt it, tools are installed but registry / Terraform Cloud / **hcloud** are usually **not** configured yet. Create or fix infra secrets ([New project](new-project.md), [Secrets](secrets.md)).
 
-**Bootstrap mode** (no `app/.iac/iac.yml`): All tools are available, but credentials are not configured. Use this mode to create the secrets file during [New project](new-project.md) setup.
+When **`secrets/infra.yml`** decrypts successfully: [`devcontainer-setup.sh`](../.devcontainer/devcontainer-setup.sh) writes:
 
-**Operational mode** (`app/.iac/iac.yml` exists and is decryptable): The startup script decrypts secrets using your `~/.config/sops/age/keys.txt` and writes:
+| File | Purpose |
+|------|---------|
+| `~/.docker/config.json` | Registry auth for Docker, crane, Trivy |
+| `~/.terraform.d/credentials.tfrc.json` | Terraform Cloud |
+| `~/.config/hcloud/cli.toml` | Hetzner Cloud API |
+| Docker contexts **host**, **dev**, **prod** | `docker` against laptop vs servers |
 
-| File created | Purpose |
-|-------------|---------|
-| `~/.docker/config.json` | Registry auth for Docker, crane, and Trivy |
-| `~/.terraform.d/credentials.tfrc.json` | Terraform Cloud token for shared state |
-| `~/.config/hcloud/cli.toml` | Hetzner Cloud API token |
-| Docker contexts **host**, **dev**, **prod** | So you can run `docker` against the host (default), dev server, or prod server |
-
-No manual login needed — `terraform`, `hcloud`, and `crane` work immediately.
-
-**If startup fails:** Check that your SOPS key is at `~/.config/sops/age/keys.txt` and that you've been added to the keyring. See [Troubleshooting](troubleshooting.md).
+**If startup fails:** SOPS key at **`~/.config/sops/age/keys.txt`**, and you are a recipient on **`secrets/infra.yml`**. See [Troubleshooting](troubleshooting.md).
 
 ---
 
 ## 4. Overview
 
-How host files flow into the devcontainer and connect to external services:
-
 ```mermaid
 flowchart TB
     subgraph HOST["Laptop"]
-        SECRETS@{ shape: lin-doc, label: "Private keys<br/>~/.config/sops/age/keys.txt<br/>~/.ssh/id_rsa" }
-        APP@{ shape: lin-doc, label: "Encrypted<br/>Infrastructure secrets<br/>Application secrets" }
+        SECRETS_KEY@{ shape: lin-doc, label: "Private age key<br/>~/.config/sops/age/keys.txt" }
+        APPS@{ shape: lin-doc, label: "Sibling app repos<br/>(parent of IaC)" }
+        FORK_SEC@{ shape: lin-doc, label: "IaC fork: secrets/infra.yml<br/>(SOPS)" }
     end
 
-    subgraph DEVCONTAINER["IaC Devcontainer"]
+    subgraph DEVCONTAINER["IaC devcontainer"]
         TOOLS(Task, SOPS, Terraform, Ansible)
         SETUP(Devcontainer init)
         DOCKER_CONFIG@{ shape: lin-doc, label: "~/.docker/config.json" }
@@ -82,20 +72,20 @@ flowchart TB
         HCLOUD(Hetzner Cloud)
     end
 
-    subgraph SERVER[Hetzner Server]
+    subgraph SERVER["Hetzner server"]
       subgraph DOCKER[Docker]
         APP_SERVICE(Application)
         REGISTRY(Registry)
       end
     end
 
+    SECRETS_KEY --->|mounted| DEVCONTAINER
+    APPS --->|bind apps/| DEVCONTAINER
+    FORK_SEC --->|in repo| DEVCONTAINER
 
-    SECRETS --->|mounted| DEVCONTAINER
-    APP --->|mounted| DEVCONTAINER
-
-    SETUP -->|create| DOCKER_CONFIG
-    SETUP -->|create| TF_CRED
-    SETUP -->|create| HCLOUD_CONFIG
+    SETUP -->|creates| DOCKER_CONFIG
+    SETUP -->|creates| TF_CRED
+    SETUP -->|creates| HCLOUD_CONFIG
 
     TOOLS -->|manage| SERVER
 
@@ -103,3 +93,5 @@ flowchart TB
     TF_CRED -->|authorize| TF_CLOUD
     HCLOUD_CONFIG -->|authorize| HCLOUD
 ```
+
+See [Private](private.md) for host files outside Git.

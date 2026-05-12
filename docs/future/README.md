@@ -2,12 +2,12 @@
 
 # Roadmap
 
-The repo currently supports one server type ("the platform") and one app at a time. These plans add support for multiple server types, multiple apps, and platform enhancements.
+The repo supports one server type ("the platform") with multiple mounted apps and fork-local infra secrets; Phase 3 adds further server types and optional enhancements.
 
 ```mermaid
 flowchart LR
     restructure["Phase 1<br/>Restructuring<br/>(done)"]
-    dx["Phase 2<br/>Secrets & mounts<br/>(next)"]
+    dx["Phase 2<br/>Secrets & mounts<br/>(done)"]
 
     subgraph servers ["New server types"]
         vpn["VPN server"]
@@ -25,9 +25,8 @@ flowchart LR
     restructure -.->|not strictly blocked| enhancements
 
     classDef done fill:#d4edda,stroke:#28a745,color:#155724
-    classDef next fill:#fff3cd,stroke:#ffc107,color:#856404
     class restructure done
-    class dx next
+    class dx done
 ```
 
 ---
@@ -42,23 +41,17 @@ Decomposed the repo so different server types compose from shared building block
 | **1b. Ansible** | Split `roles/server/` into `roles/base/` + `roles/platform/`. | `task platform:configure:apply -- dev` produces identical server state. | Done |
 | **1c. Terraform** | Extract `modules/server/`, move root to `terraform/platform/`. | `terraform plan` shows zero changes. | Done |
 
-Design: **[Repo restructuring](restructuring.md)**
+Layout reference: **[Repo layout](restructuring.md)**
 
 ---
 
-## Phase 2 — Secrets and mounts (next)
+## Phase 2 — Secrets and mounts (complete)
 
-Moves from "clone and use" to "fork and use." Infra secrets (`secrets/infra.yml`) live in the fork, committed and SOPS-encrypted. App config (per-app `iac.yml` — just image name and domains) stays in each app repo. Single directory mount replaces the per-app mount.
+Fork-local **`secrets/infra.yml`**, **`apps/<app>/.iac/`** contract (plain **`iac.yml`**, single **`docker-compose.yml`**, SOPS **`.env`**), parent **`apps/`** bind ([`.devcontainer/devcontainer.json`](../../.devcontainer/devcontainer.json)), **`task app:deploy -- <env> <app> <sha>`**.
 
-| Before | After |
-|--------|-------|
-| Clone the repo, secrets in app mount | Fork the repo, infra secrets committed in fork |
-| One `iac.yml` with everything | `secrets/infra.yml` (infra) + per-app `iac.yml` (app config) |
-| `APP_HOST_PATH` → one app | Parent of IaC repo bind-mounted at `apps/` (see `.devcontainer/devcontainer.json`) |
-| `task app:deploy -- dev abc123` | `task app:deploy -- dev app1 abc123` |
-| Rebuild devcontainer to switch apps | All apps always available |
+Open items: **[Secrets and mounts → Remaining work](secrets-and-mounts.md#remaining-work)**.
 
-Design: **[Secrets and mounts](secrets-and-mounts.md)** — includes a living **implementation checklist** for the in-flight branch work.
+Design: **[Secrets and mounts](secrets-and-mounts.md)**
 
 ---
 
@@ -71,7 +64,7 @@ Each server type follows the same pattern: Terraform root composing `modules/ser
 Dedicated Hetzner VPS for personal VPN (Xray/VLESS+REALITY, WireGuard). Built for a China trip, destroyable after.
 
 - **Cost:** ~€4.50/month (CX23, Germany) or ~€7/month (CX23 equivalent, Singapore)
-- **Blocked by:** Phase 1 + Phase 2
+- **Blocked by:** Phase 1 **✓** · Phase 2 **✓** · Phase 3 implementation only
 
 Design: **[VPN for China travel](vpn-travel-china.md)**
 
@@ -80,7 +73,7 @@ Design: **[VPN for China travel](vpn-travel-china.md)**
 Low-interaction honeypot (T-Pot) to observe attacker behavior. Completely isolated from the platform, strict egress filtering.
 
 - **Cost:** ~€18/month (CX43 + block storage, Germany)
-- **Blocked by:** Phase 1 + Phase 2
+- **Blocked by:** Phase 1 **✓** · Phase 2 **✓** · Phase 3 implementation only
 
 Design: **[Honeypot server](honeypot.md)**
 
@@ -88,7 +81,7 @@ Design: **[Honeypot server](honeypot.md)**
 
 ## Platform enhancements
 
-Not blocked by restructuring, lower priority.
+Not blocked by the modular Terraform/Ansible split, lower priority.
 
 ### Grafana as dashboard layer
 

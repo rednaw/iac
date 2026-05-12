@@ -70,7 +70,7 @@ Skip:
 ## Mechanics
 
 - **Tone:** "you" and imperative for steps ("Run X"), present tense for facts ("Traefik routes traffic")
-- **Commands:** Full examples in fenced blocks: `task app:deploy -- dev 706c88c`
+- **Commands:** Full examples in fenced blocks: `task app:deploy -- dev my-app 706c88c`
 - **Placeholders:** Use `<base_domain>` with one real example if helpful
 - **Cross-links:** "See [Doc](link)" not "see above"
 - **Links to code:** Use backticks in the link text so it renders in monospace and reads as a path: [`path/to/file.yml`](../path/to/file.yml). Doc links use normal text: [Remote-SSH](remote-ssh.md).

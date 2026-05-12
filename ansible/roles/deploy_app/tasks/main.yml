@@ -15,7 +15,7 @@
 #   .iac/.env:               SOPS-encrypted environment variables (dotenv format)
 
 # =============================================================================
-# Phase 1: Preparation (runs on localhost)
+# Preparation (localhost)
 # =============================================================================
 
 - name: Resolve image digest
@@ -25,7 +25,7 @@
   ansible.builtin.import_tasks: decrypt-secrets.yml
 
 # =============================================================================
-# Phase 2: Deploy application (runs on target server)
+# Deploy on target server
 # =============================================================================
 
 - name: Prepare server

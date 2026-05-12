@@ -73,7 +73,7 @@ Traefik and OpenObserve are internal only (no public DNS); reach them via the tu
 | Service | Via tunnel | Login |
 |---------|------------|--------|
 | Traefik dashboard | http://localhost:57801/dashboard/ | Basic auth (see `/etc/traefik/auth/htpasswd` on server) |
-| OpenObserve | http://localhost:57800/ | `openobserve_username@observe.local`, password from `app/.iac/iac.yml` |
+| OpenObserve | http://localhost:57800/ | **`openobserve_username@observe.local`**, password from **`secrets/infra.yml`** |
 | Prefect | http://localhost:57802/ | No auth (tunnel only) |
 
 **UI not loading?** The tunnel may have dropped (e.g. after a reboot). Run `task tunnel:start -- dev` (or `prod`) again.

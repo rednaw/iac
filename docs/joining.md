@@ -2,101 +2,100 @@
 
 # Joining an existing project
 
-The infrastructure exists. A teammate has already set up the server, registry, and platform. You need access to the secrets, SSH, and devcontainer — then you can deploy and operate.
+The infrastructure already exists. You need access to **infra** secrets (IaC fork), optionally **app** `.env` secrets (app repo), SSH, and the devcontainer — then you can deploy and operate.
 
 **What you need before starting:**
 
 - Editor and extensions: see [Onboarding: Before you start](onboarding.md#before-you-start)
-- Access to **two repos**: the IaC repo and the app repo
-- An SSH key pair (`~/.ssh/id_rsa`), if you don't have one run `ssh-keygen`
+- Access to the **IaC fork** and the **app repo(s)** you work on
+- An SSH key pair (`~/.ssh/id_ed25519` or `id_rsa`)
 
 ---
 
-## 1. Clone both repos
+## 1. Clone repos with sibling layout
+
+Put the IaC fork and app repos under **one parent directory** so the devcontainer mounts them as **`/workspaces/iac/apps/<name>/`**:
 
 ```bash
-git clone <iac-repo-url> iac
-git clone <app-repo-url> your-app
+mkdir -p ~/projects && cd ~/projects
+git clone <iac-fork-url> iac
+git clone <app-repo-url> my-app
 ```
 
----
-
-## 2. Set the app path and open the devcontainer
-
-On your **host** (not inside the devcontainer):
-
-```bash
-cd iac
-./scripts/setup-app-path.sh /path/to/your-app
-```
-
-- **macOS:** Takes effect immediately.
-- **Linux:** Log out and back in, or run `source ~/.profile`.
-
-Then open `iac.code-workspace` in VS Code/Cursor and **Reopen in Container** (Cmd+Shift+P → Dev Containers: Reopen in Container). The devcontainer starts in bootstrap mode since you can't decrypt secrets yet — that's expected.
+Use your real app folder name — it becomes **`<app>`** in **`task app:deploy -- dev <app> <sha>`**.
 
 ---
 
-## 3. Generate your SOPS key
+## 2. Open the devcontainer
 
-Inside the devcontainer:
+Open **`iac/iac.code-workspace`** in VS Code/Cursor → **Reopen in Container**.
+
+Until **`secrets/infra.yml`** decrypts for you, registry / Terraform Cloud / **hcloud** are usually **not** configured inside the container — expected until you are added as an infra recipient.
+
+---
+
+## 3. Generate your SOPS key (infra)
+
+Inside the container, from the IaC repo:
 
 ```bash
+cd /workspaces/iac
 task secrets:keygen
 ```
 
-This creates:
-
-| File | What it is |
-|------|-----------|
-| `~/.config/sops/age/keys.txt` | Your private key (never share, never commit) |
-| `app/.iac/sops-key-<username>.pub` | Your public key (commit to app repo) |
-
-> **Important:** Back up your private key (`~/.config/sops/age/keys.txt`) to a secure location (password manager, encrypted drive). It cannot be recovered if lost.
-
-Commit your public key in the **app repo**:
+| Output | Purpose |
+|--------|---------|
+| `~/.config/sops/age/keys.txt` | Private key (never commit) |
+| `secrets/sops-key-<username>.pub` | Public key — commit to **IaC fork** |
 
 ```bash
-cd /workspaces/iac/app
-git add .iac/sops-key-*.pub
+cd /workspaces/iac
+git add -f secrets/sops-key-*.pub
 git commit -m "Add SOPS public key for <yourname>"
 git push
 ```
 
+> Back up **`~/.config/sops/age/keys.txt`** securely — it cannot be recovered if lost.
+
 ---
 
-## 4. Ask your teammate to add you
+## 4. Ask a teammate to add you
 
-Send your teammate a message — they need to run these commands (with the app mounted in their devcontainer):
+### IaC fork — **`secrets/infra.yml`**
+
+They pull, refresh **`secrets/.sops.yaml`** if needed, re-encrypt infra:
 
 ```bash
-git pull                               # in the app repo
-task secrets:generate-sops-config      # adds your key to .sops.yaml
-# Open app/.iac/iac.yml in VS Code, save (re-encrypts with your key included)
-# Open app/.iac/.env in VS Code, save (re-encrypts)
-git add .iac/
-git commit -m "Add <yourname> to secrets"
+cd /workspaces/iac
+git pull
+task secrets:generate-sops-config
+# Open secrets/infra.yml in VS Code, Save (re-encrypt)
+git add -f secrets/
+git commit -m "Add <yourname> to infra secrets"
 git push
 ```
 
-**Wait for them to push**, then pull in your app repo:
+### App repo — **`.iac/.env`** (if you need app runtime secrets)
+
+They update **`.iac/.sops.yaml`** recipients (or add your **`sops-key-*.pub`** under **`.iac/`**), open **`.iac/.env`**, save to re-encrypt, commit and push.
+
+---
+
+## 5. Pull and verify decryption
 
 ```bash
-cd /workspaces/iac/app
-git pull
+cd /workspaces/iac && git pull
 ```
 
----
+Open **`secrets/infra.yml`** in VS Code — you should see decrypted YAML. If you still see ciphertext, see [Troubleshooting](troubleshooting.md).
 
-## 5. Verify decryption works
-
-Open `app/.iac/iac.yml` in VS Code. If the SOPS extension is working, you should see decrypted YAML with actual values — tokens, passwords, domain names. If it shows garbled encrypted text, check [Troubleshooting](troubleshooting.md).
+For app work, **`git pull`** in **`apps/<app>/`** and verify **`.iac/.env`** decrypts if you need it.
 
 ---
 
-## 6. Reopen the devcontainer (operational mode)
+## 6. Reopen the devcontainer
 
-Close the devcontainer and reopen it. Now that you can decrypt `iac.yml`, it starts in **operational mode**: registry auth, Terraform Cloud, and hcloud are configured automatically. You should see messages like:
+Close and reopen the devcontainer. When **`secrets/infra.yml`** decrypts, **`devcontainer-setup.sh`** writes Docker registry auth, Terraform Cloud token, and **hcloud** config. You should see messages such as:
 
 ```
 Registry auth configured for registry.<base_domain>.
@@ -104,25 +103,20 @@ hcloud CLI configured (context "default").
 Terraform Cloud token configured.
 ```
 
-See [Launch the IaC devcontainer](launch-devcontainer.md) for details.
+See [Launch the IaC devcontainer](launch-devcontainer.md).
 
 ---
 
-## 7. Configure your SSH access
+## 7. Configure SSH access (firewall)
 
-To run Ansible, deploy, and troubleshoot on the server, you need your SSH key registered with Hetzner and your IP in the firewall:
-
-1. Add your public key (`~/.ssh/id_rsa.pub` or `~/.ssh/id_ed25519.pub`) in **Hetzner Cloud Console** → Project → Security → SSH keys. Note the key **ID** (or run `task server:list-hetzner-keys` to list IDs).
-
-2. Get your current public IP (e.g. [whatismyipaddress.com](https://whatismyipaddress.com/)). Write it in CIDR form: `203.0.113.50/32`.
-
-3. Open `app/.iac/iac.yml` in VS Code (the SOPS extension decrypts it). Add your Hetzner key ID to the `ssh_keys` list and your IP to `allowed_ssh_ips`. Save.
-
-4. Commit, push, and apply:
+1. Add your public key in **Hetzner Cloud Console** → Security → SSH keys. Note the numeric key **ID** (or **`task server:list-hetzner-keys`**).
+2. Note your public IP in CIDR form, e.g. `203.0.113.50/32`.
+3. Open **`secrets/infra.yml`**, add your key ID to **`ssh_keys`** and your IP to **`allowed_ssh_ips`**. Save (re-encrypt).
+4. Commit and apply:
 
    ```bash
-   cd /workspaces/iac/app
-   git add .iac/iac.yml
+   cd /workspaces/iac
+   git add -f secrets/infra.yml
    git commit -m "Add SSH key and IP for <yourname>"
    git push
    ```
@@ -131,35 +125,27 @@ To run Ansible, deploy, and troubleshoot on the server, you need your SSH key re
    task platform:provision:apply -- dev
    ```
 
-If your IP changes later (e.g. different network, VPN), update `allowed_ssh_ips` in `iac.yml` and run `task platform:provision:apply -- dev` again.
+If your IP changes later, update **`allowed_ssh_ips`** in **`secrets/infra.yml`** and run **`task platform:provision:apply -- dev`** again.
 
 ---
 
 ## 8. Verify everything works
 
-Run these from the devcontainer and check the expected output:
+Replace **`my-app`** with your app directory name under **`apps/`**:
 
 ```bash
 task registry:overview
-# Expected: lists image repositories and tags (e.g. rednaw/tientje-ketama)
-
-task app:versions -- dev
-# Expected: table of available image tags with dates and descriptions
-# The → arrow shows which version is currently deployed
-
+task app:versions -- dev my-app
 task platform:provision:plan -- dev
-# Expected: runs without login prompts, shows "No changes" or planned changes
-
 task server:list-hetzner-keys
-# Expected: lists SSH key IDs and names from your Hetzner project
 ```
 
-If any command fails, see [Troubleshooting](troubleshooting.md).
+If anything fails, see [Troubleshooting](troubleshooting.md).
 
 ---
 
 ## What's next
 
-- **Deploy:** [Application deployment](application-deployment.md) — deploy flow, commands, app configuration.
-- **Server access:** [Remote-SSH](remote-ssh.md) — SSH tunnels for Traefik dashboard and OpenObserve.
-- **Terraform Cloud:** The project uses TFC as a backend for shared Terraform state. To see the management console, ask a teammate to add you to the organization.
+- **Deploy:** [Application deployment](application-deployment.md)
+- **Server access:** [Remote-SSH](remote-ssh.md)
+- **Terraform Cloud:** Ask a teammate to add you to the organization if you need the web UI.

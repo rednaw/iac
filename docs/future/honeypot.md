@@ -4,7 +4,7 @@
 
 A dedicated Hetzner VPS running honeypot services to observe attacker behavior after a "compromise." Managed by this IaC project. **Not a real vulnerable system** -- uses established honeypot software that simulates services without giving real access.
 
-**Prerequisite:** The [repo restructuring](restructuring.md) must be done first.
+**Prerequisite:** [Repo layout](restructuring.md) (shared Terraform module, **`base`** + purpose Ansible roles, **`platform:*`** tasks).
 
 ---
 
@@ -120,7 +120,7 @@ This is the most important section. The honeypot must have **zero path** to real
 | Concern | Mitigation |
 |---------|-----------|
 | **Network isolation** | Separate Hetzner server, no private network, no shared VPC. Hetzner servers can't reach each other unless you explicitly create a network. |
-| **No shared secrets** | Own SSH keys, no SOPS key, no registry credentials, no Terraform Cloud token. Honeypot secrets are separate entries in `iac.yml` (or a dedicated file). |
+| **No shared secrets** | Own SSH keys, no SOPS key, no registry credentials, no Terraform Cloud token. Honeypot-specific keys live only in **`secrets/infra.yml`** (fork-local) or a dedicated secrets file — never in **`apps/<app>/.iac/`**. |
 | **Egress filtering** | nftables on the box: allow outbound to OpenObserve IP + DNS (53/UDP). Drop everything else. Prevents the server from being weaponized for spam/DDoS/mining. |
 | **No shared credentials** | Hetzner API token is shared (same project), but the honeypot server has no access to it. The token only exists in the devcontainer. |
 | **Hetzner ToS** | Low-interaction honeypots don't result in actual compromise -- no illegal content gets hosted, no outbound abuse. Safe under standard ToS. |
@@ -145,7 +145,7 @@ Deployed by Ansible as part of `roles/honeypot/`.
 
 ## How it fits in the repo
 
-Uses the composable patterns from the [restructuring](restructuring.md).
+Uses patterns from [repo layout](restructuring.md).
 
 ### Terraform
 
@@ -183,7 +183,7 @@ Note: `roles/base/` provides SSH hardening, unattended-upgrades, and Docker. The
 
 ### Secrets
 
-Honeypot secrets in `app/.iac/iac.yml`:
+Honeypot secrets in **`secrets/infra.yml`** (fork-local, SOPS-encrypted).
 
 | Secret | Purpose |
 |--------|---------|
@@ -232,9 +232,9 @@ Most activity appears within hours of the server going live. A public IP on Hetz
 
 | Phase | What | When |
 |-------|------|------|
-| **1. Honeypot Terraform** | `terraform/honeypot/` composing the server module. | After restructuring |
-| **2. Honeypot Ansible** | `roles/honeypot/` (T-Pot + egress rules). | After restructuring |
-| **3. Honeypot Task namespace** | `tasks/Taskfile.honeypot.yml` calling shared internal tasks. | After restructuring |
+| **1. Honeypot Terraform** | `terraform/honeypot/` composing the server module. | Foundation |
+| **2. Honeypot Ansible** | `roles/honeypot/` (T-Pot + egress rules). | Foundation |
+| **3. Honeypot Task namespace** | `tasks/Taskfile.honeypot.yml` calling shared internal tasks. | Foundation |
 | **4. Egress hardening** | nftables rules, test in dev. Verify no outbound leaks. | Before exposing to internet |
 | **5. Log shipping** | OTEL collector → prod OpenObserve. | After platform OpenObserve is running |
 | **6. Go live** | `task honeypot:apply -- prod`. Watch the dashboard. | When ready |
