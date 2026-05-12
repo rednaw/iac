@@ -5,7 +5,7 @@
 #
 # Inputs:
 #   deploy_target: Target path on server
-#   app_root: Path to app directory (for docker-compose.yml)
+#   app_root: Path to app directory (contract under .iac/)
 #   image_digest: Full image reference with digest
 #   app_secrets_file: Stat result for .env
 #   decrypted_app_secrets: Decrypted secrets content
@@ -38,18 +38,10 @@
     mode: '0600'
     create: true
 
-- name: Copy docker-compose.yml
+- name: Copy docker-compose.yml from app contract
   ansible.builtin.copy:
-    src: "{{ app_root }}/docker-compose.yml"
+    src: "{{ app_root }}/.iac/docker-compose.yml"
     dest: "{{ deploy_target }}/docker-compose.yml"
-    owner: iac
-    group: iac
-    mode: '0644'
-
-- name: Copy docker-compose.override.yml
-  ansible.builtin.copy:
-    src: "{{ app_root }}/.iac/docker-compose.override.yml"
-    dest: "{{ deploy_target }}/docker-compose.override.yml"
     owner: iac
     group: iac
     mode: '0644'

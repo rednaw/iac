@@ -2,7 +2,9 @@
 
 # Repo restructuring: composable server purposes
 
-The repo is built around **one implicit purpose** ("the platform") with two environments. Adding a second server type (e.g. a [VPN server](vpn-travel-china.md)) means either duplicating everything in parallel or decomposing the repo so different server types compose from shared building blocks. This document covers the decomposition.
+> **Status: implemented.** All three phases shipped. This doc is preserved as design context for future server types ([VPN](vpn-travel-china.md), [honeypot](honeypot.md), …).
+
+The repo was built around **one implicit purpose** ("the platform") with two environments. Adding a second server type (e.g. a [VPN server](vpn-travel-china.md)) would have meant either duplicating everything in parallel or decomposing the repo so different server types compose from shared building blocks. This document covers the decomposition.
 
 ---
 

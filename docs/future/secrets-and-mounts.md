@@ -223,13 +223,13 @@ The task resolves app name → `apps/<name>/.iac/` for everything: `iac.yml` (pl
 
 ### Ansible secrets path
 
-Today, [`ansible/tasks/secrets.yml`](../../ansible/tasks/secrets.yml) defaults to `app/.iac/iac.yml`. After the split:
+[`ansible/tasks/secrets.yml`](../../ansible/tasks/secrets.yml) decrypts **`secrets/infra.yml`** into **`infrastructure_secrets`** (override via **`secrets_file`** when needed).
 
-- Infra secrets: `secrets/infra.yml` (in the repo, loaded by all playbooks)
-- App config: `apps/<name>/.iac/iac.yml` (plain YAML, read directly)
+- Infra secrets: `secrets/infra.yml` (loaded by platform/bootstrap/playbooks)
+- App config: `apps/<name>/.iac/iac.yml` (plain YAML; **`task app:deploy`** rejects infra keys here)
 - App secrets: `apps/<name>/.iac/.env` (SOPS-encrypted, decrypted at deploy time)
 
-The deploy playbook receives all three: infrastructure secrets from `infra.yml`, app config from `iac.yml` (plain), and app secrets from `.env` (decrypted).
+The deploy playbook loads infra facts first, then **`deploy_app`** copies **`apps/<name>/.iac/docker-compose.yml`** and decrypted **`.env`** to the server. **`image_name`** is resolved by Ansible **`resolve-image`** from variables supplied by **`task app:deploy`** (which reads **`image_name`** from **`iac.yml`** locally).
 
 ---
 
@@ -261,24 +261,36 @@ Upstream repo: generic framework, `secrets/` gitignored. Fork: committed `secret
 
 ---
 
-## Migration
+## Aligning an existing application repo
 
-For existing users:
+Do this **in the application repository** (e.g. `tientje-ketama`). There is **no** migration automation in the IaC repo — editors merge assets manually.
 
-1. Fork the IaC repo (if not already)
-2. Create `secrets/infra.yml` by extracting infra keys from `app/.iac/iac.yml`
-3. Create `secrets/.sops.yaml` (copy SOPS config from `app/.iac/.sops.yaml`)
-4. Reduce each app's `.iac/iac.yml` to just `image_name` and `app_domains` (plain YAML, remove SOPS encryption)
-5. Merge `docker-compose.yml` (app root) and `.iac/docker-compose.override.yml` into a single `.iac/docker-compose.yml`
-6. Merge `.iac/backup.yml` into `iac.yml` under a `backup` key
-7. Remove `.iac/docker-compose.override.yml` and `.iac/backup.yml`
-8. Update `.iac/.sops.yaml` to only cover `.env`
-8. Move the app directory into a parent (e.g. `~/projects/app1/`)
-10. Replace `APP_HOST_PATH` with `APPS_HOST_PATH` (pointing to `~/projects/`)
-11. Add app workspace folders to `iac.code-workspace`
-12. Rebuild devcontainer
+1. **`secrets/`** — infra stays only in the **IaC fork** (`secrets/infra.yml`), not in the app repo.
+2. **`.iac/iac.yml`** — **plaintext YAML**, exactly **app** keys only (must include **`image_name`**, **`app_domains`**). Never include tokens, `base_domain`, registry/OpenObserve credentials, `ssh_keys`, etc.; **`task app:deploy`** rejects infra keys.
+3. **`.iac/docker-compose.yml`** — single full Compose file deployed by Ansible (merge what used to be repo-root **`docker-compose.yml`** + **`.iac/docker-compose.override.yml`**). Attach **`traefik`** external network, Traefik **labels**, **`restart: unless-stopped`** on routed services per [`docs/traefik.md`](../traefik.md).
+4. **Remove** **`.iac/docker-compose.override.yml`** after merging into **`docker-compose.yml`** above (same path **under `.iac/`** named **`docker-compose.yml`**).
+5. **Repo-root `docker-compose.yml`** — keep for **local dev** only if needed; it is **not** read by deploy.
+6. **`.iac/.env`** — remains **SOPS-encrypted** app/runtime secrets only.
+7. **`.iac/.sops.yaml`** — **creation_rules** must encrypt **`.env` only** (not **`iac.yml`**). Recipient pubs stay in the app repo as **`sops-key-*.pub`** (infra pubs stay under IaC **`secrets/`**).
+8. **Backup:** optional **`backup:`** block inside **`iac.yml`** **or** keep **`backup.yml`** beside **`iac.yml`** — whichever matches current IaC behaviour (`tasks/Taskfile.backup.yml` still checks **`backup.yml`**).
 
-A `task secrets:migrate` could automate steps 2-8.
+Sibling-repo layout and workspace folders live in the **IaC** fork (`iac.code-workspace`, `.devcontainer/` bind-mount).
+
+---
+
+## Implementation checklist
+
+Progress on Phase 2 (`secrets-and-mounts` branch). Update this table as work lands.
+
+| Step | Scope | Status |
+|------|--------|--------|
+| **1** | **Compose contract** — deploy reads **`apps/<name>/.iac/docker-compose.yml` only** (no repo-root `docker-compose.yml`, no `.iac/docker-compose.override.yml`). [`ansible/roles/deploy_app`](../../ansible/roles/deploy_app/), [`tasks/Taskfile.app.yml`](../../tasks/Taskfile.app.yml). | Done |
+| **2** | **`secrets/infra.yml`** (`ansible/tasks/secrets.yml`, Terraform tasks, devcontainer); thin **`apps/<name>/.iac/iac.yml`** enforced at **`task app:deploy`**; **`secrets/`** gitignored upstream ([`.gitignore`](../../.gitignore)). | Done |
+| **3** | **Backup config** — optional **`backup.yml`** vs **`backup`** in **`iac.yml`**; align Prefect/tasks once **`iac.yml`** shape is final | Open |
+| **4** | **Docs** — onboarding, deployment, Traefik, secrets: workspace mount, no infra in app **`iac.yml`** | Open |
+| **5** | *n/a — no automated migrate task; use **Aligning an existing application repo** in this doc* | — |
+
+**Mount (current devcontainer):** `${localWorkspaceFolder}/..` → `/workspaces/iac/apps` so sibling repos of the IaC clone appear as `apps/<repo>/`. Forks list each `apps/<name>/.iac` in `iac.code-workspace`.
 
 ---
 
@@ -289,5 +301,5 @@ A `task secrets:migrate` could automate steps 2-8.
 | Fork model = merging upstream updates | `secrets/` is gitignored upstream, so merges are clean. Only conflicting changes are structural (rare, reviewable). |
 | App `iac.yml` is now very thin — is a separate file worth it? | Yes: it keeps app config in the app repo (where app developers manage it), and it's the contract the deploy task expects. Plain YAML makes it trivial to edit. |
 | Ansible needs to load two secret files | Small change: load `infra.yml` as pre-task (already done), pass app path as variable to deploy role. |
-| `APPS_HOST_PATH` mount exposes all app repos | Acceptable — you're the operator of all these apps. The devcontainer already has full Docker socket access. |
-| Breaking change for existing users | Provide migration task and update onboarding docs. |
+| Bind-mount of parent directory (all sibling app repos at `apps/`) exposes source trees | Acceptable — you're the operator of these apps. The devcontainer already has full Docker socket access. |
+| Breaking change for existing users | Manual alignment checklist (**Aligning an existing application repo**) plus onboarding docs. |

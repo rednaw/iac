@@ -65,8 +65,11 @@ tasks:
     cmds:
       - |
         echo "🔍 Validating Terraform configuration..."
-        if ! terraform init -backend=false >/dev/null 2>&1; then
-          echo "❌ Terraform initialization failed"
+        if ! terraform init -backend=false; then
+          echo ""
+          echo "❌ Terraform initialization failed."
+          echo "   Common cause: mise tried to install Terraform under /opt/mise/installs (root-owned)."
+          echo "   Fix: rebuild/pull the dev image (tools should be baked), or run: sudo mise install"
           exit 1
         fi
         if ! terraform validate; then

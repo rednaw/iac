@@ -19,15 +19,14 @@
     "ansible",
     "ansible-galaxy",
     "pip_requirements",
-    "custom.regex",
-    "mise"
+    "custom.regex"
   ],
   "customManagers": [
     {
       "customType": "regex",
-      "description": "mise.toml: tools not in Renovate's built-in mise short-name list (read package from # owner/repo comment)",
+      "description": "mise.toml: all pins via `# github-org/repo` + github-releases (hyphenated tool names allowed)",
       "managerFilePatterns": ["mise.toml"],
-      "matchStrings": ["(?<depName>\\w+)\\s*=\\s*\"(?<currentValue>[^\"]+)\"\\s*#\\s*(?<packageName>[^\\s\\n]+)"],
+      "matchStrings": ["(?<depName>[a-zA-Z0-9_-]+)\\s*=\\s*\"(?<currentValue>[^\"]+)\"\\s*#\\s*(?<packageName>[^\\s\\n]+)"],
       "datasourceTemplate": "github-releases",
       "autoReplaceStringTemplate": "{{{depName}}} = \"{{{newValue}}}\"  # {{{packageName}}}"
     },

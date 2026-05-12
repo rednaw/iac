@@ -1,5 +1,6 @@
 # yaml-language-server: $schema=https://json.schemastore.org/traefik-v2.json
-# Domains from iac.yml app_domains (unencrypted).
+# ACME hostnames for platform routers (dev.<base_domain>, prod.<base_domain>). 
+# App vanity domains come from docker-compose Traefik labels.
 http:
   routers:
     app-host:

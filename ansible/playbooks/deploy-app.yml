@@ -11,8 +11,8 @@
 #   sha: Image tag / commit SHA to deploy
 #
 # Expected files in app_root:
-#   docker-compose.yml: Docker Compose service definition
-#   .env:               SOPS-encrypted environment variables (dotenv format); can be minimal
+#   .iac/docker-compose.yml: Docker Compose project for platform deploy
+#   .iac/.env:               SOPS-encrypted dotenv (runtime secrets)
 
 - name: Deploy Application
   hosts: all

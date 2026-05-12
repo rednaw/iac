@@ -1,9 +1,23 @@
 {
+  // The devcontainer mounts the IaC repo's parent directory at
+  // /workspaces/iac/apps/, so every sibling repo on the host is visible.
+  // To keep the sidebar focused on deployment config (not app source), forks
+  // whitelist their app .iac/ folders here and hide everything else under
+  // apps/ via files.exclude.
   "folders": [
     {
       "name": "IaC",
       "path": "."
+    },
+    {
+      "name": "tientje-ketama (.iac)",
+      "path": "apps/tientje-ketama/.iac"
     }
   ],
-  "settings": {}
+  "settings": {
+    "files.exclude": {
+      "apps": true,
+      "app": true
+    }
+  }
 }

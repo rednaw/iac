@@ -20,7 +20,7 @@ tasks:
     deps: [":_check:sops-key"]
     cmds:
       - |
-        TFC_ORG=$(SOPS_AGE_KEY_FILE="{{.SOPS_KEY_FILE}}" sops -d app/.iac/iac.yml | yq -r '.terraform_cloud_organization')
+        TFC_ORG=$(SOPS_AGE_KEY_FILE="{{.SOPS_KEY_FILE}}" sops -d secrets/infra.yml | yq -r '.terraform_cloud_organization')
         for WORKSPACE in dev prod; do
           export TF_WORKSPACE="${WORKSPACE}"
           echo "🔁 Reconfiguring Terraform backend for workspace: {{.PREFIX}}-${WORKSPACE} (org: ${TFC_ORG})..."
@@ -34,7 +34,7 @@ tasks:
     deps: [":_check:sops-key"]
     cmds:
       - |
-        TFC_ORG=$(SOPS_AGE_KEY_FILE="{{.SOPS_KEY_FILE}}" sops -d app/.iac/iac.yml | yq -r '.terraform_cloud_organization')
+        TFC_ORG=$(SOPS_AGE_KEY_FILE="{{.SOPS_KEY_FILE}}" sops -d secrets/infra.yml | yq -r '.terraform_cloud_organization')
         export TF_WORKSPACE='{{.WORKSPACE | default "dev"}}'
         if ! output=$(terraform -chdir="{{.TF_DIR}}" init -backend-config="organization=${TFC_ORG}" 2>&1); then
           echo "$output"

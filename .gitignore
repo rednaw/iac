@@ -20,8 +20,12 @@ prefect/.restore-work/
 # Pulled Restic repos (task backup:download)
 .backup-repos/
 
-# Mounted application files
-app/
+# Mounted sibling app repos (devcontainer bind → apps/). Fork-only clones stay clean.
+apps/
+
+# Fork-only: infra secrets + age recipient pubs for secrets/infra.yml (see docs/future/secrets-and-mounts.md).
+# Upstream ignores the tree so merges never touch real secrets; forks `git add -f secrets/` or drop this line locally.
+secrets/
 
 .DS_Store
 .vscode/

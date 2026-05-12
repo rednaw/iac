@@ -51,8 +51,8 @@ tasks:
         echo "  task workflow:deploy  -- [dev|prod]   # Deploy Prefect flows"
         echo ""
         echo "Application Deployment:"
-        echo "  task app:deploy   -- [dev|prod] <sha> # Deploy application"
-        echo "  task app:versions -- [dev|prod]       # List available image versions"
+        echo "  task app:deploy   -- [dev|prod] <app> <sha> # Deploy application"
+        echo "  task app:versions -- [dev|prod] <app>       # List available image versions"
         echo ""
         echo "Testing:"
         echo "  task test:run                         # Run all tests (validate, format check, security scan)"
@@ -72,11 +72,11 @@ tasks:
         echo "  task server:check-status              # Check if servers are up (checks both dev and prod)"
         echo "  task server:list-hetzner-keys         # List Hetzner SSH keys with IDs"
         echo ""
-        echo "Backups (Restic, mounted app):"
-        echo "  task backup:snapshots -- [dev|prod]              # Local snapshots (slug from app/.iac iac.yml)"
-        echo "  task backup:restore   -- [dev|prod] [snap] [...] # Restore (same slug rule as deploy)"
-        echo "  task backup:download  -- [dev|prod]              # Server Restic repo → .backup-repos/<slug>/"
-        echo "  task backup:upload    -- [dev|prod]              # .backup-repos/<slug>/ → server (replaces remote repo)"
+        echo "Backups (Restic, per app):"
+        echo "  task backup:snapshots -- [dev|prod] <app>              # Local snapshots (slug from apps/<app>/.iac/iac.yml)"
+        echo "  task backup:restore   -- [dev|prod] <app> [snap] [...] # Restore (same slug rule as deploy)"
+        echo "  task backup:download  -- [dev|prod] <app>              # Server Restic repo → .backup-repos/<slug>/"
+        echo "  task backup:upload    -- [dev|prod] <app>              # .backup-repos/<slug>/ → server (replaces remote repo)"
 
   # Internal validation tasks - used by other tasks via deps or direct calls
   _check:sops-key:
@@ -94,4 +94,17 @@ tasks:
         msg: "Workspace required. Pass dev or prod after -- (e.g. task platform:configure:apply -- dev)"
       - sh: 'W=$(echo "{{.CLI_ARGS}}" | awk "{print \$1}"); [ "$W" = "dev" ] || [ "$W" = "prod" ]'
         msg: "Invalid workspace. Use: dev or prod after --"
+
+  _check:app:
+    desc: "(internal) Validate APP arg resolves to a mounted apps/<name>/.iac/ contract"
+    internal: true
+    requires:
+      vars: [APP]
+    preconditions:
+      - sh: '[ -n "{{.APP}}" ]'
+        msg: "App name required."
+      - sh: test -d "/workspaces/iac/apps/{{.APP}}"
+        msg: "App not mounted at /workspaces/iac/apps/{{.APP}}. Place the {{.APP}} repo as a sibling of the IaC repo on the host, then Rebuild Container."
+      - sh: test -f "/workspaces/iac/apps/{{.APP}}/.iac/iac.yml"
+        msg: "App missing /workspaces/iac/apps/{{.APP}}/.iac/iac.yml. Create the .iac/ contract; see docs/new-project.md."
 

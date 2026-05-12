@@ -6,9 +6,12 @@
     "source=iac-cursor-state,target=/home/vscode/.cursor,type=volume",
     "source=${localEnv:HOME}/.ssh,target=/home/vscode/.ssh,type=bind",
     "source=${localEnv:HOME}/.config/sops,target=/home/vscode/.config/sops,type=bind",
-    "source=${localEnv:APP_HOST_PATH}/.iac,target=/workspaces/iac/app/.iac,type=bind",
-    "source=${localEnv:APP_HOST_PATH}/docker-compose.yml,target=/workspaces/iac/app/docker-compose.yml,type=bind",
-    "source=${localEnv:APP_HOST_PATH}/.github/workflows/build-and-push.yml,target=/workspaces/iac/app/.github/workflows/build-and-push.yml,type=bind"
+    // Mount the IaC repo's parent directory so all sibling app repos are
+    // available under /workspaces/iac/apps/<name>/. Convention: place the IaC
+    // repo as a sibling of your app repos under one parent (e.g. ~/projects/).
+    // Tasks resolve <app> CLI args to /workspaces/iac/apps/<app>/.iac/.
+    // Forks whitelist which apps appear in the sidebar via iac.code-workspace.
+    "source=${localWorkspaceFolder}/..,target=/workspaces/iac/apps,type=bind"
   ],
 
   "customizations": {
@@ -43,7 +46,14 @@
   "remoteUser": "vscode",
 
   "remoteEnv": {
-    "ANSIBLE_CONFIG": "/workspaces/iac/ansible/ansible.cfg"
+    "ANSIBLE_CONFIG": "/workspaces/iac/ansible/ansible.cfg",
+    "SOPS_AGE_KEY_FILE": "/home/vscode/.config/sops/age/keys.txt",
+    // The VS Code extension host launches without the user's interactive shell
+    // PATH, so mise shims must be exposed explicitly. Mise itself also needs its
+    // data dir + global config to resolve which tool version a shim points to.
+    "PATH": "/opt/mise/shims:${containerEnv:PATH}",
+    "MISE_DATA_DIR": "/opt/mise",
+    "MISE_GLOBAL_CONFIG_FILE": "/opt/mise/mise.toml"
   },
 
   "postCreateCommand": "bash .devcontainer/devcontainer-setup.sh",

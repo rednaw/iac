@@ -8,7 +8,7 @@
 # To unban an IP: sudo fail2ban-client set <jail-name> unbanip <ip-address>
 
 [DEFAULT]
-# IPs/CIDRs to never ban (inherited by all jails): localhost, this server, and allowed_ssh_ips from app/.iac/iac.yml.
+# IPs/CIDRs to never ban (inherited by all jails): localhost, this server, and allowed_ssh_ips from secrets/infra.yml.
 ignoreip = 127.0.0.1/8 ::1 {{ ansible_default_ipv4.address | default('') }}{% for ip in infrastructure_secrets.allowed_ssh_ips | default([]) %} {{ ip }}{% endfor %}
 
 # Default ban time: 1 hour

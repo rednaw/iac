@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Source this from the IaC repo root to populate TF_VAR_* for the platform
-# Terraform root from app/.iac/iac.yml.
+# Terraform root from secrets/infra.yml.
 #
 # Caller contract:
 #   - cwd is the IaC repo root (paths are relative)
@@ -16,7 +16,7 @@
 
 : "${SOPS_KEY_FILE:?SOPS_KEY_FILE must be exported before sourcing this script}"
 
-__secrets=$(SOPS_AGE_KEY_FILE="${SOPS_KEY_FILE}" sops -d app/.iac/iac.yml)
+__secrets=$(SOPS_AGE_KEY_FILE="${SOPS_KEY_FILE}" sops -d secrets/infra.yml)
 
 TF_VAR_hcloud_token=$(echo "${__secrets}" | yq -r '.hcloud_token')
 TF_VAR_base_domain=$(echo "${__secrets}" | yq -r '.base_domain')
