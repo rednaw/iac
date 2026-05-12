@@ -1,8 +1,8 @@
 [**<---**](README.md)
 
-# Application Deployment
+# Application deployment
 
-Deploy and manage apps from the IaC devcontainer. **Created the project?** Start at [App mount](#app-mount). **Joined?** Go to [Commands](#commands).
+Deploy and manage apps from the IaC devcontainer. **New workspace layout?** See [Workspace layout](#workspace-layout). **Commands:** [Commands](#commands).
 
 ```mermaid
 flowchart LR
@@ -18,7 +18,7 @@ flowchart LR
       E(→ tags by SHA)
     end
     subgraph SERVER["Server"]
-      F(Deployed app)
+        F(Deployed app)
     end
     A -->|triggers| D
     B -->|lists| E
@@ -27,72 +27,80 @@ flowchart LR
     F -->|pulls| E
 ```
 
-**Commands:** `task app:versions -- <env>` · `task app:deploy -- <env> <sha>`
+**Commands:**
 
-## Set which app you're working on
+- `task app:versions -- <env> <app>`
+- `task app:deploy -- <env> <app> <sha>`
 
-On the **host** (run again when you switch app):
+`<app>` is the **directory name** under **`/workspaces/iac/apps/`** (sibling folder of your IaC clone on disk).
 
-```bash
-./scripts/setup-app-path.sh /path/to/your/app
-```
+---
 
-Validates `docker-compose.yml` and `.iac/` exist; writes `APP_HOST_PATH` to your profile. Then open `iac.code-workspace` and **Reopen in Container** so the devcontainer sees the mount.
+## Workspace layout
 
-## App mount
+Application repos are mounted at **`/workspaces/iac/apps/<app>/`** via the parent-directory bind ([Launch devcontainer](launch-devcontainer.md)). No per-host script — place repos next to **`iac/`** and open **`iac.code-workspace`**.
 
-The devcontainer mounts your app at `/workspaces/iac/app`: **`.iac/`** and **`docker-compose.yml`**. Mount uses `APP_HOST_PATH` from the process that opened the workspace (Cursor/VS Code).
+---
 
-**Required layout:**
+## App contract
 
-| Item | Purpose |
+Paths below are relative to each app repo root (visible as **`apps/<app>/`** in the container):
+
+| Path | Purpose |
 |------|---------|
-| `docker-compose.yml` | Generic stack (no Traefik/domain here). |
-| `.iac/iac.yml` | SOPS-encrypted; unencrypted: `base_domain`, `image_name`, `app_domains`. |
-| `.iac/.env` | SOPS-encrypted app secrets (dotenv). |
-| `.iac/.sops.yaml` | SOPS config for iac.yml and .env. |
-| `.iac/docker-compose.override.yml` | Traefik labels, `traefik` network, `restart: unless-stopped`. |
-| `.iac/backup.yml` | *Optional.* Retention + postgres + volumes for Restic. Deploy → `backup.yml` next to compose. [Backups](backups.md). |
+| `.iac/iac.yml` | **Plain** YAML: **`image_name`**, **`app_domains`** only (no infra keys — those belong in **`secrets/infra.yml`**). |
+| `.iac/.env` | SOPS-encrypted runtime secrets for Compose. |
+| `.iac/.sops.yaml` | SOPS rules — encrypt **`.env`** only. |
+| `.iac/docker-compose.yml` | Full stack Ansible deploys (Traefik labels, **`traefik`** external network, **`image: ${IMAGE}`**, **`restart: unless-stopped`**). |
+| `.iac/backup.yml` | *Optional.* Restic contract → **`backup.yml`** on server. [Backups](backups.md). |
+| `docker-compose.yml` | *Optional.* Local dev only — **not** uploaded by deploy. |
 
-Routing: override defines Traefik labels and network. See [Traefik](traefik.md#adding-an-application). App service must use `image: ${IMAGE}` (deploy sets it to digest). `restart: unless-stopped` on every service so the app survives reboot.
+Routing and middlewares: [Traefik](traefik.md#adding-an-application).
+
+---
 
 ## Commands
 
 ### `task app:versions`
 
 ```bash
-task app:versions -- <environment>   # dev or prod
+task app:versions -- <environment> <app>   # dev or prod, plus folder name
 ```
 
-Lists tags (TAG, CREATED, DESCRIPTION) from registry; `→` marks the one currently deployed.
+Lists registry tags; **`→`** marks the digest currently deployed.
 
 ### `task app:deploy`
 
 ```bash
-task app:deploy -- <environment> <sha>
-# e.g. task app:deploy -- dev 706c88c
+task app:deploy -- <environment> <app> <sha>
+# e.g. task app:deploy -- dev my-app 706c88c
 ```
 
-`<sha>` = 7-char commit tag. Deploy resolves tag to digest and runs the app from the digest.
+`<sha>` is the 7-character Git SHA tag. Deploy resolves it to a digest and runs the stack from **`apps/<app>/.iac/docker-compose.yml`**.
 
-## Application config (if you created the project)
+---
 
-In **`.iac/iac.yml`** (app repo): `base_domain`, `image_name`, `app_domains`. See [New project](new-project.md#7-create-the-remaining-iac-files) for creating from scratch. App dev is devcontainer-first (app’s devcontainer + `.devcontainer/` override); production uses `docker-compose.yml` + `.iac/docker-compose.override.yml` on the server.
+## Configuration references
 
-## Deployment records (if you joined)
+- **Infra** (registry, domains base, cloud): **`secrets/infra.yml`** in the IaC fork — [New project](new-project.md), [Secrets](secrets.md).
+- **App routing domains:** **`app_domains`** in **`apps/<app>/.iac/iac.yml`** (plain YAML).
+
+---
+
+## Deployment records
 
 | File | Location | Purpose |
 |------|----------|---------|
 | deploy-info.yml | `/opt/iac/deploy/<app>/deploy-info.yml` | Current deployment (overwritten each deploy). |
 | deploy-history.yml | `/opt/iac/deploy/<app>/deploy-history.yml` | Append-only audit trail. |
 
-Shape: see [`ansible/roles/deploy_app/tasks/record-deployment.yml`](../ansible/roles/deploy_app/tasks/record-deployment.yml).
+Shape: [`ansible/roles/deploy_app/tasks/record-deployment.yml`](../ansible/roles/deploy_app/tasks/record-deployment.yml).
+
+---
 
 ## Implementation
 
-- **Taskfile:** [`tasks/Taskfile.app.yml`](../tasks/Taskfile.app.yml) — `app:deploy`, `app:versions`; reads from `.iac/iac.yml`, runs Ansible and [`scripts/application_versions.py`](../scripts/application_versions.py).
-- **Playbook:** [`ansible/playbooks/deploy-app.yml`](../ansible/playbooks/deploy-app.yml) → role [`ansible/roles/deploy_app/`](../ansible/roles/deploy_app/)**: main, resolve-image, decrypt-secrets, prepare-server, run-container, record-deployment.
+- **Taskfile:** [`tasks/Taskfile.app.yml`](../tasks/Taskfile.app.yml)
+- **Playbook:** [`ansible/playbooks/deploy-app.yml`](../ansible/playbooks/deploy-app.yml) → [`ansible/roles/deploy_app/`](../ansible/roles/deploy_app/)
 
-See [Troubleshooting](troubleshooting.md) for app mount, deploy, and registry issues.
-
-See [Registry](registry.md), [Traefik](traefik.md), [Backups](backups.md).
+See [Troubleshooting](troubleshooting.md), [Registry](registry.md), [Traefik](traefik.md), [Backups](backups.md).

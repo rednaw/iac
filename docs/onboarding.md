@@ -14,7 +14,7 @@ Install on your machine:
 | Extension | Purpose |
 |-----------|---------|
 | [Dev Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) | Open the IaC repo in the devcontainer (required) |
-| [SOPS](https://marketplace.visualstudio.com/items?itemName=signageos.signageos-vscode-sops) (SignageOS) | View and edit encrypted secrets (`iac.yml`, `.env`) (required) |
+| [SOPS](https://marketplace.visualstudio.com/items?itemName=signageos.signageos-vscode-sops) (SignageOS) | View and edit encrypted secrets (**`secrets/infra.yml`**, **`.iac/.env`**) (required) |
 | [Remote - SSH](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-ssh) | Connect to the server and use port forwarding for Traefik/OpenObserve dashboards (optional) |
 
 The devcontainer installs additional extensions inside the container (YAML, Ansible, dotenv, Mermaid); you don’t need to install those on the host.
@@ -30,8 +30,8 @@ You have an app and want to deploy it on your own Hetzner server. You will creat
 | Step | What you do | Time |
 |------|-------------|------|
 | 1. **[New project](new-project.md)** | Create SOPS keys, secrets file, external accounts (Hetzner, Terraform Cloud), provision the server with Terraform + Ansible, set up DNS. | ~60 min |
-| 2. **[Launch devcontainer](launch-devcontainer.md)** | Open the IaC workspace in the devcontainer. It decrypts secrets and configures all credentials automatically. | ~5 min |
-| 3. **[Application deployment](application-deployment.md)** | Set up your app mount, write the deploy override and Traefik labels, run your first deploy. | ~30 min |
+| 2. **[Launch devcontainer](launch-devcontainer.md)** | Open the IaC workspace (sibling **`apps/`** layout). **`secrets/infra.yml`** decrypt drives credentials. | ~5 min |
+| 3. **[Application deployment](application-deployment.md)** | **`apps/<app>/.iac/`** contract: plain **`iac.yml`**, SOPS **`.env`**, **`docker-compose.yml`** with Traefik; **`task app:deploy -- dev <app> <sha>`**. | ~30 min |
 | 4. **[App secrets](secrets.md#creating-app-secrets)** | Create `.iac/.env` with app runtime secrets (database URL, API keys). | ~10 min |
 
 When done: your app is live at `https://<your-domain>` with TLS, a private registry, and monitoring.
@@ -42,14 +42,14 @@ When done: your app is live at `https://<your-domain>` with TLS, a private regis
 
 ## Join an existing project
 
-The infrastructure exists. You need access, then you can operate and deploy.
+The infrastructure exists. You need access to **infra** and optional **app** secrets, then you can operate and deploy.
 
 | Step | What you do | Time |
 |------|-------------|------|
-| 1. **[Joining](joining.md)** | Get your SOPS key added to the keyring, add your SSH key and IP to the firewall. | ~20 min (includes waiting for teammate) |
-| 2. **[Launch devcontainer](launch-devcontainer.md)** | Open the IaC workspace in the devcontainer. It decrypts secrets and configures all credentials automatically. | ~5 min |
+| 1. **[Joining](joining.md)** | Sibling **`apps/`** layout, devcontainer, **`task secrets:keygen`**, teammate adds you on **`secrets/infra.yml`** (and **`.iac/.env`** if needed), SSH firewall updates in **`secrets/infra.yml`**. | ~20 min (includes waiting for teammate) |
+| 2. **[Launch devcontainer](launch-devcontainer.md)** | **`apps/`** bind mount and how **`secrets/infra.yml`** drives credential setup (same container as step 1). | skim |
 
-When done: you can deploy, inspect, and operate. Run `task app:versions -- dev` to see available versions.
+When done: **`task app:versions -- dev <app>`** with your app folder name under **`apps/`**.
 
 ---
 
