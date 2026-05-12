@@ -1,14 +1,15 @@
 # yaml-language-server: $schema=https://taskfile.dev/schema.json
 #
 # Application deployment tasks — run from IAC devcontainer.
-# App contract is mounted at /workspaces/iac/app via APP_HOST_PATH:
-#   app/.iac/          — platform config and secrets (read/write)
-#   app/docker-compose.yml  — generic stack (readonly)
-#   app/.github/workflows/build-and-push.yml — CI caller (read/write)
+# All sibling repos of the IaC repo are mounted at /workspaces/iac/apps/<name>/.
+# Each app's .iac/ directory is its platform contract:
+#   apps/<name>/.iac/iac.yml             — image_name, app_domains
+#   apps/<name>/.iac/.env                — SOPS-encrypted app secrets
+#   apps/<name>/.iac/docker-compose.yml — full compose for platform deploy (Traefik, services)
 #
-#   task app:deploy     -- <env> <sha>
-#   task app:versions   -- <env>
-#   task app:delete-tag -- <tag>   # one-time: remove a tag from the registry (e.g. latest)
+#   task app:deploy     -- <env> <app> <sha>
+#   task app:versions   -- <env> <app>
+#   task app:delete-tag -- <app> <tag>      # one-time: remove a tag from the registry (e.g. latest)
 #
 # See docs/application-deployment.md.
 
@@ -17,34 +18,45 @@ version: '3'
 vars:
   IAC_ROOT:
     sh: realpath "{{.TASKFILE_DIR}}/.."
-  APP_ROOT: /workspaces/iac/app
+  APPS_ROOT: /workspaces/iac/apps
 
 tasks:
   deploy:
-    desc: "Deploy application (use: task app:deploy -- <environment> <sha>)"
+    desc: "Deploy application (use: task app:deploy -- <env> <app> <sha>)"
     silent: true
     vars:
       WORKSPACE:
         sh: echo "{{.CLI_ARGS}}" | awk '{print $1}'
-      SHA:
+      APP:
         sh: echo "{{.CLI_ARGS}}" | awk '{print $2}'
+      SHA:
+        sh: echo "{{.CLI_ARGS}}" | awk '{print $3}'
+      APP_ROOT: '{{.APPS_ROOT}}/{{.APP}}'
     deps: [":_check:workspace"]
     preconditions:
-      - sh: '[ $(echo "{{.CLI_ARGS}}" | wc -w | tr -d " ") -eq 2 ]'
-        msg: "Usage: task app:deploy -- <environment> <sha>"
-      - sh: test -d "{{.APP_ROOT}}"
-        msg: "App not mounted at {{.APP_ROOT}}. Run ./scripts/setup-app-path.sh /path/to/app and reopen the devcontainer."
-      - sh: test -f "{{.APP_ROOT}}/.iac/iac.yml"
-        msg: "App missing .iac/iac.yml. Create the .iac/ contract; see docs/new-project.md."
-      - sh: test -f "{{.APP_ROOT}}/.iac/.env"
-        msg: "App missing .iac/.env. Create the .iac/ contract; see docs/new-project.md."
-      - sh: test -f "{{.APP_ROOT}}/.iac/docker-compose.override.yml"
-        msg: "App missing .iac/docker-compose.override.yml. Create the .iac/ contract; see docs/new-project.md."
-      - sh: test -f "{{.APP_ROOT}}/docker-compose.yml"
-        msg: "App missing docker-compose.yml."
+      - sh: '[ $(echo "{{.CLI_ARGS}}" | wc -w | tr -d " ") -eq 3 ]'
+        msg: "Usage: task app:deploy -- <env> <app> <sha>"
     cmds:
+      - task: ":_check:app"
+        vars: { APP: '{{.APP}}' }
       - |
-        IMAGE_NAME=$(yq -r '.image_name' "{{.APP_ROOT}}/.iac/iac.yml")
+        for f in .iac/iac.yml .iac/.env .iac/docker-compose.yml; do
+          if [ ! -f "{{.APP_ROOT}}/$f" ]; then
+            echo "App missing {{.APP_ROOT}}/$f. Create the .iac/ contract; see docs/new-project.md." >&2
+            exit 1
+          fi
+        done
+
+        _iac="{{.APP_ROOT}}/.iac/iac.yml"
+        _forbidden_keys="base_domain hcloud_token terraform_cloud_organization terraform_cloud_token ssh_keys allowed_ssh_ips transip_account_name transip_private_key registry_username registry_password registry_http_secret openobserve_username openobserve_password abuseipdb_api_key server_type"
+        for k in $_forbidden_keys; do
+          if [ "$(yq "has(\"$k\")" "$_iac")" = "true" ]; then
+            echo "Forbidden infrastructure key \"$k\" in $_iac — move it to secrets/infra.yml (fork). See docs/future/secrets-and-mounts.md." >&2
+            exit 1
+          fi
+        done
+
+        IMAGE_NAME=$(yq -r '.image_name' "$_iac")
 
         HOSTNAME=$(task hostkeys:hostname -- "{{.WORKSPACE}}")
         PLATFORM=$(task hostkeys:platform)
@@ -60,37 +72,41 @@ tasks:
           -e "image_name=$IMAGE_NAME"
 
   versions:
-    desc: "List available versions (use: task app:versions -- <environment>)"
+    desc: "List available versions (use: task app:versions -- <env> <app>)"
     silent: true
     vars:
-      WORKSPACE: "{{.CLI_ARGS}}"
+      WORKSPACE:
+        sh: echo "{{.CLI_ARGS}}" | awk '{print $1}'
+      APP:
+        sh: echo "{{.CLI_ARGS}}" | awk '{print $2}'
+      APP_ROOT: '{{.APPS_ROOT}}/{{.APP}}'
     deps: [":_check:workspace"]
     preconditions:
-      - sh: '[ $(echo "{{.CLI_ARGS}}" | wc -w | tr -d " ") -eq 1 ]'
-        msg: "Usage: task app:versions -- <environment>\nExample: task app:versions -- dev"
-      - sh: test -d "{{.APP_ROOT}}"
-        msg: "App not mounted at {{.APP_ROOT}}. Run ./scripts/setup-app-path.sh /path/to/app and reopen the devcontainer."
-      - sh: test -f "{{.APP_ROOT}}/.iac/iac.yml"
-        msg: "App missing .iac/iac.yml. Create the .iac/ contract; see docs/new-project.md."
+      - sh: '[ $(echo "{{.CLI_ARGS}}" | wc -w | tr -d " ") -eq 2 ]'
+        msg: "Usage: task app:versions -- <env> <app>\nExample: task app:versions -- dev myapp"
     cmds:
+      - task: ":_check:app"
+        vars: { APP: '{{.APP}}' }
       - |
         IMAGE_NAME=$(yq -r '.image_name' "{{.APP_ROOT}}/.iac/iac.yml")
         APP_SLUG="${IMAGE_NAME##*/}"
         cd "{{.IAC_ROOT}}" && python3 scripts/application_versions.py "{{.WORKSPACE}}" "$REGISTRY" "$IMAGE_NAME" "$APP_SLUG"
 
   delete-tag:
-    desc: "Remove a tag from the app image in the registry (one-time manual, e.g. task app:delete-tag -- latest)"
+    desc: "Remove a tag from the app image in the registry (one-time, e.g. task app:delete-tag -- myapp latest)"
     silent: true
     vars:
-      TAG: "{{.CLI_ARGS}}"
+      APP:
+        sh: echo "{{.CLI_ARGS}}" | awk '{print $1}'
+      TAG:
+        sh: echo "{{.CLI_ARGS}}" | awk '{print $2}'
+      APP_ROOT: '{{.APPS_ROOT}}/{{.APP}}'
     preconditions:
-      - sh: '[ -n "{{.CLI_ARGS}}" ]'
-        msg: "Usage: task app:delete-tag -- <tag>\nExample: task app:delete-tag -- latest"
-      - sh: test -d "{{.APP_ROOT}}"
-        msg: "App not mounted at {{.APP_ROOT}}. Run ./scripts/setup-app-path.sh /path/to/app and reopen the devcontainer."
-      - sh: test -f "{{.APP_ROOT}}/.iac/iac.yml"
-        msg: "App missing .iac/iac.yml. Create the .iac/ contract; see docs/new-project.md."
+      - sh: '[ $(echo "{{.CLI_ARGS}}" | wc -w | tr -d " ") -eq 2 ]'
+        msg: "Usage: task app:delete-tag -- <app> <tag>\nExample: task app:delete-tag -- myapp latest"
     cmds:
+      - task: ":_check:app"
+        vars: { APP: '{{.APP}}' }
       - |
         IMAGE_NAME=$(yq -r '.image_name' "{{.APP_ROOT}}/.iac/iac.yml")
         REF="${REGISTRY}/${IMAGE_NAME}:{{.TAG}}"

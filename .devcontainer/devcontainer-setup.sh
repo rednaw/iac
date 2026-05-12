@@ -18,6 +18,28 @@ HCLOUD_CONFIG_DIR="${HOME}/.config/hcloud"
 mise trust -a
 
 ########################################
+# Sync workspace mise.toml pins into /opt/mise (root-owned installs)
+########################################
+#
+# The dev image bakes tools from mise.toml at build time. If Renovate bumps the
+# repo's mise.toml before a new image ships, mise resolves the workspace version
+# and tries to lazy-install under /opt/mise/installs — which fails as vscode
+# (permission denied). Installing once as root prevents that regression.
+########################################
+
+_sync_mise_tools() {
+  if ! sudo -n true 2>/dev/null; then
+    echo "WARN: passwordless sudo unavailable; if terraform/terraform fail, rebuild the dev image or run: sudo mise install" >&2
+    return 0
+  fi
+  echo "Syncing mise tools to match workspace mise.toml (sudo mise install)..."
+  sudo env MISE_DATA_DIR=/opt/mise MISE_GLOBAL_CONFIG_FILE=/opt/mise/mise.toml \
+    PATH="/usr/local/bin:${PATH}" bash -lc 'cd /workspaces/iac && mise trust -a && mise install -y'
+}
+
+_sync_mise_tools
+
+########################################
 # Bootstrap mode
 ########################################
 
@@ -25,7 +47,6 @@ if [ ! -f "$INFRA_FILE" ]; then
   echo ""
   echo "Infrastructure not initialised — secrets/infra.yml missing."
   echo "  • New fork:                              run 'task secrets:init'"
-  echo "  • Existing user (had app/.iac/iac.yml):  run 'task secrets:migrate-from-app'"
   echo ""
   sudo chown -R vscode:vscode /home/vscode/.cursor 2>/dev/null || true
   exit 0

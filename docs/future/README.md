@@ -54,11 +54,11 @@ Moves from "clone and use" to "fork and use." Infra secrets (`secrets/infra.yml`
 |--------|-------|
 | Clone the repo, secrets in app mount | Fork the repo, infra secrets committed in fork |
 | One `iac.yml` with everything | `secrets/infra.yml` (infra) + per-app `iac.yml` (app config) |
-| `APP_HOST_PATH` → one app | `APPS_HOST_PATH` → all apps |
+| `APP_HOST_PATH` → one app | Parent of IaC repo bind-mounted at `apps/` (see `.devcontainer/devcontainer.json`) |
 | `task app:deploy -- dev abc123` | `task app:deploy -- dev app1 abc123` |
 | Rebuild devcontainer to switch apps | All apps always available |
 
-Design: **[Secrets and mounts](secrets-and-mounts.md)**
+Design: **[Secrets and mounts](secrets-and-mounts.md)** — includes a living **implementation checklist** for the in-flight branch work.
 
 ---
 

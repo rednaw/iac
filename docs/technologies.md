@@ -48,7 +48,11 @@ Most versioned dependencies live in a package file; [Renovate](https://docs.reno
 
 ## Upgrading
 
-**[Renovate](https://docs.renovatebot.com/)** opens upgrade PRs. It runs in CI via [`.github/workflows/renovate.yml`](../.github/workflows/renovate.yml) (daily or manual). Config: [`renovate.json`](../renovate.json); repo secret `RENOVATE_TOKEN` (GitHub PAT with `repo` and `workflow` scope). The [`devcontainer`](https://docs.renovatebot.com/modules/manager/devcontainer/) manager updates **`image`** and **`features`** in [`.devcontainer/devcontainer.json`](../.devcontainer/devcontainer.json). PR volume and automerge options: [Renovate strategy](renovate.md).
+**[Renovate](https://docs.renovatebot.com/)** opens upgrade PRs. It runs in CI via [`.github/workflows/renovate.yml`](../.github/workflows/renovate.yml) (daily or manual). Config: [`renovate.json`](../renovate.json); repo secret `RENOVATE_TOKEN` (GitHub PAT with `repo` and `workflow` scope). The [`devcontainer`](https://docs.renovatebot.com/modules/manager/devcontainer/) manager updates **`image`** and **`features`** in [`.devcontainer/devcontainer.json`](../.devcontainer/devcontainer.json).
+
+**`mise.toml`**: pins use **`custom.regex`** only (native Renovate **`mise`** manager is disabled). Every tool line ends with **`# github-org/repo`** so Renovate maps releases via **`github-releases`** (see [`renovate.json`](../renovate.json)); bumps typically arrive as **one PR per dependency**. The **`Dockerfile`** copies **`mise.toml`** and runs **`mise install`** during **`iac-dev`** builds; if **`:latest`** lags your checkout, run **`sudo mise install`** from **`devcontainer-setup.sh`** or **Rebuild Dev Container** until **`promote-image`** publishes an image baked from that commit.
+
+PR volume and automerge options: [Renovate strategy](renovate.md).
 
 ```mermaid
 flowchart LR
