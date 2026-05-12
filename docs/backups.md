@@ -2,30 +2,30 @@
 
 # Backups
 
-[**Prefect**](https://www.prefect.io/) runs [**Restic**](https://restic.net/) per app: local repo under `/opt/iac/prefect/backups/<slug>`, or [Hetzner Storage Box](https://www.hetzner.com/storage/storage-box) over SFTP when the server has `RESTIC_REPOSITORY_BASE`. Optional **`.iac/backup.yml`** (see [app mount](application-deployment.md#app-mount)) defines retention, Postgres dumps, and volume paths; deploy copies it to `backup.yml` next to compose.
+[**Prefect**](https://www.prefect.io/) runs [**Restic**](https://restic.net/) per app: local repo under `/opt/iac/prefect/backups/<slug>`, or [Hetzner Storage Box](https://www.hetzner.com/storage/storage-box) over SFTP when the server has `RESTIC_REPOSITORY_BASE`. Optional **`.iac/backup.yml`** (see [Application deployment — App contract](application-deployment.md#app-contract)) defines retention, Postgres dumps, and volume paths; deploy copies it to `backup.yml` next to compose.
 
-**`<slug>`** = basename of `image_name` in `app/.iac/iac.yml` (same as deploy dir and [`resolve-image.yml`](../ansible/roles/deploy_app/tasks/resolve-image.yml)).
+**`<slug>`** = basename of **`image_name`** in **`apps/<app>/.iac/iac.yml`** (same as deploy dir and [`resolve-image.yml`](../ansible/roles/deploy_app/tasks/resolve-image.yml)).
 
 ## Tasks (devcontainer)
 
-App mounted; SSH config hosts **`dev`** / **`prod`** (or whatever you pass after `--`). Tasks: [`tasks/Taskfile.backup.yml`](../tasks/Taskfile.backup.yml).
+SSH config hosts **`dev`** / **`prod`**. Every backup task takes **environment** and **`<app>`** (folder name under **`apps/`**). Tasks: [`tasks/Taskfile.backup.yml`](../tasks/Taskfile.backup.yml).
 
 | Task | |
 |------|---|
-| `task backup:snapshots -- dev` | List snapshots (**local** repo on server) |
-| `task backup:restore -- dev [snapshot] [...]` | [`prefect/backup/restore_from_backup.py`](../prefect/backup/restore_from_backup.py) in `prefect-worker` |
-| `task backup:download -- dev` | Stream server repo **`docker run … tar`** (same volume as snapshots; avoids SSH user needing host read on root-owned paths) → **`.backup-repos/<slug>/`** (gitignored) |
-| `task backup:upload -- dev` | Reverse: **`.backup-repos/<slug>/`** → server (clears remote repo dir, then extract). Use when backup flow is **idle**; overwrites server’s copy of that repo. |
+| `task backup:snapshots -- dev <app>` | List snapshots (**local** repo on server) |
+| `task backup:restore -- dev <app> [snapshot] [...]` | [`prefect/backup/restore_from_backup.py`](../prefect/backup/restore_from_backup.py) in **`prefect-worker`** |
+| `task backup:download -- dev <app>` | Stream server repo **`docker run … tar`** → **`.backup-repos/<slug>/`** (gitignored) |
+| `task backup:upload -- dev <app>` | Reverse upload when backup flow is **idle** |
 
 ```bash
-task backup:snapshots -- dev
-task backup:restore -- dev latest
-task backup:restore -- dev abc12345 --confirm
-task backup:download -- dev
-task backup:upload -- dev
+task backup:snapshots -- dev my-app
+task backup:restore -- dev my-app latest
+task backup:restore -- dev my-app abc12345 --confirm
+task backup:download -- dev my-app
+task backup:upload -- dev my-app
 ```
 
-Slug matches `task app:deploy` (basename of `image_name`).
+Slug matches **`task app:deploy`** (basename of **`image_name`**).
 
 ## backup.yml
 
@@ -65,4 +65,4 @@ Restic talks to the box over **SFTP on port 23** (not 22). One Restic repo per a
 
 **Rough steps:** create the box → add key in Console → SOPS + Ansible → `RESTIC_REPOSITORY_BASE` on the server (see Ansible / server Prefect role) → `task workflow:deploy`.
 
-**Restore from your laptop** (not `task backup:restore`, which targets the **local** repo on the server): decrypt SOPS for `RESTIC_PASSWORD`, then `restic -r sftp:… snapshots` and `restic restore … --target ./restore`. Under the restore tree, dumps and volume tars sit under `…/backup-staging/<slug>/`; put DBs back with `pg_restore`, files with tar / `docker compose cp` as you prefer.
+**Restore from your laptop** (not **`task backup:restore`**, which targets the **local** repo on the server): obtain **`RESTIC_PASSWORD`** from your infra secrets (typically **`secrets/infra.yml`** via SOPS, or the values Ansible wrote on the server), then **`restic -r sftp:… snapshots`** and **`restic restore … --target ./restore`**. Under the restore tree, dumps and volume tars sit under **`…/backup-staging/<slug>/`**; put DBs back with **`pg_restore`**, files with tar / **`docker compose cp`** as you prefer.
