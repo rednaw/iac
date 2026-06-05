@@ -32,4 +32,5 @@ jobs:
           RENOVATE_REPOSITORIES: ${{ github.repository }}
           RENOVATE_GITHUB_COM_TOKEN: ${{ secrets.RENOVATE_TOKEN }}
           RENOVATE_CONFIG_VALIDATION_ERROR: true
-          LOG_LEVEL: info
+          # Temporary: diagnose repository-changed aborts (revert to info when fixed)
+          LOG_LEVEL: debug
