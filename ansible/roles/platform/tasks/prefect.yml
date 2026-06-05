@@ -65,7 +65,7 @@
 - name: Ensure Prefect Postgres container is running
   community.docker.docker_container:
     name: prefect-db
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     state: started
     restart_policy: unless-stopped
     env:
