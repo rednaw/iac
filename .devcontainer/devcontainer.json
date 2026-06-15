@@ -25,7 +25,9 @@
         "sops.defaults.ageKeyFile": "/home/vscode/.config/sops/age/keys.txt",
         "files.associations": {
           "*.env": "dotenv",
-          ".env": "dotenv"
+          ".env": "dotenv",
+          "Taskfile.yml": "yaml",
+          "**/Taskfile*.yml": "yaml"
         },
         "ansible.python.interpreterPath": "/usr/bin/python3"
       }
