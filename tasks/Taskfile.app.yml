@@ -1,7 +1,7 @@
 # yaml-language-server: $schema=https://taskfile.dev/schema.json
 #
 # Application deployment tasks — run from IAC devcontainer.
-# All sibling repos of the IaC repo are mounted at /workspaces/iac/apps/<name>/.
+# App working copies live at apps/<name>/ (inside the IaC repo; often Git submodules).
 # Each app's .iac/ directory is its platform contract:
 #   apps/<name>/.iac/iac.yml             — image_name, app_domains
 #   apps/<name>/.iac/.env                — SOPS-encrypted app secrets

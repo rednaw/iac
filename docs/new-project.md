@@ -20,21 +20,16 @@ Use **[tientje-ketama](https://github.com/rednaw/tientje-ketama)** as a referenc
 
 ## 1. Directory layout on your machine
 
-The devcontainer bind-mounts **the parent directory of the IaC repo** to **`/workspaces/iac/apps/`** ([`.devcontainer/devcontainer.json`](../.devcontainer/devcontainer.json)). Put the IaC clone and each app repo as **siblings** under one folder:
-
-```
-~/projects/
-├── my-app/          # your application repo — folder name = `<app>` in task CLI
-└── iac/             # IaC fork (clone here)
-```
+The devcontainer bind-mounts **`iac/apps/`** to **`/workspaces/iac/apps/`** ([`.devcontainer/devcontainer.json`](../.devcontainer/devcontainer.json)). Put each application repo under **`apps/<name>/`** inside your IaC clone — usually as a **Git submodule** ([`apps/README.md`](../apps/README.md)).
 
 ```bash
-mkdir -p ~/projects && cd ~/projects
 git clone <your-iac-fork-url> iac
-git clone <your-app-repo-url> my-app
+cd iac
+git submodule add <your-app-repo-url> apps/my-app
+git submodule update --init --recursive
 ```
 
-Inside the container, **`my-app`** is **`/workspaces/iac/apps/my-app/`**. Deploy commands use that basename: **`task app:deploy -- dev my-app <sha>`**.
+Folder **`my-app`** is **`<app>`** for **`task app:deploy -- dev my-app <sha>`**.
 
 ---
 
@@ -132,13 +127,21 @@ app_domains:
 
 ### `.iac/.env` (SOPS dotenv)
 
-Runtime secrets for Compose (database passwords, etc.). Add **`.iac/.sops.yaml`** with **`creation_rules`** that encrypt **`.env`** only (not **`iac.yml`**). Point **`age:`** at your recipients — often the same public key material as in **`secrets/`** (see [tientje-ketama `.iac/.sops.yaml`](https://github.com/rednaw/tientje-ketama/blob/main/.iac/.sops.yaml)).
+Runtime secrets for Compose (database passwords, etc.). Use the **same** age recipients as **`secrets/`** — from the IaC repo root:
+
+```bash
+cd /workspaces/iac
+task secrets:generate-app-env-sops-config -- my-app
+```
+
+Then create **`apps/my-app/.iac/.env`** and encrypt:
 
 ```bash
 cd /workspaces/iac/apps/my-app
-# Create .iac/.env and .iac/.sops.yaml, then:
 sops --encrypt --in-place .iac/.env
 ```
+
+After **`task secrets:generate-sops-config`** adds or removes keys, run **`task secrets:sync-all-app-env-sops-configs`** (or **`generate-app-env-sops-config`** per app) so **`apps/*/.iac/.sops.yaml`** stays aligned with **`secrets/sops-key-*.pub`**.
 
 ### `.iac/docker-compose.yml` (single deploy file)
 
@@ -250,6 +253,6 @@ Replace **`my-app`** with your repo folder name under **`apps/`**.
 ## What's next
 
 - **Production:** Repeat with **`prod`** instead of **`dev`**.
-- **Adding people:** [Joining](joining.md) · infra keyring in **`secrets/`**, app **`.env`** keyring in the app repo — [Secrets](secrets.md).
+- **Adding people:** [Joining](joining.md) · one recipient list — [Secrets](secrets.md).
 - **Operations:** [Application deployment](application-deployment.md), [Troubleshooting](troubleshooting.md), [Monitoring](monitoring.md).
 - **IP changes:** Update **`allowed_ssh_ips`** in **`secrets/infra.yml`**, commit, then **`task platform:provision:apply -- dev`**.

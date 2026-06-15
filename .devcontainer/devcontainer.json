@@ -6,12 +6,10 @@
     "source=iac-cursor-state,target=/home/vscode/.cursor,type=volume",
     "source=${localEnv:HOME}/.ssh,target=/home/vscode/.ssh,type=bind",
     "source=${localEnv:HOME}/.config/sops,target=/home/vscode/.config/sops,type=bind",
-    // Mount the IaC repo's parent directory so all sibling app repos are
-    // available under /workspaces/iac/apps/<name>/. Convention: place the IaC
-    // repo as a sibling of your app repos under one parent (e.g. ~/projects/).
+    // Mount ./apps from the IaC repo (submodules or nested checkouts).
     // Tasks resolve <app> CLI args to /workspaces/iac/apps/<app>/.iac/.
     // Forks whitelist which apps appear in the sidebar via iac.code-workspace.
-    "source=${localWorkspaceFolder}/..,target=/workspaces/iac/apps,type=bind"
+    "source=${localWorkspaceFolder}/apps,target=/workspaces/iac/apps,type=bind"
   ],
 
   "customizations": {
