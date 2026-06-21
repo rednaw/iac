@@ -10,7 +10,14 @@ skip_list:
   - yaml[line-length]         # Allow long lines when necessary
   - var-naming[no-role-prefix]  # Don't require role prefix on internal variables
 
+# Taskfiles live under tasks/ and match the default "**/tasks/*.yml" Ansible kind.
+kinds:
+  - yaml: "**/Taskfile.yml"
+  - yaml: "**/Taskfile*.yml"
+
 exclude_paths:
   - .cache/
   - .git/
   - venv/
+  - ../Taskfile.yml
+  - ../tasks/
