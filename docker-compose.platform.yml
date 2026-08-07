@@ -1,0 +1,274 @@
+# Platform Services Docker Compose Stack
+# All core infrastructure services: Traefik, Registry, OpenObserve, OTEL, Prefect
+#
+# Usage:
+#   docker compose -f docker-compose.platform.yml up -d
+#
+# Required: .env file or environment variables for secrets
+# See .env.platform.example for required variables
+
+services:
+  # ============================================================================
+  # Traefik: Reverse proxy with automatic HTTPS (Let's Encrypt)
+  # ============================================================================
+  traefik:
+    image: traefik:v3.6.10
+    container_name: traefik
+    restart: unless-stopped
+    ports:
+      - "0.0.0.0:80:80"
+      - "[::]:80:80"
+      - "0.0.0.0:443:443"
+      - "[::]:443:443"
+      - "127.0.0.1:57801:8080"   # Dashboard/API (localhost only)
+      - "[::1]:57801:8080"
+    volumes:
+      # Docker socket for container discovery
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      # Config files (static + dynamic)
+      - /etc/traefik:/etc/traefik:ro
+      # Certificate storage (Let's Encrypt)
+      - /etc/traefik/certs:/etc/traefik/certs
+      # Access logs
+      - /var/log/traefik:/var/log/traefik
+      # Basic auth files (htpasswd for registry)
+      - /etc/traefik/auth:/etc/traefik/auth:ro
+    command:
+      - --configFile=/etc/traefik/traefik.yml
+    networks:
+      - traefik
+      - openobserve-network
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ============================================================================
+  # Docker Registry: Private container image registry
+  # ============================================================================
+  registry:
+    image: registry:3
+    container_name: registry
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5001:5000"    # Internal access (localhost only)
+    volumes:
+      # Image storage
+      - /var/lib/docker-registry:/var/lib/registry
+      # Registry config
+      - /etc/docker-registry/config.yml:/etc/distribution/config.yml:ro
+    networks:
+      - traefik
+    labels:
+      # Traefik routing
+      traefik.enable: "true"
+      traefik.http.routers.registry.rule: "Host(`registry.${BASE_DOMAIN}`)"
+      traefik.http.routers.registry.entrypoints: "websecure"
+      traefik.http.routers.registry.tls.certresolver: "letsencrypt"
+      traefik.http.routers.registry.middlewares: "registry-headers,registry-auth"
+      # Security headers
+      traefik.http.middlewares.registry-headers.headers.customResponseHeaders.X-Frame-Options: "DENY"
+      traefik.http.middlewares.registry-headers.headers.customResponseHeaders.Referrer-Policy: "strict-origin-when-cross-origin"
+      traefik.http.middlewares.registry-headers.headers.customResponseHeaders.Strict-Transport-Security: "max-age=31536000; includeSubDomains"
+      traefik.http.middlewares.registry-headers.headers.customResponseHeaders.X-Content-Type-Options: "nosniff"
+      traefik.http.middlewares.registry-headers.headers.customResponseHeaders.Content-Security-Policy: "default-src 'self'"
+      traefik.http.middlewares.registry-headers.headers.customResponseHeaders.Permissions-Policy: "geolocation=(), microphone=(), camera=()"
+      # Basic auth (htpasswd file mounted via Traefik volume)
+      traefik.http.middlewares.registry-auth.basicauth.usersfile: "/etc/traefik/auth/htpasswd"
+      traefik.http.services.registry.loadbalancer.server.port: "5000"
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 5000 || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ============================================================================
+  # OpenObserve: Observability platform (logs, metrics, traces)
+  # ============================================================================
+  openobserve:
+    image: openobserve/openobserve:v0.70.0
+    container_name: openobserve
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:57800:5080"   # Web UI (localhost only)
+    environment:
+      ZO_ROOT_USER_EMAIL: "${OPENOBSERVE_USERNAME}@observe.local"
+      ZO_ROOT_USER_PASSWORD: "${OPENOBSERVE_PASSWORD}"
+      ZO_LOCAL_MODE: "true"
+      ZO_RETENTION_DAYS: "7"
+    volumes:
+      # Data storage
+      - /var/lib/openobserve:/data
+    networks:
+      - openobserve-network
+    healthcheck:
+      test: ["CMD", "/openobserve", "view", "-c", "version"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ============================================================================
+  # OTEL Collector: Collects host/Docker metrics and logs → OpenObserve
+  # ============================================================================
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.147.0
+    container_name: otel-collector
+    restart: unless-stopped
+    user: "0"  # Root to read Docker socket and log files
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      # Collector config
+      - /etc/otel-collector/config.yaml:/etc/otelcol/config.yaml:ro
+      # Docker socket for container metrics
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      # Docker container logs
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      # Host logs (traefik, syslog, auth, fail2ban)
+      - /var/log:/var/log:ro
+    networks:
+      - openobserve-network
+    healthcheck:
+      test: ["CMD", "/otelcol-contrib", "--version"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    depends_on:
+      openobserve:
+        condition: service_healthy
+
+  # ============================================================================
+  # Prefect: Workflow orchestration - Database
+  # ============================================================================
+  prefect-db:
+    image: postgres:16-alpine
+    container_name: prefect-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: prefect
+      POSTGRES_PASSWORD: "${PREFECT_DB_PASSWORD}"
+      POSTGRES_DB: prefect
+    volumes:
+      - prefect-db-data:/var/lib/postgresql/data
+    networks:
+      - prefect-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U prefect"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ============================================================================
+  # Prefect: Workflow orchestration - Server
+  # ============================================================================
+  prefect-server:
+    image: prefecthq/prefect:3-python3.11
+    container_name: prefect-server
+    restart: unless-stopped
+    command: prefect server start --host 0.0.0.0
+    ports:
+      - "127.0.0.1:57802:4200"   # Web UI + API (localhost only)
+    environment:
+      PREFECT_HOME: /data
+      PREFECT_API_DATABASE_CONNECTION_URL: "postgresql+asyncpg://prefect:${PREFECT_DB_PASSWORD}@prefect-db:5432/prefect"
+      PREFECT_UI_API_URL: "http://127.0.0.1:57802/api"
+    volumes:
+      - prefect-server-data:/data
+    networks:
+      - prefect-network
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:4200/api/health')\" || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    depends_on:
+      prefect-db:
+        condition: service_healthy
+
+  # ============================================================================
+  # Prefect: Workflow orchestration - Worker
+  # ============================================================================
+  # Note: This service uses a custom-built image (prefect-worker) that must be
+  # built on the host before starting the stack. See ansible/roles/server/tasks/prefect.yml
+  # for the build process, or build manually from prefect/Dockerfile.worker
+  prefect-worker:
+    image: prefect-worker
+    container_name: prefect-worker
+    restart: unless-stopped
+    command: prefect worker start --pool host-pool
+    environment:
+      PREFECT_API_URL: "http://prefect-server:4200/api"
+      REGISTRY_URL: "registry.${BASE_DOMAIN}"
+      DOCKER_CONFIG: "/opt/iac/.docker"
+    volumes:
+      # Docker socket for running containers (backup jobs, etc.)
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Access to /opt/iac tree (flow code, registry auth, backups)
+      - /opt/iac:/opt/iac
+    working_dir: /opt/iac/prefect/flows
+    networks:
+      - prefect-network
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    depends_on:
+      prefect-server:
+        condition: service_healthy
+
+# ==============================================================================
+# Networks
+# ==============================================================================
+networks:
+  # Public network for apps and exposed services (Traefik, registry)
+  traefik:
+    name: traefik
+    driver: bridge
+
+  # Observability network (Traefik metrics, OpenObserve, OTEL)
+  openobserve-network:
+    name: openobserve-network
+    driver: bridge
+
+  # Isolated network for Prefect components
+  prefect-network:
+    name: prefect-network
+    driver: bridge
+
+# ==============================================================================
+# Volumes
+# ==============================================================================
+volumes:
+  # Prefect database data
+  prefect-db-data:
+    name: prefect-db-data
+
+  # Prefect server data (flows, artifacts)
+  prefect-server-data:
+    name: prefect-server-data
