@@ -2,15 +2,15 @@
   // Devcontainer mounts the parent of this repo at /workspaces so sibling
   // app clones appear as /workspaces/<app>/. Tasks resolve <app> CLI args to
   // /workspaces/<app>/.iac/.
-  // Forks whitelist app .iac/ folders here for a focused sidebar.
+  // Forks list sibling app clones here so the full project is in the sidebar.
   "folders": [
     {
       "name": "IaC",
       "path": "."
     },
     {
-      "name": "tientje-ketama (.iac)",
-      "path": "../tientje-ketama/.iac"
+      "name": "tientje-ketama",
+      "path": "../tientje-ketama"
     }
   ],
   "settings": {}
