@@ -27,7 +27,7 @@ The devcontainer mounts the **parent** of the IaC repo at **`/workspaces`** ([`.
 2. Open **`iac/iac.code-workspace`** in VS Code/Cursor (**File → Open Workspace from File**).
 3. **Reopen in Container** when prompted, or Cmd+Shift+P → **Dev Containers: Reopen in Container**.
 
-Whitelist app **`.iac/`** folders in **`iac.code-workspace`** for the sidebar — optional; tasks still resolve **`/workspaces/<app>`** by basename.
+Add sibling app folders in **`iac.code-workspace`** for the sidebar — optional; tasks still resolve **`/workspaces/<app>`** by basename.
 
 ---
 
