@@ -59,7 +59,7 @@ Those panels query PromQL on stream **`system_filesystem_usage`** ([`openobserve
 ## What was not the root cause
 
 - DNS / Hetzner server deleted — server **running**, A record correct.
-- Missing `secrets/infra.yml` in the clone — file present and decryptable; empty `apps/` only affected local multi-root workspace, not the live outage.
+- Missing `secrets/infra.yml` in the clone — file present and decryptable; missing sibling app clones only affected local multi-root workspace, not the live outage.
 - Traefik misconfig as first failure — box was resource-exhausted first.
 
 ## Recovery performed

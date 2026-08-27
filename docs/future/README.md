@@ -2,7 +2,7 @@
 
 # Roadmap
 
-The repo supports one server type ("the platform") with multiple mounted apps and fork-local infra secrets; Phase 3 adds further server types and optional enhancements.
+The repo supports one server type ("the platform") with sibling app clones and fork-local infra secrets; Phase 3 adds further server types and optional enhancements.
 
 ```mermaid
 flowchart LR
@@ -47,7 +47,7 @@ Layout reference: **[Repo layout](restructuring.md)**
 
 ## Phase 2 — Secrets and mounts (complete)
 
-Fork-local **`secrets/infra.yml`**, **`apps/<app>/.iac/`** contract (plain **`iac.yml`**, single **`docker-compose.yml`**, SOPS **`.env`**), **`iac/apps/`** bind ([`.devcontainer/devcontainer.json`](../../.devcontainer/devcontainer.json)), **`task app:deploy -- <env> <app> <sha>`**.
+Fork-local **`secrets/infra.yml`**, **`/workspaces/<app>/.iac/`** contract (plain **`iac.yml`**, single **`docker-compose.yml`**, SOPS **`.env`**), parent **`/workspaces`** mount ([`.devcontainer/devcontainer.json`](../../.devcontainer/devcontainer.json)), **`task app:deploy -- <env> <app> <sha>`**.
 
 Open items: **[Secrets and mounts → Remaining work](secrets-and-mounts.md#remaining-work)**.
 

@@ -120,7 +120,7 @@ This is the most important section. The honeypot must have **zero path** to real
 | Concern | Mitigation |
 |---------|-----------|
 | **Network isolation** | Separate Hetzner server, no private network, no shared VPC. Hetzner servers can't reach each other unless you explicitly create a network. |
-| **No shared secrets** | Own SSH keys, no SOPS key, no registry credentials, no Terraform Cloud token. Honeypot-specific keys live only in **`secrets/infra.yml`** (fork-local) or a dedicated secrets file — never in **`apps/<app>/.iac/`**. |
+| **No shared secrets** | Own SSH keys, no SOPS key, no registry credentials, no Terraform Cloud token. Honeypot-specific keys live only in **`secrets/infra.yml`** (fork-local) or a dedicated secrets file — never in **`/workspaces/<app>/.iac/`**. |
 | **Egress filtering** | nftables on the box: allow outbound to OpenObserve IP + DNS (53/UDP). Drop everything else. Prevents the server from being weaponized for spam/DDoS/mining. |
 | **No shared credentials** | Hetzner API token is shared (same project), but the honeypot server has no access to it. The token only exists in the devcontainer. |
 | **Hetzner ToS** | Low-interaction honeypots don't result in actual compromise -- no illegal content gets hosted, no outbound abuse. Safe under standard ToS. |

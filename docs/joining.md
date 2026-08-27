@@ -2,27 +2,27 @@
 
 # Joining an existing project
 
-The infrastructure already exists. You need access to **secrets** (same age recipients for **`secrets/infra.yml`** and **`apps/<app>/.iac/.env`**), SSH, and the devcontainer — then you can deploy and operate.
+The infrastructure already exists. You need access to **secrets** (same age recipients for **`secrets/infra.yml`** and **`/workspaces/<app>/.iac/.env`**), SSH, and the devcontainer — then you can deploy and operate.
 
 **What you need before starting:**
 
 - Editor and extensions: see [Onboarding: Before you start](onboarding.md#before-you-start)
-- Access to the **IaC fork** and the **app repo(s)** you work on (often Git **submodules** under **`iac/apps/`**)
+- Access to the **IaC fork** and the **app repo(s)** you work on (clone as **siblings** of **`iac/`**)
 - An SSH key pair (`~/.ssh/id_ed25519` or `id_rsa`)
 
 ---
 
-## 1. Clone the IaC repo and add apps
+## 1. Clone IaC and sibling apps
 
-Clone your fork of the IaC repo. Application repos usually live under **`apps/<name>/`** inside it ([`apps/README.md`](../apps/README.md)). Example using submodules:
+Clone your fork of the IaC repo and each app next to it (same parent directory):
 
 ```bash
+cd ~/projects   # any shared parent
 git clone <iac-fork-url> iac
-cd iac
-git submodule update --init --recursive
+git clone <app-repo-url> tientje-ketama   # basename = <app>
 ```
 
-Use your real app folder name — it becomes **`<app>`** in **`task app:deploy -- dev <app> <sha>`**.
+Use the real folder basename — it becomes **`<app>`** in **`task app:deploy -- dev <app> <sha>`**.
 
 ---
 
@@ -61,7 +61,7 @@ git push
 
 ## 4. Ask a teammate to add you
 
-**Same recipients everywhere:** **`secrets/sops-key-*.pub`** drives **`secrets/.sops.yaml`** (for **`infra.yml`**) and **`apps/<app>/.iac/.sops.yaml`** (for **`.env`**).
+**Same recipients everywhere:** **`secrets/sops-key-*.pub`** drives **`secrets/.sops.yaml`** (for **`infra.yml`**) and **`/workspaces/<app>/.iac/.sops.yaml`** (for **`.env`**).
 
 They **`git pull`**, regenerate rules, re-encrypt files:
 
@@ -71,13 +71,13 @@ git pull
 task secrets:generate-sops-config
 task secrets:sync-all-app-env-sops-configs
 # Open secrets/infra.yml in VS Code, Save (re-encrypt)
-# Open each apps/<app>/.iac/.env, Save (re-encrypt)
-git add -f secrets/ apps/
+# Open each /workspaces/<app>/.iac/.env, Save (re-encrypt)
+git add -f secrets/
 git commit -m "Add <yourname> to SOPS recipients"
 git push
 ```
 
-If only one app changed, they can run **`task secrets:generate-app-env-sops-config -- <app>`** instead of **`sync-all`**.
+App **`.env`** / **`.sops.yaml`** changes are committed in the **app** repo. If only one app changed, they can run **`task secrets:generate-app-env-sops-config -- <app>`** instead of **`sync-all`**.
 
 ---
 
@@ -85,12 +85,12 @@ If only one app changed, they can run **`task secrets:generate-app-env-sops-conf
 
 ```bash
 cd /workspaces/iac && git pull
-git submodule update --init --recursive
+# In each sibling app clone: git pull
 ```
 
 Open **`secrets/infra.yml`** in VS Code — you should see decrypted YAML. If you still see ciphertext, see [Troubleshooting](troubleshooting.md).
 
-For app work, pull inside **`apps/<app>/`** if it is a submodule (`git pull` / **`git submodule update`**) and verify **`.iac/.env`** decrypts when you need it.
+For app work, pull in **`/workspaces/<app>/`** and verify **`.iac/.env`** decrypts when you need it.
 
 ---
 
@@ -132,7 +132,7 @@ If your IP changes later, update **`allowed_ssh_ips`** in **`secrets/infra.yml`*
 
 ## 8. Verify everything works
 
-Replace **`my-app`** with your app directory name under **`apps/`**:
+Replace **`my-app`** with your sibling folder basename under **`/workspaces/`**:
 
 ```bash
 task registry:overview

@@ -24,7 +24,7 @@ Infer which mode the user is in. Then emphasize either "run this to inspect, the
 
 **Devcontainer** — You're in it. Task, Ansible, Terraform, SOPS, Docker CLI, crane, and other tools preinstalled (mise). Infra secrets live in **`secrets/infra.yml`** (SOPS); **`devcontainer-setup.sh`** configures registry auth, Terraform Cloud token, `BASE_DOMAIN`, etc. Assume commands run here unless stated otherwise.
 
-**Applications mount** — The devcontainer bind-mounts **`iac/apps/`** to **`/workspaces/iac/apps/`**. Each app's platform contract is **`apps/<name>/.iac/`** (`iac.yml`, `docker-compose.yml`, `.env`). Forks whitelist **`.iac`** folders in **`iac.code-workspace`** for the sidebar.
+**Sibling app clones** — The devcontainer mounts the parent of **`iac/`** at **`/workspaces`**, so apps appear as **`/workspaces/<name>/`**. Each app's platform contract is **`<name>/.iac/`** (`iac.yml`, `docker-compose.yml`, `.env`). Forks whitelist **`.iac`** folders in **`iac.code-workspace`** for the sidebar.
 
 **Server access** — The managed server is reachable for diagnostics:
 - **SSH:** `ssh` to server (see [docs/remote-ssh](docs/remote-ssh.md)) for ad‑hoc commands, logs, files.
@@ -45,7 +45,7 @@ When suggesting diagnostics, say where the command runs: "in the devcontainer" o
 | **Automation** | `Taskfile.yml`, `tasks/Taskfile.*.yml` | Inline comments + docs |
 | **CI** | `.github/workflows/*.yml` | docs/code-analysis, registry |
 | **Dev environment** | `.devcontainer/`, `Dockerfile`, `mise.toml` | docs/launch-devcontainer |
-| **Secrets** | **`secrets/infra.yml`** (SOPS, fork); **`apps/<app>/.iac/.env`** (SOPS, app runtime) | [docs/secrets](docs/secrets.md), [future/secrets-and-mounts](docs/future/secrets-and-mounts.md) |
+| **Secrets** | **`secrets/infra.yml`** (SOPS, fork); **`/workspaces/<app>/.iac/.env`** (SOPS, app runtime) | [docs/secrets](docs/secrets.md), [future/secrets-and-mounts](docs/future/secrets-and-mounts.md) |
 
 ---
 
@@ -94,7 +94,7 @@ See `task` (or `task <namespace>`) for full list.
 **Ansible**  
 - Roles: `ansible/roles/<role>/tasks/main.yml` (imports subtasks), templates in `roles/<role>/templates/`.  
 - Playbooks: `ansible/playbooks/<name>.yml` (apply roles).  
-- Secrets: **`infrastructure_secrets`** fact from **`secrets/infra.yml`** (see [`ansible/tasks/secrets.yml`](ansible/tasks/secrets.yml)); per-app files under **`apps/<name>/.iac/`**.
+- Secrets: **`infrastructure_secrets`** fact from **`secrets/infra.yml`** (see [`ansible/tasks/secrets.yml`](ansible/tasks/secrets.yml)); per-app files under **`/workspaces/<name>/.iac/`**.
 
 **Terraform**  
 - Workspaces: `dev` / `prod`. State in Terraform Cloud.  
