@@ -2,7 +2,7 @@
 
 # Secrets and mounts
 
-How the IaC repo supports **multiple application repos**, **fork-local infrastructure secrets**, and a single **`apps/<name>/.iac/`** deploy contract. Builds on [repo layout](restructuring.md).
+How the IaC repo supports **multiple application repos**, **fork-local infrastructure secrets**, and a single **`/workspaces/<name>/.iac/`** deploy contract. Builds on [repo layout](restructuring.md).
 
 ---
 
@@ -17,7 +17,7 @@ Operators **fork** the IaC repo and commit **`secrets/infra.yml`** in the fork. 
 
 ## Two layers of secrets (same age recipients)
 
-**`secrets/sops-key-*.pub`** is the single source of recipients for both **`secrets/infra.yml`** and **`apps/<app>/.iac/.env`**. **`task secrets:generate-sops-config`** writes **`secrets/.sops.yaml`**; **`task secrets:generate-app-env-sops-config`** / **`task secrets:sync-all-app-env-sops-configs`** refresh **`apps/<app>/.iac/.sops.yaml`**.
+**`secrets/sops-key-*.pub`** is the single source of recipients for both **`secrets/infra.yml`** and **`/workspaces/<app>/.iac/.env`**. **`task secrets:generate-sops-config`** writes **`secrets/.sops.yaml`**; **`task secrets:generate-app-env-sops-config`** / **`task secrets:sync-all-app-env-sops-configs`** refresh **`/workspaces/<app>/.iac/.sops.yaml`**.
 
 ### `secrets/infra.yml` (IaC fork, SOPS)
 
@@ -60,9 +60,9 @@ The GitHub Actions caller workflow is small and reusable; registry URL and image
 
 ## Mounting application repos
 
-The devcontainer binds **`${localWorkspaceFolder}/apps`** to **`/workspaces/iac/apps`** ([`.devcontainer/devcontainer.json`](../../.devcontainer/devcontainer.json)).
+The devcontainer mounts **`${localWorkspaceFolder}/..`** at **`/workspaces`** ([`.devcontainer/devcontainer.json`](../../.devcontainer/devcontainer.json)).
 
-Convention: each application repo lives under **`iac/apps/<name>/`** (often Git submodules). Directory names become **`apps/<name>/`** inside the container — **`<name>`** is the second argument to **`task app:deploy`** and **`task app:versions`**.
+Convention: clone **`iac`** and each app as **siblings** on the host. Inside the container they appear as **`/workspaces/iac`** and **`/workspaces/<name>/`** — **`<name>`** is the second argument to **`task app:deploy`** and **`task app:versions`**.
 
 ---
 
@@ -74,14 +74,10 @@ Use **`iac.code-workspace`** to surface each app’s **`.iac/`** without listing
 {
   "folders": [
     { "path": "." },
-    { "path": "apps/app1/.iac", "name": "app1 (.iac)" },
-    { "path": "apps/app2/.iac", "name": "app2 (.iac)" }
+    { "path": "../app1/.iac", "name": "app1 (.iac)" },
+    { "path": "../app2/.iac", "name": "app2 (.iac)" }
   ],
-  "settings": {
-    "files.exclude": {
-      "apps": true
-    }
-  }
+  "settings": {}
 }
 ```
 
@@ -108,7 +104,7 @@ task vpn:apply -- dev
 task honeypot:run -- prod
 ```
 
-Tasks resolve **`apps/<name>/.iac/`** for **`iac.yml`**, **`docker-compose.yml`**, and **`.env`**. Infra facts come from **`secrets/infra.yml`**.
+Tasks resolve **`/workspaces/<name>/.iac/`** for **`iac.yml`**, **`docker-compose.yml`**, and **`.env`**. Infra facts come from **`secrets/infra.yml`**.
 
 ---
 
@@ -120,29 +116,29 @@ Tasks resolve **`apps/<name>/.iac/`** for **`iac.yml`**, **`docker-compose.yml`*
 
 ## Deploy path
 
-Playbooks load infra secrets first. **`deploy_app`** copies **`apps/<name>/.iac/docker-compose.yml`** and decrypted **`.env`** to the server. **`image_name`** is read from **`iac.yml`** via **`task app:deploy`**.
+Playbooks load infra secrets first. **`deploy_app`** copies **`/workspaces/<name>/.iac/docker-compose.yml`** and decrypted **`.env`** to the server. **`image_name`** is read from **`iac.yml`** via **`task app:deploy`**.
 
 ---
 
 ## Repository layout (reference)
 
 ```
-/workspaces/iac/
-├── secrets/                 # gitignored upstream; committed in fork
-│   ├── infra.yml
-│   └── .sops.yaml
-├── apps/                    # repo-local apps/ (bind-mounted)
-│   ├── app1/
-│   │   └── .iac/
-│   └── app2/
-│       └── .iac/
-├── ansible/
-├── terraform/
-├── tasks/
-├── prefect/
-├── docs/
-├── .devcontainer/
-└── ...
+/workspaces/
+├── iac/
+│   ├── secrets/                 # gitignored upstream; committed in fork
+│   │   ├── infra.yml
+│   │   └── .sops.yaml
+│   ├── ansible/
+│   ├── terraform/
+│   ├── tasks/
+│   ├── prefect/
+│   ├── docs/
+│   ├── .devcontainer/
+│   └── ...
+├── app1/
+│   └── .iac/
+└── app2/
+    └── .iac/
 ```
 
 ---
@@ -174,4 +170,4 @@ Per application repo (see also [Traefik](../traefik.md), [New project](../new-pr
 |------|------------|
 | Fork vs upstream merges | **`secrets/`** absent upstream keeps merges simple; structural conflicts are rare. |
 | Thin **`iac.yml`** | App-facing config stays in the app repo; plain YAML is easy to edit and **`task app:deploy`** validates forbidden keys. |
-| Parent **`apps/`** bind exposes checked-out app trees | Same trust boundary as Docker socket access in the devcontainer — intended for operators of those repos. |
+| Parent **`/workspaces`** bind exposes sibling clones | Same trust boundary as Docker socket access in the devcontainer — intended for operators of those repos. |

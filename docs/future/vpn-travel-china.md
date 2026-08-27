@@ -106,7 +106,7 @@ Uses patterns from [repo layout](restructuring.md):
 
 ### Secrets
 
-VPN secrets added to **`secrets/infra.yml`** (fork-local, SOPS-encrypted); keep VPN-specific keys separate from app **`apps/<app>/.iac/`** secrets.
+VPN secrets added to **`secrets/infra.yml`** (fork-local, SOPS-encrypted); keep VPN-specific keys separate from app **`/workspaces/<app>/.iac/`** secrets.
 
 | Secret | Purpose |
 |--------|---------|

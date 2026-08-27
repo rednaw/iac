@@ -20,16 +20,15 @@ Use **[tientje-ketama](https://github.com/rednaw/tientje-ketama)** as a referenc
 
 ## 1. Directory layout on your machine
 
-The devcontainer bind-mounts **`iac/apps/`** to **`/workspaces/iac/apps/`** ([`.devcontainer/devcontainer.json`](../.devcontainer/devcontainer.json)). Put each application repo under **`apps/<name>/`** inside your IaC clone — usually as a **Git submodule** ([`apps/README.md`](../apps/README.md)).
+The devcontainer mounts the **parent** of **`iac/`** at **`/workspaces`** ([`.devcontainer/devcontainer.json`](../.devcontainer/devcontainer.json)). Clone the IaC fork and each app as **siblings**:
 
 ```bash
+cd ~/projects   # any shared parent
 git clone <your-iac-fork-url> iac
-cd iac
-git submodule add <your-app-repo-url> apps/my-app
-git submodule update --init --recursive
+git clone <your-app-repo-url> my-app
 ```
 
-Folder **`my-app`** is **`<app>`** for **`task app:deploy -- dev my-app <sha>`**.
+Folder **`my-app`** is **`<app>`** for **`task app:deploy -- dev my-app <sha>`** (container path **`/workspaces/my-app/`**). Rebuild the container after adding a new sibling.
 
 ---
 
@@ -112,7 +111,7 @@ Reload the window or run **`bash .devcontainer/devcontainer-setup.sh`** so **`~/
 
 ## 7. App contract under `.iac/`
 
-All paths below are under **`/workspaces/iac/apps/<app>/`** (e.g. **`.../apps/my-app/`**).
+All paths below are under **`/workspaces/<app>/`** (e.g. **`/workspaces/my-app/`**).
 
 ### `.iac/iac.yml` (plain YAML — **not** SOPS)
 
@@ -134,14 +133,14 @@ cd /workspaces/iac
 task secrets:generate-app-env-sops-config -- my-app
 ```
 
-Then create **`apps/my-app/.iac/.env`** and encrypt:
+Then create **`/workspaces/my-app/.iac/.env`** and encrypt:
 
 ```bash
-cd /workspaces/iac/apps/my-app
+cd /workspaces/my-app
 sops --encrypt --in-place .iac/.env
 ```
 
-After **`task secrets:generate-sops-config`** adds or removes keys, run **`task secrets:sync-all-app-env-sops-configs`** (or **`generate-app-env-sops-config`** per app) so **`apps/*/.iac/.sops.yaml`** stays aligned with **`secrets/sops-key-*.pub`**.
+After **`task secrets:generate-sops-config`** adds or removes keys, run **`task secrets:sync-all-app-env-sops-configs`** (or **`generate-app-env-sops-config`** per app) so sibling **`.iac/.sops.yaml`** files stay aligned with **`secrets/sops-key-*.pub`**.
 
 ### `.iac/docker-compose.yml` (single deploy file)
 
@@ -175,7 +174,7 @@ In the app repo (GitHub → Settings → Secrets and variables → Actions):
 ### Commit the app repo
 
 ```bash
-cd /workspaces/iac/apps/my-app
+cd /workspaces/my-app
 git add .iac .github
 git commit -m "Add .iac contract and build workflow"
 git push
@@ -246,8 +245,7 @@ task app:versions -- dev my-app
 task app:deploy -- dev my-app <sha>
 ```
 
-Replace **`my-app`** with your repo folder name under **`apps/`**.
-
+Replace **`my-app`** with your sibling folder basename under **`/workspaces/`**.
 ---
 
 ## What's next

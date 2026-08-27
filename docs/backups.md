@@ -4,11 +4,11 @@
 
 [**Prefect**](https://www.prefect.io/) runs [**Restic**](https://restic.net/) per app: local repo under `/opt/iac/prefect/backups/<slug>`, or [Hetzner Storage Box](https://www.hetzner.com/storage/storage-box) over SFTP when the server has `RESTIC_REPOSITORY_BASE`. Optional **`.iac/backup.yml`** (see [Application deployment — App contract](application-deployment.md#app-contract)) defines retention, Postgres dumps, and volume paths; deploy copies it to `backup.yml` next to compose.
 
-**`<slug>`** = basename of **`image_name`** in **`apps/<app>/.iac/iac.yml`** (same as deploy dir and [`resolve-image.yml`](../ansible/roles/deploy_app/tasks/resolve-image.yml)).
+**`<slug>`** = basename of **`image_name`** in **`/workspaces/<app>/.iac/iac.yml`** (same as deploy dir and [`resolve-image.yml`](../ansible/roles/deploy_app/tasks/resolve-image.yml)).
 
 ## Tasks (devcontainer)
 
-SSH config hosts **`dev`** / **`prod`**. Every backup task takes **environment** and **`<app>`** (folder name under **`apps/`**). Tasks: [`tasks/Taskfile.backup.yml`](../tasks/Taskfile.backup.yml).
+SSH config hosts **`dev`** / **`prod`**. Every backup task takes **environment** and **`<app>`** (folder basename under **`/workspaces/`**). Tasks: [`tasks/Taskfile.backup.yml`](../tasks/Taskfile.backup.yml).
 
 | Task | |
 |------|---|

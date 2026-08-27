@@ -1,10 +1,8 @@
 {
-  // The devcontainer mounts ./apps from this repo at
-  // /workspaces/iac/apps/. Tasks resolve <app> CLI args to
-  // /workspaces/iac/apps/<app>/.iac/.
-  // To keep the sidebar focused on deployment config (not app source), forks
-  // whitelist their app .iac/ folders here and hide everything else under
-  // apps/ via files.exclude.
+  // Devcontainer mounts the parent of this repo at /workspaces so sibling
+  // app clones appear as /workspaces/<app>/. Tasks resolve <app> CLI args to
+  // /workspaces/<app>/.iac/.
+  // Forks whitelist app .iac/ folders here for a focused sidebar.
   "folders": [
     {
       "name": "IaC",
@@ -12,13 +10,8 @@
     },
     {
       "name": "tientje-ketama (.iac)",
-      "path": "apps/tientje-ketama/.iac"
+      "path": "../tientje-ketama/.iac"
     }
   ],
-  "settings": {
-    "files.exclude": {
-      "apps": true,
-      "app": true
-    }
-  }
+  "settings": {}
 }
