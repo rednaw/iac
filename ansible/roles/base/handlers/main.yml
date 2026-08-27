@@ -13,6 +13,11 @@
     name: fail2ban
     state: restarted
 
+- name: Restart systemd-journald
+  ansible.builtin.systemd:
+    name: systemd-journald
+    state: restarted
+
 - name: Reload systemd
   ansible.builtin.systemd:
     daemon_reload: true
