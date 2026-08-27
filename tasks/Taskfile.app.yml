@@ -1,11 +1,11 @@
 # yaml-language-server: $schema=https://taskfile.dev/schema.json
 #
 # Application deployment tasks — run from IAC devcontainer.
-# App working copies live at apps/<name>/ (inside the IaC repo; often Git submodules).
+# App clones are siblings at /workspaces/<name>/ (host: next to iac/).
 # Each app's .iac/ directory is its platform contract:
-#   apps/<name>/.iac/iac.yml             — image_name, app_domains
-#   apps/<name>/.iac/.env                — SOPS-encrypted app secrets
-#   apps/<name>/.iac/docker-compose.yml — full compose for platform deploy (Traefik, services)
+#   /workspaces/<name>/.iac/iac.yml             — image_name, app_domains
+#   /workspaces/<name>/.iac/.env                — SOPS-encrypted app secrets
+#   /workspaces/<name>/.iac/docker-compose.yml — full compose for platform deploy (Traefik, services)
 #
 #   task app:deploy     -- <env> <app> <sha>
 #   task app:versions   -- <env> <app>
@@ -18,7 +18,7 @@ version: '3'
 vars:
   IAC_ROOT:
     sh: realpath "{{.TASKFILE_DIR}}/.."
-  APPS_ROOT: /workspaces/iac/apps
+  APPS_ROOT: /workspaces
 
 tasks:
   deploy:

@@ -32,19 +32,19 @@ flowchart LR
 - `task app:versions -- <env> <app>`
 - `task app:deploy -- <env> <app> <sha>`
 
-`<app>` is the **directory name** under **`/workspaces/iac/apps/`** (typically **`iac/apps/<app>/`** on disk — see [Launch devcontainer](launch-devcontainer.md)).
+`<app>` is the **directory basename** under **`/workspaces/`** (host sibling of **`iac/`** — see [Launch devcontainer](launch-devcontainer.md)).
 
 ---
 
 ## Workspace layout
 
-Application repos live under **`iac/apps/<app>/`** (submodules or nested checkouts). The devcontainer bind-mounts that folder ([Launch devcontainer](launch-devcontainer.md)).
+Application repos are **sibling clones** next to **`iac/`**. The devcontainer mounts the shared parent at **`/workspaces`** ([Launch devcontainer](launch-devcontainer.md)).
 
 ---
 
 ## App contract
 
-Paths below are relative to each app repo root (visible as **`apps/<app>/`** in the container):
+Paths below are relative to each app repo root (visible as **`/workspaces/<app>/`** in the container):
 
 | Path | Purpose |
 |------|---------|
@@ -76,14 +76,14 @@ task app:deploy -- <environment> <app> <sha>
 # e.g. task app:deploy -- dev my-app 706c88c
 ```
 
-`<sha>` is the 7-character Git SHA tag. Deploy resolves it to a digest and runs the stack from **`apps/<app>/.iac/docker-compose.yml`**.
+`<sha>` is the 7-character Git SHA tag. Deploy resolves it to a digest and runs the stack from **`/workspaces/<app>/.iac/docker-compose.yml`**.
 
 ---
 
 ## Configuration references
 
 - **Infra** (registry, domains base, cloud): **`secrets/infra.yml`** in the IaC fork — [New project](new-project.md), [Secrets](secrets.md).
-- **App routing domains:** **`app_domains`** in **`apps/<app>/.iac/iac.yml`** (plain YAML).
+- **App routing domains:** **`app_domains`** in **`/workspaces/<app>/.iac/iac.yml`** (plain YAML).
 
 ---
 

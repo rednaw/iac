@@ -39,7 +39,7 @@ graph TB
       IAC_YML@{ shape: lin-doc, label: "Per-app .iac/<br/>iac.yml + .env" }
     end
 
-    IAC --->|bind parent dir → apps/| APP
+    IAC --->|parent mount → /workspaces| APP
 
     TASK -->|orchestrate| TF
     TASK -->|orchestrate| ANS

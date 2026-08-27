@@ -10,25 +10,24 @@ The IaC devcontainer ships Task, Terraform, Ansible, SOPS, crane, Docker CLI, an
 
 ## 1. Workspace layout on the host
 
-The devcontainer mounts **`${localWorkspaceFolder}/apps`** → **`/workspaces/iac/apps`** ([`.devcontainer/devcontainer.json`](../.devcontainer/devcontainer.json)).
+The devcontainer mounts the **parent** of the IaC repo at **`/workspaces`** ([`.devcontainer/devcontainer.json`](../.devcontainer/devcontainer.json)). Clone **`iac`** and each app as **siblings** under the same parent.
 
-**Convention:** Keep each application repo under **`iac/apps/<name>/`** (typically **Git submodules** — see [`apps/README.md`](../apps/README.md)). That basename **`<name>`** is what you pass to **`task app:deploy`** / **`task app:versions`**.
+**Convention:** Host folder basename **`<name>`** is **`<app>`** for **`task app:deploy`** / **`task app:versions`**. Inside the container that is **`/workspaces/<name>/`**.
 
 | Host (example) | Inside container |
 |----------------|------------------|
-| `~/projects/iac/` (workspace root) | `/workspaces/iac` |
-| `~/projects/iac/apps/my-app/` | `/workspaces/iac/apps/my-app/` |
+| `~/projects/iac/` | `/workspaces/iac` |
+| `~/projects/tientje-ketama/` | `/workspaces/tientje-ketama/` |
 
 ---
 
-
 ## 2. Open the workspace
 
-1. Clone the IaC repo and add app repo(s) under **`apps/<name>/`** (see [New project §1](new-project.md#1-directory-layout-on-your-machine) or [Joining §1](joining.md#1-clone-the-iac-repo-and-add-apps)).
+1. Clone the IaC repo and sibling app repo(s) (see [New project §1](new-project.md#1-directory-layout-on-your-machine) or [Joining §1](joining.md#1-clone-iac-and-sibling-apps)).
 2. Open **`iac/iac.code-workspace`** in VS Code/Cursor (**File → Open Workspace from File**).
 3. **Reopen in Container** when prompted, or Cmd+Shift+P → **Dev Containers: Reopen in Container**.
 
-Add folders to the multi-root workspace ( **`iac.code-workspace`** ) if you want each **`apps/<name>/`** in the sidebar — optional; tasks still resolve **`apps/<name>`** by basename.
+Whitelist app **`.iac/`** folders in **`iac.code-workspace`** for the sidebar — optional; tasks still resolve **`/workspaces/<app>`** by basename.
 
 ---
 
@@ -55,7 +54,7 @@ When **`secrets/infra.yml`** decrypts successfully: [`devcontainer-setup.sh`](..
 flowchart TB
     subgraph HOST["Laptop"]
         SECRETS_KEY@{ shape: lin-doc, label: "Private age key<br/>~/.config/sops/age/keys.txt" }
-        APPS@{ shape: lin-doc, label: "App repos<br/>iac/apps/<name>/" }
+        APPS@{ shape: lin-doc, label: "Sibling clones<br/>…/iac + …/&lt;app&gt;" }
         FORK_SEC@{ shape: lin-doc, label: "IaC fork: secrets/infra.yml<br/>(SOPS)" }
     end
 
@@ -80,7 +79,7 @@ flowchart TB
     end
 
     SECRETS_KEY --->|mounted| DEVCONTAINER
-    APPS --->|bind apps/| DEVCONTAINER
+    APPS --->|parent → /workspaces| DEVCONTAINER
     FORK_SEC --->|in repo| DEVCONTAINER
 
     SETUP -->|creates| DOCKER_CONFIG

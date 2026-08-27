@@ -34,7 +34,7 @@ flowchart LR
 
 ## Adding an application
 
-Add Traefik labels in **`apps/<app>/.iac/docker-compose.yml`** (the single Compose file Ansible deploys):
+Add Traefik labels in **`/workspaces/<app>/.iac/docker-compose.yml`** (the single Compose file Ansible deploys):
 
 ```yaml
 services:
@@ -61,7 +61,7 @@ networks:
 - `app-headers` — Security headers (X-Frame-Options, HSTS, etc.). Defined in [`traefik-dynamic-middlewares.yml.j2`](../ansible/roles/platform/templates/traefik-dynamic-middlewares.yml.j2)
 - `app-buffering` — 20MB request limit
 
-**TLS domains:** List hostnames in **`apps/<app>/.iac/iac.yml`** under **`app_domains`** for Let's Encrypt pre-warming.
+**TLS domains:** List hostnames in **`/workspaces/<app>/.iac/iac.yml`** under **`app_domains`** for Let's Encrypt pre-warming.
 
 **Optional CSP/Permissions-Policy:** Set in your app or add a Traefik middleware in **`docker-compose.yml`**:
 

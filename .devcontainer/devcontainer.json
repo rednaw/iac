@@ -2,14 +2,17 @@
   "name": "IaC Development",
   "image": "ghcr.io/rednaw/iac-dev:latest",
 
+  // Clone the IaC repo as a folder named "iac" next to app repos (siblings).
+  // Parent mount exposes both: /workspaces/iac and /workspaces/<app>.
+  // Tasks resolve <app> CLI args to /workspaces/<app>/.iac/.
+  // Forks whitelist which app .iac/ folders appear in the sidebar via iac.code-workspace.
+  "workspaceMount": "source=${localWorkspaceFolder}/..,target=/workspaces,type=bind",
+  "workspaceFolder": "/workspaces/iac",
+
   "mounts": [
     "source=iac-cursor-state,target=/home/vscode/.cursor,type=volume",
     "source=${localEnv:HOME}/.ssh,target=/home/vscode/.ssh,type=bind",
-    "source=${localEnv:HOME}/.config/sops,target=/home/vscode/.config/sops,type=bind",
-    // Mount ./apps from the IaC repo (submodules or nested checkouts).
-    // Tasks resolve <app> CLI args to /workspaces/iac/apps/<app>/.iac/.
-    // Forks whitelist which apps appear in the sidebar via iac.code-workspace.
-    "source=${localWorkspaceFolder}/apps,target=/workspaces/iac/apps,type=bind"
+    "source=${localEnv:HOME}/.config/sops,target=/home/vscode/.config/sops,type=bind"
   ],
 
   "customizations": {

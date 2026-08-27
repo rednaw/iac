@@ -64,8 +64,8 @@ tasks:
         echo "Secrets Management (SOPS):"
         echo "  task secrets:keygen                               # Generate age key pair"
         echo "  task secrets:generate-sops-config                 # secrets/.sops.yaml from secrets/sops-key-*.pub"
-        echo "  task secrets:generate-app-env-sops-config -- <app> # apps/<app>/.iac/.sops.yaml (same recipients)"
-        echo "  task secrets:sync-all-app-env-sops-configs        # Regenerate all apps/*/.iac/.sops.yaml"
+        echo "  task secrets:generate-app-env-sops-config -- <app> # /workspaces/<app>/.iac/.sops.yaml (same recipients)"
+        echo "  task secrets:sync-all-app-env-sops-configs        # Regenerate all sibling apps' .iac/.sops.yaml"
         echo ""
         echo "Registry:"
         echo "  task registry:overview                # List tags (TAG, CREATED, DESCRIPTION) for all repos"
@@ -75,7 +75,7 @@ tasks:
         echo "  task server:list-hetzner-keys         # List Hetzner SSH keys with IDs"
         echo ""
         echo "Backups (Restic, per app):"
-        echo "  task backup:snapshots -- [dev|prod] <app>              # Local snapshots (slug from apps/<app>/.iac/iac.yml)"
+        echo "  task backup:snapshots -- [dev|prod] <app>              # Local snapshots (slug from /workspaces/<app>/.iac/iac.yml)"
         echo "  task backup:restore   -- [dev|prod] <app> [snap] [...] # Restore (same slug rule as deploy)"
         echo "  task backup:download  -- [dev|prod] <app>              # Server Restic repo → .backup-repos/<slug>/"
         echo "  task backup:upload    -- [dev|prod] <app>              # .backup-repos/<slug>/ → server (replaces remote repo)"
@@ -98,15 +98,17 @@ tasks:
         msg: "Invalid workspace. Use: dev or prod after --"
 
   _check:app:
-    desc: "(internal) Validate APP arg resolves to a mounted apps/<name>/.iac/ contract"
+    desc: "(internal) Validate APP arg resolves to /workspaces/<name>/.iac/ contract"
     internal: true
     requires:
       vars: [APP]
     preconditions:
       - sh: '[ -n "{{.APP}}" ]'
         msg: "App name required."
-      - sh: test -d "/workspaces/iac/apps/{{.APP}}"
-        msg: "App not mounted at /workspaces/iac/apps/{{.APP}}. Put the repo under iac/apps/{{.APP}}/ (see apps/README.md), then Rebuild Container."
-      - sh: test -f "/workspaces/iac/apps/{{.APP}}/.iac/iac.yml"
-        msg: "App missing /workspaces/iac/apps/{{.APP}}/.iac/iac.yml. Create the .iac/ contract; see docs/new-project.md."
+      - sh: '[ "{{.APP}}" != "iac" ]'
+        msg: "APP cannot be 'iac' (that is this repo). Use the sibling clone basename under /workspaces/<app>."
+      - sh: test -d "/workspaces/{{.APP}}"
+        msg: "App not found at /workspaces/{{.APP}}. Clone the app as a sibling of iac/ on the host (same parent), rebuild the container, then retry."
+      - sh: test -f "/workspaces/{{.APP}}/.iac/iac.yml"
+        msg: "App missing /workspaces/{{.APP}}/.iac/iac.yml. Create the .iac/ contract; see docs/new-project.md."
 
