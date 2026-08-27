@@ -24,7 +24,7 @@ Infer which mode the user is in. Then emphasize either "run this to inspect, the
 
 **Devcontainer** — You're in it. Task, Ansible, Terraform, SOPS, Docker CLI, crane, and other tools preinstalled (mise). Infra secrets live in **`secrets/infra.yml`** (SOPS); **`devcontainer-setup.sh`** configures registry auth, Terraform Cloud token, `BASE_DOMAIN`, etc. Assume commands run here unless stated otherwise.
 
-**Sibling app clones** — The devcontainer mounts the parent of **`iac/`** at **`/workspaces`**, so apps appear as **`/workspaces/<name>/`**. Each app's platform contract is **`<name>/.iac/`** (`iac.yml`, `docker-compose.yml`, `.env`). Forks whitelist **`.iac`** folders in **`iac.code-workspace`** for the sidebar.
+**Sibling app clones** — The devcontainer mounts the parent of **`iac/`** at **`/workspaces`**, so apps appear as **`/workspaces/<name>/`**. Each app's platform contract is **`<name>/.iac/`** (`iac.yml`, `docker-compose.yml`, `.env`). Forks list sibling app clones in **`iac.code-workspace`** so the full project is in the sidebar.
 
 **Server access** — The managed server is reachable for diagnostics:
 - **SSH:** `ssh` to server (see [docs/remote-ssh](docs/remote-ssh.md)) for ad‑hoc commands, logs, files.

@@ -68,14 +68,14 @@ Convention: clone **`iac`** and each app as **siblings** on the host. Inside the
 
 ## Workspace UI
 
-Use **`iac.code-workspace`** to surface each app’s **`.iac/`** without listing entire app trees:
+Use **`iac.code-workspace`** to add sibling app clones to the sidebar:
 
 ```json
 {
   "folders": [
     { "path": "." },
-    { "path": "../app1/.iac", "name": "app1 (.iac)" },
-    { "path": "../app2/.iac", "name": "app2 (.iac)" }
+    { "path": "../app1", "name": "app1" },
+    { "path": "../app2", "name": "app2" }
   ],
   "settings": {}
 }
