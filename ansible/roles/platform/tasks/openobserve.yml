@@ -51,7 +51,10 @@
       ZO_ROOT_USER_EMAIL: "{{ infrastructure_secrets.openobserve_username }}@observe.local"
       ZO_ROOT_USER_PASSWORD: "{{ infrastructure_secrets.openobserve_password }}"
       ZO_LOCAL_MODE: "true"
+      # Keep history short on small root disks (see docs/incidents/2026-08-27-prod-disk-full.md)
       ZO_RETENTION_DAYS: "7"
+      ZO_COMPACT_ENABLED: "true"
+      ZO_TELEMETRY: "false"
     ports:
       - "127.0.0.1:57800:5080"
     volumes:
@@ -84,6 +87,8 @@
       - /etc/otel-collector/config.yaml:/etc/otelcol/config.yaml:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      # Host root for hostmetrics (filesystem usage, accurate host CPU/mem/disk)
+      - /:/hostfs:ro
       # Single /var/log mount so collector can read all log files (traefik, syslog, auth, fail2ban)
       - /var/log:/var/log:ro
     networks:

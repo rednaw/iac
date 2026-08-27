@@ -1,6 +1,8 @@
 # OTEL Collector
 receivers:
   hostmetrics:
+    # Collector runs in Docker: scrape the host via /hostfs mount (see openobserve.yml).
+    root_path: /hostfs
     collection_interval: 30s
     scrapers:
       cpu: {}
@@ -15,12 +17,33 @@ receivers:
       load: {}
       memory: {}
       network: {}
-  
-  # Docker container metrics (CPU, memory, network, health status)
+
+  # Docker container metrics (CPU, memory, network). Block I/O disabled: device
+  # major/minor labels create huge cardinality and filled the disk (see RCA 2026-08-27).
   docker_stats:
     endpoint: "unix:///var/run/docker.sock"
-    collection_interval: 30s
+    collection_interval: 60s
     timeout: 5s
+    excluded_images:
+      - /otel\/opentelemetry-collector.*/
+      - /openobserve\/openobserve.*/
+    metrics:
+      container.blockio.io_service_bytes_recursive:
+        enabled: false
+      container.blockio.io_serviced_recursive:
+        enabled: false
+      container.blockio.io_merged_recursive:
+        enabled: false
+      container.blockio.io_queued_recursive:
+        enabled: false
+      container.blockio.io_service_time_recursive:
+        enabled: false
+      container.blockio.io_time_recursive:
+        enabled: false
+      container.blockio.io_wait_time_recursive:
+        enabled: false
+      container.blockio.sectors_recursive:
+        enabled: false
 
   # Prometheus receiver: scrape Traefik metrics
   prometheus:
@@ -75,6 +98,13 @@ receivers:
       - /var/log/fail2ban.log.*
 
 processors:
+  # Belt-and-suspenders if an OTEL version re-enables blockio defaults
+  filter/drop_blockio:
+    error_mode: ignore
+    metrics:
+      metric:
+        - 'IsMatch(name, "(?i).*blockio.*")'
+
   # Redact sensitive data in log bodies before sending to OpenObserve (OTTL replace_pattern on log.body.string)
   transform/redact_basic:
     error_mode: ignore
@@ -191,6 +221,7 @@ service:
     # Host + Docker + Traefik metrics: Prometheus remote write (for PromQL/dashboards) and OTLP (OpenObserve native)
     metrics:
       receivers: [hostmetrics, docker_stats, prometheus]
+      processors: [filter/drop_blockio]
       exporters: [prometheusremotewrite, otlp_http]
     # Logs pipelines: one exporter per stream so OpenObserve shows separate streams (traefik-access, docker-containers, syslog, auth, fail2ban)
     logs/traefik:
