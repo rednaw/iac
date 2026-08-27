@@ -1,0 +1,27 @@
+---
+# Disk / journal log bounds so a runaway log cannot fill the root filesystem.
+
+- name: Ensure journald drop-in directory exists
+  ansible.builtin.file:
+    path: /etc/systemd/journald.conf.d
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Install journald size cap
+  ansible.builtin.copy:
+    src: journald-size.conf
+    dest: /etc/systemd/journald.conf.d/size.conf
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Restart systemd-journald
+
+- name: Install size-based logrotate for rsyslog files
+  ansible.builtin.copy:
+    src: logrotate-rsyslog
+    dest: /etc/logrotate.d/rsyslog
+    owner: root
+    group: root
+    mode: '0644'

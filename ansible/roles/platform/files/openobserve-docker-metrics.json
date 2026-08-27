@@ -240,45 +240,6 @@
         "h": 9,
         "i": 6
       }
-    },
-    {
-      "id": "Panel_Disk_IO",
-      "type": "line",
-      "title": "Total Disk I/O",
-      "description": "",
-      "config": {
-        "show_legends": true,
-        "legends_position": "bottom",
-        "unit": "bytes",
-        "decimals": 0
-      },
-      "queryType": "promql",
-      "queries": [
-        {
-          "query": "sum by(container_name) (irate(container_blockio_io_service_bytes_recursive{}[5m]))",
-          "customQuery": true,
-          "fields": {
-            "stream": "container_blockio_io_service_bytes_recursive",
-            "stream_type": "metrics",
-            "x": [],
-            "y": [],
-            "z": [],
-            "filter": []
-          },
-          "config": {
-            "promql_legend": "{container_name}",
-            "layer_type": "scatter",
-            "weight_fixed": 1
-          }
-        }
-      ],
-      "layout": {
-        "x": 33,
-        "y": 18,
-        "w": 15,
-        "h": 9,
-        "i": 7
-      }
     }
   ],
   "variables": null

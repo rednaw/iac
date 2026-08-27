@@ -28,6 +28,12 @@ flowchart LR
 
 OpenObserve is not exposed publicly (no DNS). Use an SSH tunnel to the server, then open **http://localhost:57800** in your browser. On the server it is on port **57800**. See [Remote-SSH](remote-ssh.md) for setting up SSH and port forwarding. Log in with **`openobserve_username@observe.local`** and the password from **`secrets/infra.yml`** (SOPS; decrypt in VS Code).
 
+## Retention and disk use
+
+- OpenObserve keeps **7 days** (`ZO_RETENTION_DAYS`).
+- Docker **block I/O** metrics are disabled in the OTEL collector (high cardinality filled the disk — [RCA 2026-08-27](incidents/2026-08-27-prod-disk-full.md)).
+- Host filesystem usage needs the collector’s `/hostfs` mount (`root_path: /hostfs`).
+
 ## Dashboards
 
 Three dashboards are pre-installed: **Host Metrics**, **Docker Container Metrics**, and **Traefik Metrics**. Ansible manages them — it creates each dashboard on first run and updates it when the source JSON changes. To add or modify a dashboard, edit the file in `ansible/roles/platform/files/` and re-run the playbook, or make changes directly in the OpenObserve UI.

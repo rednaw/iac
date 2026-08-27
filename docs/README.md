@@ -72,6 +72,7 @@ graph TB
 - [Code analysis](code-analysis.md) — What runs, when (CI), how to run locally
 - [Technologies and upgrading](technologies.md) — Tools used, Renovate, package files
 - [Troubleshooting](troubleshooting.md) — Common issues and fixes
+- [Incidents](incidents/2026-08-27-prod-disk-full.md) — RCA: 2026-08-27 prod disk/inode exhaustion
 
 ---
 

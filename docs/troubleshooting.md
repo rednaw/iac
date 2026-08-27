@@ -63,3 +63,11 @@
 | HTTP→HTTPS not working | [`traefik-dynamic-redirects-http.yml.j2`](../ansible/roles/platform/templates/traefik-dynamic-redirects-http.yml.j2) priority 10000 and excludes ACME path. |
 | Container not discovered | Container on `traefik` network (`docker network inspect traefik`), has `traefik.enable=true` label. |
 | IPv6 not working | DNS AAAA records. Port bindings: `docker inspect traefik \| grep -A 10 Ports`. |
+
+**Disk / inodes**
+
+| Problem | What to do |
+|--------|------------|
+| Site down, SSH hangs, high load, little free RAM | Check `df -h /` **and** `df -i /`. Inode full shows free bytes but create/sudo/Docker fail with “No space left on device”. |
+| Disk or inodes full on prod | Likely `/var/lib/openobserve` and/or `/var/log/syslog`. See [RCA 2026-08-27](incidents/2026-08-27-prod-disk-full.md). |
+| `sudo` fails with sudo-io “No space left” | Free one inode (e.g. `docker image prune`) or rescue/truncate logs, then retry. |

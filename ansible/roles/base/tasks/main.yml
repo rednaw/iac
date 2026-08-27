@@ -5,6 +5,9 @@
 - name: Configure base system
   ansible.builtin.import_tasks: base.yml
 
+- name: Cap journal and syslog growth
+  ansible.builtin.import_tasks: logging.yml
+
 - name: Configure unattended upgrades
   ansible.builtin.import_tasks: unattended-upgrades.yml
 

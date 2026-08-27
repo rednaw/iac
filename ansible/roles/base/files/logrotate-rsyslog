@@ -1,0 +1,19 @@
+# Size-based rotate so /var/log/syslog cannot grow without bound (RCA 2026-08-27).
+/var/log/syslog
+/var/log/auth.log
+/var/log/kern.log
+/var/log/mail.log
+/var/log/mail.err
+{
+    rotate 5
+    size 100M
+    daily
+    missingok
+    notifempty
+    compress
+    delaycompress
+    sharedscripts
+    postrotate
+        /usr/lib/rsyslog/rsyslog-rotate
+    endscript
+}
