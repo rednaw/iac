@@ -20,7 +20,7 @@ prefect/.restore-work/
 # Pulled Restic repos (task backup:download)
 .backup-repos/
 
-# Mounted sibling app repos (devcontainer bind → apps/). Fork-only clones stay clean.
+# Mounted app repos under iac/apps/ (devcontainer bind). Fork-only clones stay clean unless using submodules.
 apps/
 
 # Fork-only: infra secrets + age recipient pubs for secrets/infra.yml (see docs/future/secrets-and-mounts.md).

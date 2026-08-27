@@ -1,6 +1,7 @@
 {
-  // The devcontainer mounts the IaC repo's parent directory at
-  // /workspaces/iac/apps/, so every sibling repo on the host is visible.
+  // The devcontainer mounts ./apps from this repo at
+  // /workspaces/iac/apps/. Tasks resolve <app> CLI args to
+  // /workspaces/iac/apps/<app>/.iac/.
   // To keep the sidebar focused on deployment config (not app source), forks
   // whitelist their app .iac/ folders here and hide everything else under
   // apps/ via files.exclude.

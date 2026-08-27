@@ -15,7 +15,9 @@ Operators **fork** the IaC repo and commit **`secrets/infra.yml`** in the fork. 
 
 ---
 
-## Two layers of secrets
+## Two layers of secrets (same age recipients)
+
+**`secrets/sops-key-*.pub`** is the single source of recipients for both **`secrets/infra.yml`** and **`apps/<app>/.iac/.env`**. **`task secrets:generate-sops-config`** writes **`secrets/.sops.yaml`**; **`task secrets:generate-app-env-sops-config`** / **`task secrets:sync-all-app-env-sops-configs`** refresh **`apps/<app>/.iac/.sops.yaml`**.
 
 ### `secrets/infra.yml` (IaC fork, SOPS)
 
@@ -48,7 +50,7 @@ abuseipdb_api_key: "..."
 | **`iac.yml`** | Plain YAML: **`image_name`**, **`app_domains`**, optional **`backup:`** block. **`task app:deploy`** rejects infra-only keys. |
 | **`docker-compose.yml`** | Full Compose file deployed to the server (Traefik labels, **`traefik`** external network, **`image: ${IMAGE}`**, **`restart: unless-stopped`**). |
 | **`.env`** | SOPS-encrypted runtime secrets for Compose. |
-| **`.sops.yaml`** | Encrypt **`.env`** only (`path_regex: \.env$`). |
+| **`.sops.yaml`** | Encrypt **`.env`** only (`path_regex: \.env$`). **`age:`** matches **`secrets/sops-key-*.pub`** (regenerate via **`task secrets:generate-app-env-sops-config`**). |
 
 Repo-root **`docker-compose.yml`** is optional and **only** for local developer workflows — deploy reads **`.iac/docker-compose.yml`** only.
 
@@ -58,13 +60,9 @@ The GitHub Actions caller workflow is small and reusable; registry URL and image
 
 ## Mounting application repos
 
-The devcontainer binds the **parent of the IaC workspace** to **`/workspaces/iac/apps`** ([`.devcontainer/devcontainer.json`](../../.devcontainer/devcontainer.json)):
+The devcontainer binds **`${localWorkspaceFolder}/apps`** to **`/workspaces/iac/apps`** ([`.devcontainer/devcontainer.json`](../../.devcontainer/devcontainer.json)).
 
-```json
-"source=${localWorkspaceFolder}/..,target=/workspaces/iac/apps,type=bind"
-```
-
-Convention: **`iac/`** and each application repo are **siblings** under one directory. Directory names become **`apps/<name>/`** inside the container — **`<name>`** is the second argument to **`task app:deploy`** and **`task app:versions`**.
+Convention: each application repo lives under **`iac/apps/<name>/`** (often Git submodules). Directory names become **`apps/<name>/`** inside the container — **`<name>`** is the second argument to **`task app:deploy`** and **`task app:versions`**.
 
 ---
 
@@ -92,6 +90,11 @@ Use **`iac.code-workspace`** to surface each app’s **`.iac/`** without listing
 ## Tasks
 
 ```bash
+# SOPS (same recipients for infra + app .env)
+task secrets:generate-sops-config
+task secrets:generate-app-env-sops-config -- app1
+task secrets:sync-all-app-env-sops-configs
+
 # Platform (no app argument)
 task platform:provision:plan -- dev
 task platform:configure:apply -- dev
@@ -128,7 +131,7 @@ Playbooks load infra secrets first. **`deploy_app`** copies **`apps/<name>/.iac/
 ├── secrets/                 # gitignored upstream; committed in fork
 │   ├── infra.yml
 │   └── .sops.yaml
-├── apps/                    # bind-mounted parent directory
+├── apps/                    # repo-local apps/ (bind-mounted)
 │   ├── app1/
 │   │   └── .iac/
 │   └── app2/
@@ -151,7 +154,7 @@ Per application repo (see also [Traefik](../traefik.md), [New project](../new-pr
 1. Infrastructure keys exist **only** in the IaC fork **`secrets/infra.yml`**, not in the app repo.
 2. **`.iac/iac.yml`** — plaintext **`image_name`**, **`app_domains`**; no cloud/registry/SSH secrets.
 3. **`.iac/docker-compose.yml`** — single deploy manifest (Traefik + services).
-4. **`.iac/.env`** — SOPS runtime secrets; **`.iac/.sops.yaml`** targets **`.env`** only.
+4. **`.iac/.env`** — SOPS runtime secrets; **`.iac/.sops.yaml`** targets **`.env`** only and shares **`secrets/sops-key-*.pub`** recipients.
 5. Optional **`.iac/backup.yml`** — Restic contract when backups are enabled (**`tasks/Taskfile.backup.yml`** expects this path).
 
 ---
@@ -171,4 +174,4 @@ Per application repo (see also [Traefik](../traefik.md), [New project](../new-pr
 |------|------------|
 | Fork vs upstream merges | **`secrets/`** absent upstream keeps merges simple; structural conflicts are rare. |
 | Thin **`iac.yml`** | App-facing config stays in the app repo; plain YAML is easy to edit and **`task app:deploy`** validates forbidden keys. |
-| Parent **`apps/`** bind exposes sibling trees | Same trust boundary as Docker socket access in the devcontainer — intended for operators of those repos. |
+| Parent **`apps/`** bind exposes checked-out app trees | Same trust boundary as Docker socket access in the devcontainer — intended for operators of those repos. |

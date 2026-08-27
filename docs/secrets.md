@@ -2,33 +2,33 @@
 
 # Secrets
 
-Secrets use [SOPS](https://github.com/getsops/sops) + [age](https://github.com/FiloSottile/age). There are **two layers**:
+Secrets use [SOPS](https://github.com/getsops/sops) + [age](https://github.com/FiloSottile/age). There is **one age identity** on your machine (`~/.config/sops/age/keys.txt`) and **one recipient list**, driven by **`secrets/sops-key-*.pub`**:
 
-1. **Infrastructure** — **`secrets/infra.yml`** in the **IaC fork** (org-wide: cloud API, Terraform Cloud, registry, platform observability, SSH allowlists, DNS credentials, …).
-2. **Application runtime** — **`apps/<app>/.iac/.env`** in each **app repo** (database URLs, app tokens, …).
+- **`secrets/infra.yml`** — platform / infra (Terraform, Ansible, devcontainer bootstrap).
+- **`apps/<app>/.iac/.env`** — application runtime secrets for Compose.
 
-Per-app **`.iac/iac.yml`** is **plain YAML** (`image_name`, `app_domains`); it is **not** encrypted.
+Both use the **same** age public keys. **`task secrets:generate-sops-config`** builds **`secrets/.sops.yaml`**; **`task secrets:generate-app-env-sops-config -- <app>`** (or **`task secrets:sync-all-app-env-sops-configs`**) writes **`apps/<app>/.iac/.sops.yaml`** with matching **`age:`** recipients.
+
+Per-app **`.iac/iac.yml`** stays **plain YAML** (`image_name`, `app_domains`); it is **not** encrypted.
 
 ```mermaid
 flowchart LR
-    subgraph TEAM["Team members"]
-        T1(Alice<br/>private key)
-        T2(Bob<br/>private key)
+    subgraph OP["Operator"]
+        PRIV["Private age key<br/>~/.config/sops/age/keys.txt"]
     end
-    subgraph FORK["IaC fork"]
-        INFRA["secrets/infra.yml<br/>SOPS"]
-        SPUB["secrets/sops-key-*.pub"]
+    subgraph REPO["IaC repo"]
+        PUBS["secrets/sops-key-*.pub"]
+        RULE1["secrets/.sops.yaml"]
+        RULE2["apps/&lt;app&gt;/.iac/.sops.yaml"]
+        INFRA["secrets/infra.yml"]
+        ENV["apps/&lt;app&gt;/.iac/.env"]
     end
-    subgraph APP["App repo"]
-        ENV[".iac/.env<br/>SOPS"]
-        APUB[".iac/sops-key-*.pub<br/>optional"]
-    end
-    T1 -->|decrypt| INFRA
-    T2 -->|decrypt| INFRA
-    T1 -->|decrypt| ENV
-    T2 -->|decrypt| ENV
-    SPUB --> INFRA
-    APUB --> ENV
+    PRIV -->|decrypt| INFRA
+    PRIV -->|decrypt| ENV
+    PUBS --> RULE1
+    PUBS --> RULE2
+    RULE1 --> INFRA
+    RULE2 --> ENV
 ```
 
 **VS Code:** Install the SOPS extension (`signageos.signageos-vscode-sops`). Encrypted files open decrypted; save to re-encrypt.
@@ -37,17 +37,22 @@ flowchart LR
 
 ## File locations
 
-| Layer | File | Format |
-|-------|------|--------|
-| Infrastructure | **`secrets/infra.yml`** (IaC repo) | YAML, SOPS |
-| Infra keyring | **`secrets/sops-key-*.pub`**, **`secrets/.sops.yaml`** | age pubs / SOPS config |
-| App config | **`apps/<app>/.iac/iac.yml`** | Plain YAML |
-| App runtime | **`apps/<app>/.iac/.env`** | dotenv, SOPS |
-| App SOPS rules | **`apps/<app>/.iac/.sops.yaml`** | Encrypt **`.env`** only |
+| What | Path |
+|------|------|
+| Platform secrets | **`secrets/infra.yml`** (SOPS) |
+| Recipient pubs | **`secrets/sops-key-*.pub`** |
+| Rules for **`infra.yml`** | **`secrets/.sops.yaml`** |
+| App Compose secrets | **`apps/<app>/.iac/.env`** (SOPS) |
+| Rules for **`.env`** | **`apps/<app>/.iac/.sops.yaml`** |
+| Plain app config | **`apps/<app>/.iac/iac.yml`** |
 
-**Infra:** `task secrets:keygen` and `task secrets:generate-sops-config` operate on **`secrets/`** in the IaC repo. Commit with **`git add -f secrets/`** when **`secrets/`** is gitignored upstream.
+**Workflow**
 
-**App `.env`:** Maintain **`.iac/.sops.yaml`** in the app repo (recipients for `.env`). There is no shared Taskfile target in the app repo — copy the pattern from [tientje-ketama](https://github.com/rednaw/tientje-ketama/tree/main/.iac).
+1. **`task secrets:keygen`** → private key on host, **`secrets/sops-key-<username>.pub`** (commit with **`git add -f`** when **`secrets/`** is gitignored upstream).
+2. **`task secrets:generate-sops-config`** → **`secrets/.sops.yaml`** for **`infra.yml`**.
+3. **`task secrets:generate-app-env-sops-config -- <app>`** per app (or **`task secrets:sync-all-app-env-sops-configs`**) after **`apps/<app>/`** exists.
+
+Whenever you add or remove a **`secrets/sops-key-*.pub`**, rerun **`generate-sops-config`**, open **`secrets/infra.yml`** and save (re-encrypt), then **`sync-all-app-env-sops-configs`** and open each **`.iac/.env`** and save.
 
 Registry hostnames and **`base_domain`** come from **`secrets/infra.yml`**.
 
@@ -55,15 +60,10 @@ Registry hostnames and **`base_domain`** come from **`secrets/infra.yml`**.
 
 ## Adding a new person
 
-### Infrastructure (`secrets/infra.yml`)
-
-1. **New teammate** opens the IaC devcontainer and runs **`task secrets:keygen`** → private key in **`~/.config/sops/age/keys.txt`**, public key **`secrets/sops-key-<username>.pub`** in the IaC repo. They commit **`secrets/sops-key-*.pub`** (`git add -f secrets/`).
-2. **Existing key-holder:** `git pull`, **`task secrets:generate-sops-config`**, open **`secrets/infra.yml`** in VS Code and **save** (re-encrypts with all recipients), commit and push.
-3. **Verify:** New teammate pulls, opens **`secrets/infra.yml`** — it should decrypt.
-
-### Application (`.iac/.env`)
-
-Separately, add their age public key to the app repo’s **`.iac/.sops.yaml`** (or add a **`sops-key-*.pub`** file and document recipients). Open **`.iac/.env`** in VS Code and **save** so they can decrypt.
+1. They run **`task secrets:keygen`** and commit **`secrets/sops-key-*.pub`**.
+2. You **`git pull`**, **`task secrets:generate-sops-config`**, open **`secrets/infra.yml`** → Save (re-encrypt).
+3. **`task secrets:sync-all-app-env-sops-configs`**, then open each **`apps/<app>/.iac/.env`** → Save (re-encrypt).
+4. Push IaC repo (and app submodule commits if **`.env`** / **`.sops.yaml`** changed inside submodule).
 
 ---
 
@@ -77,7 +77,8 @@ Separately, add their age public key to the app repo’s **`.iac/.sops.yaml`** (
 
 ## Creating app secrets (`.env`)
 
-Under **`apps/<app>/.iac/`**, create **`.env`**, encrypt with SOPS, commit. Deploy decrypts it on the server for Compose.
+1. **`task secrets:generate-app-env-sops-config -- <app>`** (or bulk **`sync-all`**).
+2. Create **`apps/<app>/.iac/.env`**, encrypt: **`sops --encrypt --in-place apps/<app>/.iac/.env`** from repo root (or VS Code save).
 
 See [Troubleshooting](troubleshooting.md) for decrypt issues.
 

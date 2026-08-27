@@ -8,7 +8,7 @@
 |--------|------------|
 | **`secrets/infra.yml` missing or cannot decrypt** | Fork setup: run **`task secrets:init`** or follow [Secrets](secrets.md). Ensure **`~/.config/sops/age/keys.txt`** exists and you are a recipient. |
 | App **`Forbidden infrastructure key` on deploy** | Move infra fields out of **`apps/<app>/.iac/iac.yml`** into **`secrets/infra.yml`**. App **`iac.yml`** is plain YAML with **`image_name`** / **`app_domains`** only. |
-| **`.iac/.env` cannot decrypt** | Your age pubkey must be in that app repo’s **`.iac/.sops.yaml`**. Teammate re-saves **`.env`** after adding you. |
+| **`.iac/.env` cannot decrypt** | Same age recipients as **`secrets/`**: **`secrets/sops-key-*.pub`** drives **`apps/<app>/.iac/.sops.yaml`** via **`task secrets:generate-app-env-sops-config`** / **`task secrets:sync-all-app-env-sops-configs`**. After your pubkey is committed there, a teammate opens **`.iac/.env`**, saves (re-encrypt), commits. |
 | "Cannot decrypt: no matching keys" | For infra: teammate opens **`secrets/infra.yml`**, saves, commits. For app: same on **`.iac/.env`**. |
 | "SOPS key not found" | `task secrets:keygen` from IaC repo. Private key at **`~/.config/sops/age/keys.txt`** (bind-mounted from host). |
 | VS Code doesn't decrypt | SOPS extension installed? **`sops.defaults.ageKeyFile`** in devcontainer? **`.sops.yaml`** next to the encrypted file? |
@@ -40,7 +40,7 @@
 
 | Problem | What to do |
 |--------|------------|
-| **`App missing …/.iac/…`** or empty **`apps/<app>`** | Clone the app repo as a **sibling** of **`iac/`** under the same parent folder ([Launch devcontainer](launch-devcontainer.md)). Rebuild/reopen devcontainer if you moved folders. |
+| **`App missing …/.iac/…`** or empty **`apps/<app>`** | Ensure the app exists under **`iac/apps/<app>/`** (submodule or checkout) and **`git submodule update --init`**. Rebuild/reopen the devcontainer if you changed **`apps/`** layout ([Launch devcontainer](launch-devcontainer.md)). |
 | **`Usage: task app:deploy -- <env> <app> <sha>`** | Pass **three** words after **`--`**: environment, **directory basename** under **`apps/`**, and 7-char SHA. |
 | **`Forbidden infrastructure key`** | Infra keys belong in **`secrets/infra.yml`**, not **`apps/<app>/.iac/iac.yml`**. |
 | Ansible playbook failures | Playbook logs; **`secrets/infra.yml`** decrypts? **`task server:check-status`**. |

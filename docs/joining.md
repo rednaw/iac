@@ -2,24 +2,24 @@
 
 # Joining an existing project
 
-The infrastructure already exists. You need access to **infra** secrets (IaC fork), optionally **app** `.env` secrets (app repo), SSH, and the devcontainer — then you can deploy and operate.
+The infrastructure already exists. You need access to **secrets** (same age recipients for **`secrets/infra.yml`** and **`apps/<app>/.iac/.env`**), SSH, and the devcontainer — then you can deploy and operate.
 
 **What you need before starting:**
 
 - Editor and extensions: see [Onboarding: Before you start](onboarding.md#before-you-start)
-- Access to the **IaC fork** and the **app repo(s)** you work on
+- Access to the **IaC fork** and the **app repo(s)** you work on (often Git **submodules** under **`iac/apps/`**)
 - An SSH key pair (`~/.ssh/id_ed25519` or `id_rsa`)
 
 ---
 
-## 1. Clone repos with sibling layout
+## 1. Clone the IaC repo and add apps
 
-Put the IaC fork and app repos under **one parent directory** so the devcontainer mounts them as **`/workspaces/iac/apps/<name>/`**:
+Clone your fork of the IaC repo. Application repos usually live under **`apps/<name>/`** inside it ([`apps/README.md`](../apps/README.md)). Example using submodules:
 
 ```bash
-mkdir -p ~/projects && cd ~/projects
 git clone <iac-fork-url> iac
-git clone <app-repo-url> my-app
+cd iac
+git submodule update --init --recursive
 ```
 
 Use your real app folder name — it becomes **`<app>`** in **`task app:deploy -- dev <app> <sha>`**.
@@ -30,11 +30,11 @@ Use your real app folder name — it becomes **`<app>`** in **`task app:deploy -
 
 Open **`iac/iac.code-workspace`** in VS Code/Cursor → **Reopen in Container**.
 
-Until **`secrets/infra.yml`** decrypts for you, registry / Terraform Cloud / **hcloud** are usually **not** configured inside the container — expected until you are added as an infra recipient.
+Until **`secrets/infra.yml`** decrypts for you, registry / Terraform Cloud / **hcloud** are usually **not** configured inside the container — expected until you are added as a recipient.
 
 ---
 
-## 3. Generate your SOPS key (infra)
+## 3. Generate your SOPS key
 
 Inside the container, from the IaC repo:
 
@@ -61,23 +61,23 @@ git push
 
 ## 4. Ask a teammate to add you
 
-### IaC fork — **`secrets/infra.yml`**
+**Same recipients everywhere:** **`secrets/sops-key-*.pub`** drives **`secrets/.sops.yaml`** (for **`infra.yml`**) and **`apps/<app>/.iac/.sops.yaml`** (for **`.env`**).
 
-They pull, refresh **`secrets/.sops.yaml`** if needed, re-encrypt infra:
+They **`git pull`**, regenerate rules, re-encrypt files:
 
 ```bash
 cd /workspaces/iac
 git pull
 task secrets:generate-sops-config
+task secrets:sync-all-app-env-sops-configs
 # Open secrets/infra.yml in VS Code, Save (re-encrypt)
-git add -f secrets/
-git commit -m "Add <yourname> to infra secrets"
+# Open each apps/<app>/.iac/.env, Save (re-encrypt)
+git add -f secrets/ apps/
+git commit -m "Add <yourname> to SOPS recipients"
 git push
 ```
 
-### App repo — **`.iac/.env`** (if you need app runtime secrets)
-
-They update **`.iac/.sops.yaml`** recipients (or add your **`sops-key-*.pub`** under **`.iac/`**), open **`.iac/.env`**, save to re-encrypt, commit and push.
+If only one app changed, they can run **`task secrets:generate-app-env-sops-config -- <app>`** instead of **`sync-all`**.
 
 ---
 
@@ -85,11 +85,12 @@ They update **`.iac/.sops.yaml`** recipients (or add your **`sops-key-*.pub`** u
 
 ```bash
 cd /workspaces/iac && git pull
+git submodule update --init --recursive
 ```
 
 Open **`secrets/infra.yml`** in VS Code — you should see decrypted YAML. If you still see ciphertext, see [Troubleshooting](troubleshooting.md).
 
-For app work, **`git pull`** in **`apps/<app>/`** and verify **`.iac/.env`** decrypts if you need it.
+For app work, pull inside **`apps/<app>/`** if it is a submodule (`git pull` / **`git submodule update`**) and verify **`.iac/.env`** decrypts when you need it.
 
 ---
 

@@ -32,13 +32,13 @@ flowchart LR
 - `task app:versions -- <env> <app>`
 - `task app:deploy -- <env> <app> <sha>`
 
-`<app>` is the **directory name** under **`/workspaces/iac/apps/`** (sibling folder of your IaC clone on disk).
+`<app>` is the **directory name** under **`/workspaces/iac/apps/`** (typically **`iac/apps/<app>/`** on disk — see [Launch devcontainer](launch-devcontainer.md)).
 
 ---
 
 ## Workspace layout
 
-Application repos are mounted at **`/workspaces/iac/apps/<app>/`** via the parent-directory bind ([Launch devcontainer](launch-devcontainer.md)). No per-host script — place repos next to **`iac/`** and open **`iac.code-workspace`**.
+Application repos live under **`iac/apps/<app>/`** (submodules or nested checkouts). The devcontainer bind-mounts that folder ([Launch devcontainer](launch-devcontainer.md)).
 
 ---
 
@@ -50,7 +50,7 @@ Paths below are relative to each app repo root (visible as **`apps/<app>/`** in 
 |------|---------|
 | `.iac/iac.yml` | **Plain** YAML: **`image_name`**, **`app_domains`** only (no infra keys — those belong in **`secrets/infra.yml`**). |
 | `.iac/.env` | SOPS-encrypted runtime secrets for Compose. |
-| `.iac/.sops.yaml` | SOPS rules — encrypt **`.env`** only. |
+| `.iac/.sops.yaml` | SOPS rules — encrypt **`.env`** only. Keep **`age:`** in sync with **`secrets/sops-key-*.pub`** (`task secrets:generate-app-env-sops-config -- <app>` or **`sync-all-app-env-sops-configs`**). |
 | `.iac/docker-compose.yml` | Full stack Ansible deploys (Traefik labels, **`traefik`** external network, **`image: ${IMAGE}`**, **`restart: unless-stopped`**). |
 | `.iac/backup.yml` | *Optional.* Restic contract → **`backup.yml`** on server. [Backups](backups.md). |
 | `docker-compose.yml` | *Optional.* Local dev only — **not** uploaded by deploy. |

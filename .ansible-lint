@@ -1,0 +1,11 @@
+---
+# Repo-root ansible-lint config. CI runs `ansible-lint` from ansible/ with
+# ansible/.ansible-lint; this file covers ad-hoc runs and the IDE from the
+# workspace root. Taskfiles are go-task config, not Ansible.
+kinds:
+  - yaml: "**/Taskfile.yml"
+  - yaml: "**/Taskfile*.yml"
+
+exclude_paths:
+  - tasks/
+  - Taskfile.yml

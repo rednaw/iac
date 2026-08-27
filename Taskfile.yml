@@ -62,8 +62,10 @@ tasks:
         echo "  task tunnel:stop  -- [dev|prod]       # Stop SSH tunnel"
         echo ""
         echo "Secrets Management (SOPS):"
-        echo "  task secrets:keygen                   # Generate age key pair"
-        echo "  task secrets:generate-sops-config     # Generate .sops.yaml"
+        echo "  task secrets:keygen                               # Generate age key pair"
+        echo "  task secrets:generate-sops-config                 # secrets/.sops.yaml from secrets/sops-key-*.pub"
+        echo "  task secrets:generate-app-env-sops-config -- <app> # apps/<app>/.iac/.sops.yaml (same recipients)"
+        echo "  task secrets:sync-all-app-env-sops-configs        # Regenerate all apps/*/.iac/.sops.yaml"
         echo ""
         echo "Registry:"
         echo "  task registry:overview                # List tags (TAG, CREATED, DESCRIPTION) for all repos"
@@ -104,7 +106,7 @@ tasks:
       - sh: '[ -n "{{.APP}}" ]'
         msg: "App name required."
       - sh: test -d "/workspaces/iac/apps/{{.APP}}"
-        msg: "App not mounted at /workspaces/iac/apps/{{.APP}}. Place the {{.APP}} repo as a sibling of the IaC repo on the host, then Rebuild Container."
+        msg: "App not mounted at /workspaces/iac/apps/{{.APP}}. Put the repo under iac/apps/{{.APP}}/ (see apps/README.md), then Rebuild Container."
       - sh: test -f "/workspaces/iac/apps/{{.APP}}/.iac/iac.yml"
         msg: "App missing /workspaces/iac/apps/{{.APP}}/.iac/iac.yml. Create the .iac/ contract; see docs/new-project.md."
 
