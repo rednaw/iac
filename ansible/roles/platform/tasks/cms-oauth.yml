@@ -1,0 +1,94 @@
+---
+# Sveltia/Decap-compatible GitHub OAuth proxy at auth.<base_domain>.
+# Skips when github_oauth_client_id is unset/empty (forks can add secrets later).
+# Image is built on the host: sync build context from the controller first.
+
+- name: Check base_domain for cms-oauth
+  ansible.builtin.assert:
+    that:
+      - base_domain is defined
+      - base_domain | length > 0
+    fail_msg: "'base_domain' is missing from secrets/infra.yml."
+
+- name: Decide whether cms-oauth is configured
+  ansible.builtin.set_fact:
+    cms_oauth_enabled: >-
+      {{
+        (infrastructure_secrets.github_oauth_client_id | default('') | length > 0)
+        and (infrastructure_secrets.github_oauth_client_secret | default('') | length > 0)
+      }}
+    cms_oauth_build_path: /opt/iac/cms-oauth
+
+- name: Stop cms-oauth when secrets are not configured
+  when: not (cms_oauth_enabled | bool)
+  community.docker.docker_container:
+    name: cms-oauth
+    state: absent
+
+- name: Sync cms-oauth build context to host
+  when: cms_oauth_enabled | bool
+  ansible.posix.synchronize:
+    src: "{{ role_path }}/files/cms-oauth/"
+    dest: "{{ cms_oauth_build_path }}/"
+    delete: true
+    rsync_opts:
+      - "--exclude=__pycache__"
+      - "--exclude=*.pyc"
+      - "--checksum"
+      - "--omit-dir-times"
+
+- name: Build cms-oauth image
+  when: cms_oauth_enabled | bool
+  community.docker.docker_image:
+    name: cms-oauth
+    source: build
+    force_source: true
+    build:
+      path: "{{ cms_oauth_build_path }}"
+    state: present
+
+- name: Run cms-oauth behind Traefik
+  when: cms_oauth_enabled | bool
+  community.docker.docker_container:
+    name: cms-oauth
+    image: cms-oauth
+    state: started
+    restart_policy: unless-stopped
+    memory: "64m"
+    memory_swap: "64m"
+    log_driver: json-file
+    log_options:
+      max-size: "5m"
+      max-file: "2"
+    env:
+      GITHUB_CLIENT_ID: "{{ infrastructure_secrets.github_oauth_client_id }}"
+      GITHUB_CLIENT_SECRET: "{{ infrastructure_secrets.github_oauth_client_secret }}"
+      ALLOWED_DOMAINS: "{{ infrastructure_secrets.cms_oauth_allowed_domains | default('') }}"
+      GITHUB_HOSTNAME: "{{ infrastructure_secrets.github_oauth_hostname | default('github.com') }}"
+      PORT: "8080"
+    networks:
+      - name: traefik
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.cms-oauth.rule: "Host(`auth.{{ base_domain }}`)"
+      traefik.http.routers.cms-oauth.entrypoints: "websecure"
+      traefik.http.routers.cms-oauth.tls.certresolver: "letsencrypt"
+      traefik.http.routers.cms-oauth.middlewares: "cms-oauth-headers"
+      traefik.http.middlewares.cms-oauth-headers.headers.customResponseHeaders.X-Frame-Options: "DENY"
+      traefik.http.middlewares.cms-oauth-headers.headers.customResponseHeaders.Referrer-Policy: "strict-origin-when-cross-origin"
+      traefik.http.middlewares.cms-oauth-headers.headers.customResponseHeaders.Strict-Transport-Security: "max-age=31536000; includeSubDomains"
+      traefik.http.middlewares.cms-oauth-headers.headers.customResponseHeaders.X-Content-Type-Options: "nosniff"
+      traefik.http.services.cms-oauth.loadbalancer.server.port: "8080"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/auth')",
+        ]
+      interval: 60s
+      timeout: 5s
+      retries: 2
+      start_period: 5s
+  no_log: true

@@ -2,7 +2,7 @@
 
 # Roadmap (open work)
 
-Completed platform layout, secrets/mounts, and devcontainer DX are the current baseline (see root [README](../../README.md)). Below is only what is still to do.
+Completed baseline includes platform layout, secrets/mounts, and the Sveltia CMS OAuth proxy (`auth.<base_domain>`). Below is only what is still to do.
 
 ```mermaid
 flowchart LR
@@ -11,7 +11,6 @@ flowchart LR
     honeypot[Honeypot]
   end
   subgraph enhancements [Platform enhancements]
-    auth[Sveltia OAuth proxy]
     grafana[Grafana]
     backup[Backup shape]
   end
@@ -35,12 +34,6 @@ Design: [honeypot.md](honeypot.md)
 
 ## Platform enhancements
 
-### Sveltia CMS OAuth proxy
-
-`auth.<base_domain>` behind Traefik; Decap/Sveltia popup protocol; one GitHub OAuth App; allowlist Pages hosts. Plan decided — not implemented.
-
-Design: [oauth-auth-proxy-implementor-brief.md](oauth-auth-proxy-implementor-brief.md)
-
 ### Grafana
 
 Optional dashboards on top of OpenObserve when built-in UI is not enough. Parked.
@@ -53,3 +46,7 @@ Design: [grafana-exploration.md](grafana-exploration.md)
 |------|--------|
 | Backup shape | Standardize `backup:` in `iac.yml` vs `.iac/backup.yml`; align Taskfile + Prefect |
 | Platform UX | Docker context naming, registry hostname clarity across envs |
+
+## Done (reference)
+
+- **CMS OAuth proxy** — implemented; contract notes: [oauth-auth-proxy-implementor-brief.md](oauth-auth-proxy-implementor-brief.md)

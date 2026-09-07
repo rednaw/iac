@@ -9,7 +9,8 @@ Runs in this order so Traefik, registry auth paths, fail2ban log readers, and Pr
 3. iac-user (`iac` user, `/opt/iac/` tree)
 4. registry (Docker registry behind Traefik)
 5. openobserve (logs/metrics)
-6. prefect (workflow runner)
+6. cms-oauth (Sveltia GitHub OAuth proxy at `auth.<base_domain>`)
+7. prefect (workflow runner)
 
 ## Co-location assumptions
 
@@ -17,8 +18,8 @@ Components are split into separate task files for readability, but they assume *
 
 | Cross-component link | Producer | Consumer(s) |
 |---|---|---|
-| `traefik` Docker network | [`traefik.yml`](tasks/traefik.yml) | registry, openobserve, prefect, apps |
-| `letsencrypt` cert resolver (Traefik) | [`traefik.yml`](tasks/traefik.yml) | registry, openobserve, prefect, apps (via Docker labels) |
+| `traefik` Docker network | [`traefik.yml`](tasks/traefik.yml) | registry, openobserve, cms-oauth, prefect, apps |
+| `letsencrypt` cert resolver (Traefik) | [`traefik.yml`](tasks/traefik.yml) | registry, openobserve, cms-oauth, prefect, apps (via Docker labels) |
 | `/etc/traefik/auth/htpasswd` | [`registry.yml`](tasks/registry.yml) | Traefik basic-auth middleware |
 | `/var/log/traefik/access.log` | [`traefik.yml`](tasks/traefik.yml) | [`fail2ban-traefik.yml`](tasks/fail2ban-traefik.yml) jails |
 | `iac` user (gid: docker, no home) | [`iac-user.yml`](tasks/iac-user.yml) | registry auth, prefect worker |
