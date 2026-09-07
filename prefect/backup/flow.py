@@ -96,13 +96,19 @@ def _backup_app(app_slug: str, deploy_dir: Path, log) -> None:
 
     _restic_init_if_needed(env, log)
     log.info("MEASURE: step=restic_backup app=%s", app_slug)
-    _restic_check(_restic_run(["backup", str(staging)], env), "restic backup")
+    # Stable --host so retention is not split when prefect-worker container ID changes.
+    _restic_check(
+        _restic_run(["backup", "--host", app_slug, str(staging)], env),
+        "restic backup",
+    )
 
     log.info("MEASURE: step=restic_forget app=%s", app_slug)
     _restic_check(
         _restic_run(
             [
                 "forget",
+                "--group-by",
+                "paths",
                 "--keep-daily",
                 str(keep_daily),
                 "--keep-weekly",
