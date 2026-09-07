@@ -110,5 +110,5 @@ tasks:
       - sh: test -d "/workspaces/{{.APP}}"
         msg: "App not found at /workspaces/{{.APP}}. Clone the app as a sibling of iac/ on the host (same parent), rebuild the container, then retry."
       - sh: test -f "/workspaces/{{.APP}}/.iac/iac.yml"
-        msg: "App missing /workspaces/{{.APP}}/.iac/iac.yml. Create the .iac/ contract; see docs/new-project.md."
+        msg: "App missing /workspaces/{{.APP}}/.iac/iac.yml. Create the .iac/ contract under the sibling app clone."
 

@@ -1,4 +1,4 @@
-[**<---**](../README.md)
+[**<---**](../../README.md)
 
 # Secrets and mounts
 
@@ -117,7 +117,7 @@ Playbooks load infra secrets first. **`deploy_app`** copies **`/workspaces/<name
 │   ├── terraform/
 │   ├── tasks/
 │   ├── prefect/
-│   ├── docs/
+│   ├── docs/future/
 │   ├── .devcontainer/
 │   └── ...
 ├── app1/
@@ -130,7 +130,7 @@ Playbooks load infra secrets first. **`deploy_app`** copies **`/workspaces/<name
 
 ## Application `.iac/` contract
 
-Per application repo (see also [Traefik](../traefik.md), [New project](../new-project.md), [tientje-ketama](https://github.com/rednaw/tientje-ketama)):
+Per application repo (see [tientje-ketama](https://github.com/rednaw/tientje-ketama) for a working `.iac/` example; Traefik labels live in `.iac/docker-compose.yml`):
 
 1. Infrastructure keys exist **only** in the IaC fork **`secrets/infra.yml`**, not in the app repo.
 2. **`.iac/iac.yml`** — plaintext **`image_name`**, **`app_domains`**; no cloud/registry/SSH secrets.

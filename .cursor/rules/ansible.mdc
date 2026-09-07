@@ -1,0 +1,13 @@
+---
+description: Ansible base vs platform conventions
+globs: ansible/**
+alwaysApply: false
+---
+
+# Ansible
+
+- **base** — reusable hardening + Docker (`roles/base/`).
+- **platform** — Traefik, registry, OpenObserve, Prefect, iac-user (`roles/platform/`). Keep co-located; don’t split into micro-roles without interfaces (`roles/platform/README.md`).
+- Secrets: load via `ansible/tasks/secrets.yml` → `infrastructure_secrets` from `secrets/infra.yml`.
+- Templates under `roles/<role>/templates/`; task entry `tasks/main.yml` imports subtasks.
+- App deploys: `roles/deploy_app/` + playbook `playbooks/deploy-app.yml`.

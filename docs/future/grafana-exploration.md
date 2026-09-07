@@ -1,4 +1,4 @@
-[**<---**](../README.md)
+[**<---**](../../README.md)
 
 # Grafana as dashboard layer (exploration)
 

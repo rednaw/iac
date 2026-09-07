@@ -1,0 +1,23 @@
+---
+description: Core project modes, secrets, sibling apps, brevity
+alwaysApply: true
+---
+
+# Project
+
+Single-server IaC (Terraform + Ansible + SOPS + Docker). Indie / small-team.
+
+## Modes
+
+- **Develop:** Discuss until unambiguous, then implement only after explicit go ("go", "implement"). Prefer design notes in `docs/future/` for roadmap items.
+- **Observe:** Diagnose via SSH / Docker context; do not change the live system. Fixes land in this repo then apply via `task`.
+
+## Layout assumptions
+
+- Open the **`iac` folder** (no multi-root workspace file).
+- Parent mount: apps at `/workspaces/<app>/`; contract is `.iac/` (`iac.yml`, `docker-compose.yml`, SOPS `.env`).
+- Infra secrets: fork `secrets/infra.yml` → Ansible fact `infrastructure_secrets` (`ansible/tasks/secrets.yml`).
+
+## Answering
+
+Be brief. Prefer code paths over prose. Do not invent docs under `docs/` except `docs/future/`. Search the repo before guessing.

@@ -2,7 +2,7 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/ansible/ansible-lint/main/src/ansiblelint/schemas/ansible.json#/$defs/tasks
 # Prefect: server and worker in containers. Worker has Docker socket + crane for registry/backup jobs.
 # Flow code is synced separately via prefect-deploy.yml playbook (task workflow:deploy).
-# Registry auth shared at /opt/iac/.docker. See docs/server-layout.md.
+# Registry auth shared at /opt/iac/.docker.
 
 - name: Set Prefect variables
   ansible.builtin.set_fact:

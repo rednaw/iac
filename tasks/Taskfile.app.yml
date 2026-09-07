@@ -10,8 +10,6 @@
 #   task app:deploy     -- <env> <app> <sha>
 #   task app:versions   -- <env> <app>
 #   task app:delete-tag -- <app> <tag>      # one-time: remove a tag from the registry (e.g. latest)
-#
-# See docs/application-deployment.md.
 
 version: '3'
 
@@ -42,7 +40,7 @@ tasks:
       - |
         for f in .iac/iac.yml .iac/.env .iac/docker-compose.yml; do
           if [ ! -f "{{.APP_ROOT}}/$f" ]; then
-            echo "App missing {{.APP_ROOT}}/$f. Create the .iac/ contract; see docs/new-project.md." >&2
+            echo "App missing {{.APP_ROOT}}/$f. Create the .iac/ contract (iac.yml, docker-compose.yml, .env)." >&2
             exit 1
           fi
         done
@@ -51,7 +49,7 @@ tasks:
         _forbidden_keys="base_domain hcloud_token terraform_cloud_organization terraform_cloud_token ssh_keys allowed_ssh_ips transip_account_name transip_private_key registry_username registry_password registry_http_secret openobserve_username openobserve_password abuseipdb_api_key server_type"
         for k in $_forbidden_keys; do
           if [ "$(yq "has(\"$k\")" "$_iac")" = "true" ]; then
-            echo "Forbidden infrastructure key \"$k\" in $_iac — move it to secrets/infra.yml (fork). See docs/future/secrets-and-mounts.md." >&2
+            echo "Forbidden infrastructure key \"$k\" in $_iac — move it to secrets/infra.yml (fork)." >&2
             exit 1
           fi
         done

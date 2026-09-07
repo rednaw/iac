@@ -1,0 +1,13 @@
+---
+description: App .iac contract and deploy tasks
+globs: tasks/Taskfile.app.yml,ansible/roles/deploy_app/**,ansible/playbooks/deploy*.yml
+alwaysApply: false
+---
+
+# App deploy
+
+- App basename `<app>` → `/workspaces/<app>/.iac/`.
+- Required: `iac.yml` (plain: `image_name`, `app_domains`), `docker-compose.yml`, SOPS `.env`.
+- No infra keys in `iac.yml` — those belong in `secrets/infra.yml`.
+- Commands: `task app:deploy -- <env> <app> <7-char-sha>`, `task app:versions -- <env> <app>`.
+- Role: `ansible/roles/deploy_app/`.

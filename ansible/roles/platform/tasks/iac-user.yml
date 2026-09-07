@@ -1,6 +1,6 @@
 ---
 # Configure iac user and /opt/iac tree (server layout)
-# See docs/server-layout.md. User iac runs app deploys; no home dir; shared .docker for registry auth.
+# User iac runs app deploys; no home dir; shared .docker for registry auth.
 
 - name: Ensure iac user exists
   ansible.builtin.user:

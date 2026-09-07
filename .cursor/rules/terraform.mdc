@@ -1,0 +1,11 @@
+---
+description: Terraform platform root and modules
+globs: terraform/**
+alwaysApply: false
+---
+
+# Terraform
+
+- Root: `terraform/platform/` (workspaces `dev` / `prod`, state in Terraform Cloud).
+- Shared VPS module: `terraform/modules/server/`.
+- Vars / locals / outputs in the platform root. New server types add another root beside `platform/` composing the same module.

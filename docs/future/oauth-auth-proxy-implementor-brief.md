@@ -1,4 +1,4 @@
-[**<---**](README.md)
+[**<---**](../../README.md)
 
 # Plan: OAuth callback proxy for Sveltia CMS (GitHub Pages)
 

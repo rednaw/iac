@@ -1,0 +1,29 @@
+---
+description: Repo path map and common task namespaces
+alwaysApply: true
+---
+
+# Layout
+
+| Area | Path |
+|------|------|
+| Base OS/Docker | `ansible/roles/base/` |
+| Platform stack | `ansible/roles/platform/` |
+| Deploy app | `ansible/roles/deploy_app/`, `ansible/playbooks/deploy-app.yml` |
+| Terraform | `terraform/platform/` → `terraform/modules/server/` |
+| Prefect | `prefect/<flow>/`, `prefect/prefect.yaml` |
+| Tasks | `Taskfile.yml`, `tasks/Taskfile.*.yml` |
+| Devcontainer | `.devcontainer/` |
+| Roadmap | `docs/future/` |
+
+## Tasks
+
+- `platform:provision:*` — Terraform (`-- <env>`)
+- `platform:configure:*` — Ansible server
+- `app:deploy` / `app:versions` — `-- <env> <app> <sha>`
+- `secrets:*` — keygen, init, sops config
+- `server:ssh` / `server:check-status` — `-- <env>`
+- `tunnel:start` — dashboard forwards
+- `test:run` — lint
+
+`playbooks/server.yml` applies `[base, platform]`.

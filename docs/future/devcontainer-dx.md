@@ -1,4 +1,4 @@
-[**<---**](README.md)
+[**<---**](../../README.md)
 
 # Devcontainer DX: sibling mounts without multi-root workspace
 
@@ -28,5 +28,5 @@ Deploy needs `.iac/` inside the container. Removing the parent mount forces copy
 
 ## Related
 
-- [Launch devcontainer](../launch-devcontainer.md)
 - [Secrets and mounts](secrets-and-mounts.md)
+- Root [README](../../README.md)
