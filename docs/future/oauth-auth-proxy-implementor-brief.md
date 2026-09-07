@@ -2,7 +2,7 @@
 
 # Plan: OAuth callback proxy for Sveltia CMS (GitHub Pages)
 
-**Status:** decided — not implemented yet.  
+**Status:** implemented (platform service `cms-oauth`).  
 **Audience:** implementor in this IaC repo.  
 **Protocol contract:** Decap/Netlify CMS–style OAuth proxy (Sveltia-compatible). Stack choice (image vs tiny custom service) is still open at implement time; prefer an existing compatible image if it meets the contract.
 
@@ -18,8 +18,8 @@
 | GitHub OAuth App | **One** app; callback `https://auth.<base_domain>/callback` |
 | Allowlist | Both (all) Pages hostnames that may open the CMS popup |
 | Providers (v1) | **GitHub.com only** |
-| IaC shape | **Platform service** (`roles/platform`), secrets in **`secrets/infra.yml`** — not an `apps/` deploy |
-| Out of scope products | Authentik, oauth2-proxy, Keycloak (wrong model: forward-auth / IdP, not CMS popup handoff) |
+| IaC shape | **Platform service** (`roles/platform` → `cms-oauth`), secrets in **`secrets/infra.yml`** — not an `apps/` deploy |
+| Implementation | Tiny Python image under `ansible/roles/platform/files/cms-oauth/`; skipped until OAuth secrets are set |
 
 ```mermaid
 flowchart LR

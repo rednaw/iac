@@ -9,6 +9,7 @@ Opinionated IaC for a **single Hetzner VPS**: Terraform provisions, Ansible conf
 - Hardened Ubuntu (SSH keys, fail2ban, unattended upgrades)
 - Traefik (HTTPS / Let’s Encrypt) + private Docker registry
 - OpenObserve (logs/metrics) + Prefect (scheduled jobs) + Restic backups
+- Optional CMS OAuth proxy at `auth.<base_domain>` (Sveltia / GitHub Pages)
 - Devcontainer with Task, Ansible, Terraform, SOPS, Docker CLI
 
 ## Work here
@@ -36,7 +37,7 @@ Run `task` for the full list.
 | What | Path |
 |------|------|
 | OS + Docker baseline | `ansible/roles/base/` |
-| Traefik, registry, OpenObserve, Prefect | `ansible/roles/platform/` |
+| Traefik, registry, OpenObserve, CMS OAuth, Prefect | `ansible/roles/platform/` |
 | App deploy | `ansible/roles/deploy_app/`, `tasks/Taskfile.app.yml` |
 | Server provisioning | `terraform/platform/` (+ `terraform/modules/server/`) |
 | Scheduled flows | `prefect/` |
@@ -47,4 +48,4 @@ Run `task` for the full list.
 
 ## Roadmap
 
-Planned work (OAuth proxy for Sveltia, VPN, honeypot, …): [`docs/future/`](docs/future/).
+Planned work (VPN, honeypot, …): [`docs/future/`](docs/future/).

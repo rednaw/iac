@@ -91,6 +91,24 @@ resource "transip_dns_record" "registry_aaaa" {
   content = [local.server_ipv6]
 }
 
+resource "transip_dns_record" "auth_a" {
+  count   = local.is_prod ? 1 : 0
+  domain  = var.base_domain
+  name    = "auth"
+  type    = "A"
+  expire  = 60
+  content = [local.server_ipv4]
+}
+
+resource "transip_dns_record" "auth_aaaa" {
+  count   = local.is_prod ? 1 : 0
+  domain  = var.base_domain
+  name    = "auth"
+  type    = "AAAA"
+  expire  = 60
+  content = [local.server_ipv6]
+}
+
 resource "transip_dns_record" "www" {
   count   = local.is_prod ? 1 : 0
   domain  = var.base_domain
