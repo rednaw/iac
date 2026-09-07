@@ -13,7 +13,7 @@ Runs in this order so Traefik, registry auth paths, fail2ban log readers, and Pr
 
 ## Co-location assumptions
 
-Components are split into separate task files for readability, but they assume **single-host co-location**. Splitting components to different hosts needs explicit interfaces (networking, secrets) — see [`docs/future/restructuring.md`](../../../docs/future/restructuring.md#discipline-for-future-splits).
+Components are split into separate task files for readability, but they assume **single-host co-location**. Splitting components to different hosts needs explicit interfaces (networking, secrets) — document assumptions here when they matter.
 
 | Cross-component link | Producer | Consumer(s) |
 |---|---|---|
