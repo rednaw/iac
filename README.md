@@ -63,6 +63,6 @@ All configuration and encrypted secrets live in your application repository unde
 
 **Single server, done well.** Many projects don't need a cluster. They need one reliable server, properly configured.
 
-**One place to work.** Open the workspace, Reopen in Container, all tooling and services are wired to work together, ready when you are.
+**One place to work.** Open the **`iac`** folder, Reopen in Container, all tooling and services are wired to work together, ready when you are.
 
 

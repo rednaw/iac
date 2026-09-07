@@ -5,7 +5,7 @@
   // Clone the IaC repo as a folder named "iac" next to app repos (siblings).
   // Parent mount exposes both: /workspaces/iac and /workspaces/<app>.
   // Tasks resolve <app> CLI args to /workspaces/<app>/.iac/.
-  // Forks list sibling app clones in the sidebar via iac.code-workspace.
+  // Open the iac folder in the editor (no multi-root workspace file required).
   "workspaceMount": "source=${localWorkspaceFolder}/..,target=/workspaces,type=bind",
   "workspaceFolder": "/workspaces/iac",
 

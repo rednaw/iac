@@ -64,22 +64,7 @@ The devcontainer mounts **`${localWorkspaceFolder}/..`** at **`/workspaces`** ([
 
 Convention: clone **`iac`** and each app as **siblings** on the host. Inside the container they appear as **`/workspaces/iac`** and **`/workspaces/<name>/`** — **`<name>`** is the second argument to **`task app:deploy`** and **`task app:versions`**.
 
----
-
-## Workspace UI
-
-Use **`iac.code-workspace`** to add sibling app clones to the sidebar:
-
-```json
-{
-  "folders": [
-    { "path": "." },
-    { "path": "../app1", "name": "app1" },
-    { "path": "../app2", "name": "app2" }
-  ],
-  "settings": {}
-}
-```
+Open the **`iac`** folder in the editor (no multi-root workspace file). The sidebar is IaC-only; tasks still resolve sibling apps under **`/workspaces`**. See [Devcontainer DX](devcontainer-dx.md).
 
 ---
 

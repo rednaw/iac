@@ -26,9 +26,9 @@ Use the real folder basename — it becomes **`<app>`** in **`task app:deploy --
 
 ---
 
-## 2. Open the devcontainer
+## 2. Open the IaC folder
 
-Open **`iac/iac.code-workspace`** in VS Code/Cursor → **Reopen in Container**.
+**File → Open Folder** on the **`iac`** directory → **Reopen in Container**.
 
 Until **`secrets/infra.yml`** decrypts for you, registry / Terraform Cloud / **hcloud** are usually **not** configured inside the container — expected until you are added as a recipient.
 

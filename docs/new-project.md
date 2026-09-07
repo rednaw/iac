@@ -53,9 +53,9 @@ my-app/
 
 ---
 
-## 3. Open the devcontainer
+## 3. Open the IaC folder
 
-Open **`iac/iac.code-workspace`** in VS Code/Cursor, then **Reopen in Container** (Cmd+Shift+P → Dev Containers: Reopen in Container).
+**File → Open Folder** on the **`iac`** directory, then **Reopen in Container** (Cmd+Shift+P → Dev Containers: Reopen in Container).
 
 Until **`secrets/infra.yml`** exists and decrypts, Task/SOPS/Terraform/Ansible are available but registry auth, Terraform Cloud, and **hcloud** are typically **not** wired yet.
 

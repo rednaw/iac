@@ -76,7 +76,7 @@ graph TB
 
 ---
 
-**[Future plans](future/README.md)** — Multiple server types (VPN, honeypot), Sveltia OAuth proxy, Grafana, and related enhancements.
+**[Future plans](future/README.md)** — Multiple server types (VPN, honeypot), Sveltia OAuth proxy, devcontainer DX, Grafana, and related enhancements.
 
 ---
 
