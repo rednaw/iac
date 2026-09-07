@@ -16,6 +16,7 @@ flowchart LR
     end
 
     subgraph enhancements ["Platform enhancements"]
+        auth["Sveltia OAuth proxy"]
         grafana["Grafana dashboards"]
     end
 
@@ -82,6 +83,15 @@ Design: **[Honeypot server](honeypot.md)**
 ## Platform enhancements
 
 Not blocked by the modular Terraform/Ansible split, lower priority.
+
+### Sveltia CMS OAuth proxy (GitHub Pages)
+
+Shared Decap-style OAuth callback proxy on the platform at **`auth.<base_domain>`** so static sites on **GitHub Pages** (Sveltia) can sign in with GitHub without embedding a client secret. One OAuth App, allowlisted Pages hostnames, Traefik TLS.
+
+- **Blocked by:** implementation only (platform already has Traefik + secrets)
+- **Status:** plan decided — not implemented
+
+Design: **[OAuth auth proxy plan](oauth-auth-proxy-implementor-brief.md)**
 
 ### Grafana as dashboard layer
 
