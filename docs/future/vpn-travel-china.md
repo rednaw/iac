@@ -4,7 +4,7 @@
 
 Self-hosted VPN on a **dedicated Hetzner VPS** for personal use (MacBook Pro + iPhone) during a trip to China. Managed by this IaC project. **Not legal advice** -- check current rules before you travel.
 
-**Prerequisite:** [Repo layout](restructuring.md) — composable Ansible (**`base`** + purpose roles), shared Terraform **`modules/server`**, purpose-based Task namespaces. This document assumes that layout is in place.
+**Prerequisite:** shared Terraform `modules/server`, Ansible `roles/base` + purpose role, Task `_terraform:*` / `_ansible:*` (see [Roadmap](README.md#new-server-types)). This document assumes that layout is in place.
 
 ---
 
@@ -68,7 +68,7 @@ Check the OpenObserve dashboard through your VPN tunnel when needed. If the prod
 
 ## How it fits in the repo
 
-Uses patterns from [repo layout](restructuring.md):
+Uses the new-server-type pattern in [Roadmap](README.md#new-server-types):
 
 ### Terraform
 

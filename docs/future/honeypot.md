@@ -4,7 +4,7 @@
 
 A dedicated Hetzner VPS running honeypot services to observe attacker behavior after a "compromise." Managed by this IaC project. **Not a real vulnerable system** -- uses established honeypot software that simulates services without giving real access.
 
-**Prerequisite:** [Repo layout](restructuring.md) (shared Terraform module, **`base`** + purpose Ansible roles, **`platform:*`** tasks).
+**Prerequisite:** shared Terraform `modules/server`, Ansible `roles/base` + purpose role, Task `_terraform:*` / `_ansible:*` (see [Roadmap](README.md#new-server-types)).
 
 ---
 
@@ -145,7 +145,7 @@ Deployed by Ansible as part of `roles/honeypot/`.
 
 ## How it fits in the repo
 
-Uses patterns from [repo layout](restructuring.md).
+Uses the new-server-type pattern in [Roadmap](README.md#new-server-types).
 
 ### Terraform
 
