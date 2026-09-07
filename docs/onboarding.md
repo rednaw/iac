@@ -7,7 +7,7 @@
 Install on your machine:
 
 - **[Docker](https://docs.docker.com/get-docker/)** — to run the IaC devcontainer
-- **[VS Code](https://code.visualstudio.com/) or [Cursor](https://cursor.com/)** — to open the workspace and run extensions
+- **[VS Code](https://code.visualstudio.com/) or [Cursor](https://cursor.com/)** — to open the IaC folder and run extensions
 
 **Extensions** (install in VS Code or Cursor via **Cmd+Shift+X** → search by name):
 
@@ -30,7 +30,7 @@ You have an app and want to deploy it on your own Hetzner server. You will creat
 | Step | What you do | Time |
 |------|-------------|------|
 | 1. **[New project](new-project.md)** | Create SOPS keys, secrets file, external accounts (Hetzner, Terraform Cloud), provision the server with Terraform + Ansible, set up DNS. | ~60 min |
-| 2. **[Launch devcontainer](launch-devcontainer.md)** | Open the IaC workspace; parent mount exposes sibling apps at **`/workspaces/<name>/`**. **`secrets/infra.yml`** decrypt drives credentials. | ~5 min |
+| 2. **[Launch devcontainer](launch-devcontainer.md)** | Open the **`iac`** folder → Reopen in Container; parent mount exposes sibling apps at **`/workspaces/<name>/`**. **`secrets/infra.yml`** decrypt drives credentials. | ~5 min |
 | 3. **[Application deployment](application-deployment.md)** | **`/workspaces/<app>/.iac/`** contract: plain **`iac.yml`**, SOPS **`.env`**, **`docker-compose.yml`** with Traefik; **`task app:deploy -- dev <app> <sha>`**. | ~30 min |
 | 4. **[App secrets](secrets.md#creating-app-secrets)** | Create `.iac/.env` with app runtime secrets (database URL, API keys). | ~10 min |
 

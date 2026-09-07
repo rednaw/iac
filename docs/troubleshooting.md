@@ -40,7 +40,7 @@
 
 | Problem | What to do |
 |--------|------------|
-| **`App missing …/.iac/…`** or empty **`/workspaces/<app>`** | Clone the app as a **sibling** of **`iac/`** on the host, then rebuild/reopen the container ([Launch devcontainer](launch-devcontainer.md)). |
+| **`App missing …/.iac/…`** or empty **`/workspaces/<app>`** | Clone the app as a **sibling** of **`iac/`** on the host, then rebuild/reopen the container ([Launch devcontainer](launch-devcontainer.md)). Open the **`iac` folder** (not a multi-root workspace file). |
 | **`Usage: task app:deploy -- <env> <app> <sha>`** | Pass **three** words after **`--`**: environment, **directory basename** under **`/workspaces/`**, and 7-char SHA. |
 | **`Forbidden infrastructure key`** | Infra keys belong in **`secrets/infra.yml`**, not **`/workspaces/<app>/.iac/iac.yml`**. |
 | Ansible playbook failures | Playbook logs; **`secrets/infra.yml`** decrypts? **`task server:check-status`**. |

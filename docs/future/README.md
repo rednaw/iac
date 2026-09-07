@@ -17,6 +17,7 @@ flowchart LR
 
     subgraph enhancements ["Platform enhancements"]
         auth["Sveltia OAuth proxy"]
+        dx["Devcontainer DX (C)"]
         grafana["Grafana dashboards"]
     end
 
@@ -83,6 +84,14 @@ Design: **[Honeypot server](honeypot.md)**
 ## Platform enhancements
 
 Not blocked by the modular Terraform/Ansible split, lower priority.
+
+### Devcontainer DX (sibling mounts, no multi-root workspace)
+
+Open the **`iac`** folder only; keep parent **`/workspaces`** mount for sibling apps. No required `*.code-workspace`.
+
+- **Status:** decided and implemented
+
+Design: **[Devcontainer DX](devcontainer-dx.md)**
 
 ### Sveltia CMS OAuth proxy (GitHub Pages)
 
