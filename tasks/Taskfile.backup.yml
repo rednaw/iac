@@ -20,7 +20,7 @@ tasks:
       vars: [APP]
     preconditions:
       - sh: test -f "{{.APPS_ROOT}}/{{.APP}}/.iac/backup.yml"
-        msg: "Missing {{.APPS_ROOT}}/{{.APP}}/.iac/backup.yml (Restic contract). See docs/backups.md"
+        msg: "Missing {{.APPS_ROOT}}/{{.APP}}/.iac/backup.yml (Restic contract)."
 
   restore:
     desc: "Restic restore for an app. Use: task backup:restore -- <dev|prod> <app> [snapshot] [--confirm|...]"

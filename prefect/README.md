@@ -3,7 +3,7 @@
 This directory is the Prefect project. Flow code is synced to the server by running `task workflow:deploy -- <workspace>`, which syncs this directory to `/opt/iac/prefect/flows`, builds the worker image from `Dockerfile.worker` if needed, and runs `prefect deploy --all` to register deployments.
 
 - **Server:** Prefect server runs in a Docker container (API + UI).
-- **Worker:** Runs in a Docker container (`prefect-worker`) with the Docker socket mounted and `/opt/iac` mounted (flow code at `/opt/iac/prefect/flows`), so flows can run `docker exec`, use crane for the registry, and access other containers. Work pool: **`host-pool`** (process type; flows run as subprocesses inside the worker container). Registry auth: `DOCKER_CONFIG=/opt/iac/.docker` (shared with iac user). See [Server layout](../docs/server-layout.md).
+- **Worker:** Runs in a Docker container (`prefect-worker`) with the Docker socket mounted and `/opt/iac` mounted (flow code at `/opt/iac/prefect/flows`), so flows can run `docker exec`, use crane for the registry, and access other containers. Work pool: **`host-pool`** (process type; flows run as subprocesses inside the worker container). Registry auth: `DOCKER_CONFIG=/opt/iac/.docker` (shared with iac user). See `ansible/roles/platform/tasks/prefect.yml` and `iac-user.yml`.
 
 Requires: Docker. Flow code is synced to `/opt/iac/prefect/flows`. Registry auth is at `/opt/iac/.docker` (shared).
 

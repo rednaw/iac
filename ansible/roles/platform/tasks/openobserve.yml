@@ -51,7 +51,7 @@
       ZO_ROOT_USER_EMAIL: "{{ infrastructure_secrets.openobserve_username }}@observe.local"
       ZO_ROOT_USER_PASSWORD: "{{ infrastructure_secrets.openobserve_password }}"
       ZO_LOCAL_MODE: "true"
-      # Keep history short on small root disks (see docs/incidents/2026-08-27-prod-disk-full.md)
+      # Keep history short on small root disks (cardinality / disk risk)
       ZO_RETENTION_DAYS: "7"
       ZO_COMPACT_ENABLED: "true"
       ZO_TELEMETRY: "false"
