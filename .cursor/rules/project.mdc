@@ -1,23 +1,14 @@
 ---
-description: Core project modes, secrets, sibling apps, brevity
+description: Single-server IaC identity — sibling apps, secrets, modes
 alwaysApply: true
 ---
 
 # Project
 
-Single-server IaC (Terraform + Ansible + SOPS + Docker). Indie / small-team.
+Single Hetzner VPS. Terraform + Ansible + SOPS + Docker.
 
-## Modes
+Open the **`iac` folder** (not a multi-root of all apps). In the container, apps are `/workspaces/<app>/`; contract is `.iac/` (`iac.yml`, `docker-compose.yml`, SOPS `.env`). Infra secrets: `secrets/infra.yml`.
 
-- **Develop:** Discuss until unambiguous, then implement only after explicit go ("go", "implement"). Prefer design notes in `docs/future/` for roadmap items.
-- **Observe:** Diagnose via SSH / Docker context; do not change the live system. Fixes land in this repo then apply via `task`.
+**Develop:** discuss until unambiguous; implement only after explicit go. Roadmap lives in `docs/future/` only.
 
-## Layout assumptions
-
-- Open the **`iac` folder** (no multi-root workspace file).
-- Parent mount: apps at `/workspaces/<app>/`; contract is `.iac/` (`iac.yml`, `docker-compose.yml`, SOPS `.env`).
-- Infra secrets: fork `secrets/infra.yml` → Ansible fact `infrastructure_secrets` (`ansible/tasks/secrets.yml`).
-
-## Answering
-
-Be brief. Prefer code paths over prose. Do not invent docs under `docs/` except `docs/future/`. Search the repo before guessing.
+**Observe:** diagnose via SSH/Docker; do not change the live system. Fixes land here, then `task`.

@@ -1,6 +1,7 @@
 ---
 description: Repo path map and common task namespaces
-alwaysApply: true
+globs: Taskfile.yml,tasks/**,ansible/**,terraform/**,prefect/**,.devcontainer/**,docs/future/**
+alwaysApply: false
 ---
 
 # Layout
