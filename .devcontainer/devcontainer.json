@@ -11,6 +11,8 @@
 
   "mounts": [
     "source=iac-cursor-state,target=/home/vscode/.cursor,type=volume",
+    "source=${localEnv:HOME}/.cursor/skills,target=/home/vscode/.cursor/skills,type=bind",
+    "source=${localEnv:HOME}/.cursor/skills,target=/workspaces/iac/.cursor/skills,type=bind",
     "source=${localEnv:HOME}/.ssh,target=/home/vscode/.ssh,type=bind",
     "source=${localEnv:HOME}/.config/sops,target=/home/vscode/.config/sops,type=bind"
   ],
