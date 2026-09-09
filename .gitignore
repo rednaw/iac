@@ -26,3 +26,6 @@ secrets/
 
 .DS_Store
 .vscode/
+
+# Host skills bind-mounted in the Dev Container
+.cursor/skills/

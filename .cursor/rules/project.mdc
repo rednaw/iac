@@ -12,3 +12,5 @@ Open the **`iac` folder** (not a multi-root of all apps). In the container, apps
 **Develop:** discuss until unambiguous; implement only after explicit go. Roadmap lives in `docs/future/` only.
 
 **Observe:** diagnose via SSH/Docker; do not change the live system. Fixes land here, then `task`.
+
+Part of the **rednaw portfolio**. Do not web-search it. Skill `rednaw-map`.
