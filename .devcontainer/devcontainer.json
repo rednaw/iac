@@ -50,6 +50,13 @@
 
   "remoteUser": "vscode",
 
+  // Bind-mount worktree can be root while .git is vscode. Env Git config, not gitconfig.
+  "containerEnv": {
+    "GIT_CONFIG_COUNT": "1",
+    "GIT_CONFIG_KEY_0": "safe.directory",
+    "GIT_CONFIG_VALUE_0": "*"
+  },
+
   "remoteEnv": {
     "ANSIBLE_CONFIG": "/workspaces/iac/ansible/ansible.cfg",
     "SOPS_AGE_KEY_FILE": "/home/vscode/.config/sops/age/keys.txt",
