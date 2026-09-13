@@ -5,6 +5,7 @@ Opinionated IaC for a **single Hetzner VPS**: Terraform provisions, Ansible conf
 ## Included
 
 - Hardened Ubuntu (SSH keys, fail2ban, unattended upgrades)
+- SOPS encrypted infrastructure and application secrets.
 - Traefik (HTTPS / Let’s Encrypt) + private Docker registry
 - OpenObserve (logs/metrics) + Prefect (scheduled jobs) + Restic backups
 - Optional CMS OAuth proxy at `auth.<base_domain>` (Sveltia / GitHub Pages)
@@ -14,7 +15,6 @@ Opinionated IaC for a **single Hetzner VPS**: Terraform provisions, Ansible conf
 
 1. Clone this repo as a folder named **`iac`**, and each app as a **sibling** (same parent directory).
 2. **File → Open Folder** on **`iac`** → **Reopen in Container**.
-3. SOPS encrypted infrastructure and application secrets.
 
 Tasks resolve apps at `/workspaces/<app>/` (parent mount). The editor sidebar is IaC-only.
 
