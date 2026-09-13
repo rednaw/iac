@@ -2,8 +2,6 @@
 
 Opinionated IaC for a **single Hetzner VPS**: Terraform provisions, Ansible configures, SOPS encrypts secrets, Docker Compose runs apps.
 
-![Architecture](architecture.svg)
-
 ## Included
 
 - Hardened Ubuntu (SSH keys, fail2ban, unattended upgrades)
