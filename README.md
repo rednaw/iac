@@ -14,7 +14,7 @@ Opinionated IaC for a **single Hetzner VPS**: Terraform provisions, Ansible conf
 
 1. Clone this repo as a folder named **`iac`**, and each app as a **sibling** (same parent directory).
 2. **File → Open Folder** on **`iac`** → **Reopen in Container**.
-3. Fork-local secrets: `secrets/infra.yml` (SOPS). App runtime secrets live in the app’s `.iac/.env`.
+3. SOPS encrypted infrastructure and application secrets.
 
 Tasks resolve apps at `/workspaces/<app>/` (parent mount). The editor sidebar is IaC-only.
 
@@ -25,7 +25,6 @@ task platform:configure:apply -- prod      # Ansible
 task app:versions -- prod <app>
 task app:deploy -- prod <app> <7-char-sha>
 task tunnel:start -- prod                  # OpenObserve / Traefik / Prefect UI
-task server:ssh -- prod
 ```
 
 Run `task` for the full list.
@@ -41,7 +40,7 @@ Run `task` for the full list.
 | Scheduled flows | `prefect/` |
 | Automation | `Taskfile.yml`, `tasks/` |
 | Dev environment | `.devcontainer/` |
-| Infra secrets (fork) | `secrets/infra.yml` |
+| Infra secrets (SOPS encrypted) | `secrets/infra.yml` |
 | App contract | `/workspaces/<app>/.iac/` (`iac.yml`, `docker-compose.yml`, `.env`) |
 
 ## Roadmap
