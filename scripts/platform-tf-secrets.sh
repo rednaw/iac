@@ -20,6 +20,7 @@ __secrets=$(SOPS_AGE_KEY_FILE="${SOPS_KEY_FILE}" sops -d secrets/infra.yml)
 
 TF_VAR_hcloud_token=$(echo "${__secrets}" | yq -r '.hcloud_token')
 TF_VAR_base_domain=$(echo "${__secrets}" | yq -r '.base_domain')
+TF_VAR_app_domain=$(echo "${__secrets}" | yq -r '.app_domain // ""')
 TF_VAR_ssh_keys=$(echo "${__secrets}" | yq '.ssh_keys' -o=json)
 TF_VAR_allowed_ssh_ips=$(echo "${__secrets}" | yq '.allowed_ssh_ips' -o=json)
 TF_VAR_server_type=$(echo "${__secrets}" | yq -r '.server_type // "cx23"')
@@ -28,6 +29,7 @@ TF_VAR_transip_private_key=$(echo "${__secrets}" | yq -r '.transip_private_key')
 
 export TF_VAR_hcloud_token
 export TF_VAR_base_domain
+export TF_VAR_app_domain
 export TF_VAR_ssh_keys
 export TF_VAR_allowed_ssh_ips
 export TF_VAR_server_type
