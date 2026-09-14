@@ -20,6 +20,9 @@ prefect/.restore-work/
 # Pulled Restic repos (task backup:download)
 .backup-repos/
 
+# Cutover ferry (restic + image tar)
+ferry/
+
 # Fork-only: infra secrets + age recipient pubs for secrets/infra.yml.
 # Upstream ignores the tree so merges never touch real secrets; forks `git add -f secrets/` or drop this line locally.
 secrets/
