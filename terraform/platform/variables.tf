@@ -32,6 +32,12 @@ variable "base_domain" {
   type        = string
 }
 
+variable "app_domain" {
+  description = "Public app zone (apex/www and env hosts). Empty = base_domain."
+  type        = string
+  default     = ""
+}
+
 variable "server_user" {
   description = "SSH user for Ansible (default ubuntu for normal runs)"
   type        = string

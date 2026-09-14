@@ -8,14 +8,15 @@
     that: infrastructure_secrets.base_domain is defined and infrastructure_secrets.base_domain | length > 0
     fail_msg: "'base_domain' is missing from secrets/infra.yml. Set it to your domain (e.g. example.com)."
 
-- name: Set Traefik facts (base_domain, app_environment)
+- name: Set Traefik facts (base_domain, site_domain, app_environment)
   ansible.builtin.set_fact:
     app_environment: "{{ 'dev' if '-dev' in inventory_hostname else 'prod' }}"
     base_domain: "{{ infrastructure_secrets.base_domain }}"
+    site_domain: "{{ infrastructure_secrets.app_domain | default(infrastructure_secrets.base_domain, true) }}"
 
-- name: Set Traefik redirect target and app domains
+- name: Set Traefik redirect target and platform ACME hosts
   ansible.builtin.set_fact:
-    traefik_redirect_target: "{{ app_environment }}.{{ base_domain }}"
+    traefik_redirect_target: "{{ app_environment }}.{{ site_domain }}"
     traefik_app_domains: "{{ [app_environment + '.' + base_domain] }}"
 
 - name: Create Traefik directories

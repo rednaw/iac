@@ -1,9 +1,9 @@
 # yaml-language-server: $schema=https://json.schemastore.org/traefik-v2.json
-# Redirect www and apex to app hostname (per-server via traefik_redirect_target)
+# Redirect www and apex of the site zone to the app hostname
 http:
   routers:
     redirect-www:
-      rule: "Host(`www.{{ base_domain }}`)"
+      rule: "Host(`www.{{ site_domain }}`)"
       entryPoints:
         - websecure
       tls:
@@ -13,7 +13,7 @@ http:
         - redirect-to-app
       service: noop@internal
     redirect-apex:
-      rule: "Host(`{{ base_domain }}`)"
+      rule: "Host(`{{ site_domain }}`)"
       entryPoints:
         - websecure
       tls:
@@ -26,7 +26,7 @@ http:
   middlewares:
     redirect-to-app:
       redirectRegex:
-        regex: "^https://(www\\.)?{{ base_domain | regex_escape() | replace('\\', '\\\\') }}(.*)"
+        regex: "^https://(www\\.)?{{ site_domain | regex_escape() | replace('\\', '\\\\') }}(.*)"
         replacement: "https://{{ traefik_redirect_target }}$2"
         permanent: true
     hsts-headers:

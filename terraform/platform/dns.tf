@@ -9,6 +9,8 @@ locals {
   is_dev      = local.environment == "dev"
   server_ipv4 = module.server.ipv4_address
   server_ipv6 = module.server.ipv6_address
+  site_domain = coalesce(var.app_domain, var.base_domain)
+  dns_split   = var.app_domain != "" && var.app_domain != var.base_domain
 }
 
 # ──────────────────────────────────────────────
@@ -57,7 +59,7 @@ resource "transip_dns_record" "prod_aaaa" {
 
 resource "transip_dns_record" "apex_a" {
   count   = local.is_prod ? 1 : 0
-  domain  = var.base_domain
+  domain  = local.site_domain
   name    = "@"
   type    = "A"
   expire  = 60
@@ -66,7 +68,7 @@ resource "transip_dns_record" "apex_a" {
 
 resource "transip_dns_record" "apex_aaaa" {
   count   = local.is_prod ? 1 : 0
-  domain  = var.base_domain
+  domain  = local.site_domain
   name    = "@"
   type    = "AAAA"
   expire  = 60
@@ -111,14 +113,16 @@ resource "transip_dns_record" "auth_aaaa" {
 
 resource "transip_dns_record" "www" {
   count   = local.is_prod ? 1 : 0
-  domain  = var.base_domain
+  domain  = local.site_domain
   name    = "www"
   type    = "CNAME"
   expire  = 60
-  content = ["prod.${var.base_domain}."]
+  content = ["prod.${local.site_domain}."]
   depends_on = [
     transip_dns_record.prod_a,
     transip_dns_record.prod_aaaa,
+    transip_dns_record.app_prod_a,
+    transip_dns_record.app_prod_aaaa,
   ]
 }
 
@@ -147,6 +151,70 @@ resource "transip_dns_record" "apex_spf" {
 resource "transip_dns_record" "dmarc" {
   count   = local.is_prod ? 1 : 0
   domain  = var.base_domain
+  name    = "_dmarc"
+  type    = "TXT"
+  expire  = 86400
+  content = ["v=DMARC1; p=reject;"]
+}
+
+# Site env hosts on app_domain (same IPs). count=0 unless app_domain is set and differs.
+resource "transip_dns_record" "app_dev_a" {
+  count   = local.dns_split && local.is_dev ? 1 : 0
+  domain  = var.app_domain
+  name    = "dev"
+  type    = "A"
+  expire  = 60
+  content = [local.server_ipv4]
+}
+
+resource "transip_dns_record" "app_dev_aaaa" {
+  count   = local.dns_split && local.is_dev ? 1 : 0
+  domain  = var.app_domain
+  name    = "dev"
+  type    = "AAAA"
+  expire  = 60
+  content = [local.server_ipv6]
+}
+
+resource "transip_dns_record" "app_prod_a" {
+  count   = local.dns_split && local.is_prod ? 1 : 0
+  domain  = var.app_domain
+  name    = "prod"
+  type    = "A"
+  expire  = 60
+  content = [local.server_ipv4]
+}
+
+resource "transip_dns_record" "app_prod_aaaa" {
+  count   = local.dns_split && local.is_prod ? 1 : 0
+  domain  = var.app_domain
+  name    = "prod"
+  type    = "AAAA"
+  expire  = 60
+  content = [local.server_ipv6]
+}
+
+resource "transip_dns_record" "app_null_mx" {
+  count   = local.dns_split && local.is_prod ? 1 : 0
+  domain  = var.app_domain
+  name    = "@"
+  type    = "MX"
+  expire  = 86400
+  content = ["0 ."]
+}
+
+resource "transip_dns_record" "app_apex_spf" {
+  count   = local.dns_split && local.is_prod ? 1 : 0
+  domain  = var.app_domain
+  name    = "@"
+  type    = "TXT"
+  expire  = 86400
+  content = ["v=spf1 -all"]
+}
+
+resource "transip_dns_record" "app_dmarc" {
+  count   = local.dns_split && local.is_prod ? 1 : 0
+  domain  = var.app_domain
   name    = "_dmarc"
   type    = "TXT"
   expire  = 86400
