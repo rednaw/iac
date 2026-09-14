@@ -2,21 +2,6 @@
 name: Platform cutover rednaw.nl
 overview: Destroy the live Hetzner VPS, then provision the same stack on the new account. Platform hostnames on rednaw.nl; band site stays on tientjeketama.nl. Downtime is fine. VPN waits until this is done.
 todos:
-  - id: secrets
-    content: Edit only hcloud_token, ssh_keys, base_domain, app_domain; delete .decrypted~infra.yml; rebuild the iac container
-    status: pending
-  - id: apply
-    content: Apply + bootstrap; wait until dig +short prod.rednaw.nl matches Terraform output
-    status: pending
-  - id: configure-prod
-    content: Configure prod; wait until registry.rednaw.nl and auth.rednaw.nl serve; ask to set REGISTRY_URL and run tientje-ketama build-and-push; then configure dev
-    status: pending
-  - id: restore
-    content: Deploy that sha to prod; symlink ferry restic; stop app; upload + restore --confirm; start; workflow:deploy
-    status: pending
-  - id: oauth
-    content: Flip GitHub OAuth homepage+callback and both CMS base_urls + Pages
-    status: pending
   - id: close
     content: Close old Hetzner account; git add -f secrets/infra.yml; delete ferry/ when abort is no longer needed
     status: pending
@@ -29,7 +14,7 @@ Execute one step. Explain. Wait for go. Human runs `task` they want to run, and 
 
 ```mermaid
 flowchart LR
-  secrets --> apply --> restore --> oauth --> close
+  close
 ```
 
 ## Decisions
@@ -41,51 +26,28 @@ flowchart LR
 | Band site | `dev`/`prod.tientjeketama.nl`; apex/`www` → `prod.tientjeketama.nl` |
 | App image | tientje-ketama `main` HEAD via GitHub Actions. No image tar. Prisma migrate after restore if HEAD is ahead of the dump |
 | Prod data | Restic restore required (Postgres + uploads) |
-| Dev data | Not restored. `platform-dev` state is empty |
+| Dev | Skip this cutover. `platform-dev` stays empty; apply later if you want `dev.rednaw.nl` |
 | Abort | Until the old account is closed: `ferry/` (restic + encrypted old `infra.yml`) |
 
 ## Facts
 
-- Optional `app_domain`; empty → `site_domain = base_domain`. Compose labels pin app hosts; `iac.yml` `app_domains` does not drive DNS.
+- Optional `app_domain`; empty → `site_domain = base_domain`. `iac.yml` `app_domains` does not drive DNS. Deploy sets `APP_HOST` from the `app_domains` entry for this env; compose `Host(${APP_HOST})` only.
 - Registry DNS is prod-only. Same `registry_username` / `password`.
 - CMS: simonacella `admin/config.yml`, anticobagliosiciliano `static/admin/config.yml` + `tests/sveltia-admin.test.ts`. `cms_oauth_allowed_domains` unchanged. tientje-ketama does not use OAuth.
 - One GitHub OAuth app; proxy does not send `redirect_uri`. Homepage + callback + both `base_url`s flip together after `https://auth.rednaw.nl` serves. Pages stay up; CMS login is down from destroy until that flip.
 - Rebuild the container after `base_domain` changes (reopen is not enough). Delete `.decrypted~infra.yml` after every `infra.yml` edit.
 - Let’s Encrypt may refuse duplicate `auth`/`registry`/`prod` names if abort recreates them twice in a week.
-- Old Hetzner SSH key `wander@casa` is id `105413073`. New project has the same pubkey; numeric id unknown until API (console hides it).
 - Both zones NS at TransIP. `rednaw.nl` has no A/AAAA/MX/TXT/`www`. Not used for mail.
 - This host’s public IPv4 is in `allowed_ssh_ips`.
-- TFC: no workspace variables. Both `platform-dev` and `platform-prod` state are empty (destroy done).
-- New Hetzner project: billing on. Pubkey uploaded. **API token not created yet** — generate Read+Write now. Then `hcloud ssh-key list` (or `GET /v1/ssh_keys`) for the new numeric id.
-- Old Hetzner console may still show backup images, volumes, IPs, firewalls. SSH keys are not in TF — leave them until that account is closed.
-
-## Secrets
-
-Change only `hcloud_token`, `ssh_keys` (new numeric ids), `base_domain: rednaw.nl`, `app_domain: tientjeketama.nl`. Keep TransIP, TFC, registry, OAuth, `allowed_ssh_ips`.
-
-## Apply
-
-Wait until `dig +short prod.rednaw.nl` matches Terraform output, then bootstrap. Configure **prod** first. After `https://registry.rednaw.nl` and `https://auth.rednaw.nl` serve, **ask** to:
-
-1. Set tientje-ketama `vars.REGISTRY_URL` to `registry.rednaw.nl`
-2. Run **build-and-push** on `main` (`gh workflow run` needs `workflow_dispatch`, or push `main`)
-
-Then configure **dev**. Deploy that sha: `task app:deploy -- prod tientje-ketama <7-char sha>`. Do not merge other tientje-ketama changes until restore is done. Dev app deploy optional.
+- TFC: no workspace variables. `platform-prod` applied and configured; `platform-dev` empty (skipped). Site `https://prod.tientjeketama.nl` is up (`7fc9c1f`, snapshot `a5c63363`). Registry, auth, and both CMS logins work.
+- New Hetzner project: billing on. Container rebuilt: `BASE_DOMAIN=rednaw.nl`, `REGISTRY=registry.rednaw.nl`, hcloud sees `wander@casa`.
+- Old Hetzner console may still show leftover backup images from the old account. SSH keys there are not in TF — leave them until that account is closed.
 
 ## Restore
 
-Ferry check:
+Done. Snapshot `a5c63363`. App `7fc9c1f` listening. Prefect flows deployed.
 
-```text
-export RESTIC_REPOSITORY=/workspaces/iac/ferry/tientje-ketama RESTIC_PASSWORD=local
-test -f "$RESTIC_REPOSITORY/config"
-restic check
-restic ls latest
-```
-
-`latest` must list `postgres_db.dump` and `app_app_uploads.tar`.
-
-Upload task reads `.backup-repos/tientje-ketama`. Symlink/copy `ferry/tientje-ketama` there. Stop `app`, upload, restore `--confirm`, start, `workflow:deploy`.
+`ln -sfn` into an existing `.backup-repos/tientje-ketama/` dir nests the symlink; replace the dir, then `ln -s`. Stop/start as `sudo -u iac`. Restore with explicit snapshot id.
 
 ## Abort
 

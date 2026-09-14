@@ -6,6 +6,7 @@
 # Inputs:
 #   deploy_target: Target path on server
 #   app_root: Path to app directory (contract under .iac/)
+#   workspace: Environment name (dev or prod)
 #   image_digest: Full image reference with digest
 #   app_secrets_file: Stat result for .env
 #   decrypted_app_secrets: Decrypted secrets content
@@ -28,11 +29,38 @@
   when: app_secrets_file.stat.exists
   no_log: true
 
+- name: Load app iac.yml
+  ansible.builtin.include_vars:
+    file: "{{ app_root }}/.iac/iac.yml"
+    name: app_iac
+  delegate_to: localhost
+
+- name: Select APP_HOST for this workspace
+  ansible.builtin.set_fact:
+    app_host: "{{ (app_iac.app_domains | default([]) | select('match', '^' + workspace + '\\.') | list | first) | default('') }}"
+
+- name: Assert APP_HOST is in app_domains
+  ansible.builtin.assert:
+    that: app_host | length > 0
+    fail_msg: >-
+      No app_domains entry in {{ app_root }}/.iac/iac.yml starts with '{{ workspace }}.'.
+      Traefik Host() must be this env only so ACME is not a SAN bundle with missing DNS.
+
 - name: Set IMAGE in .env
   ansible.builtin.lineinfile:
     path: "{{ deploy_target }}/.env"
     line: "IMAGE={{ image_digest }}"
     regexp: '^IMAGE='
+    owner: iac
+    group: iac
+    mode: '0600'
+    create: true
+
+- name: Set APP_HOST in .env
+  ansible.builtin.lineinfile:
+    path: "{{ deploy_target }}/.env"
+    line: "APP_HOST={{ app_host }}"
+    regexp: '^APP_HOST='
     owner: iac
     group: iac
     mode: '0600'
