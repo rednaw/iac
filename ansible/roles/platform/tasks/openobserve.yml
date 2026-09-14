@@ -17,6 +17,20 @@
     group: root
     mode: '0755'
 
+- name: Assert OpenObserve password meets v0.91+ policy
+  ansible.builtin.assert:
+    that:
+      - infrastructure_secrets.openobserve_password | length >= 8
+      - infrastructure_secrets.openobserve_password | length <= 128
+      - infrastructure_secrets.openobserve_password is search('[a-z]')
+      - infrastructure_secrets.openobserve_password is search('[A-Z]')
+      - infrastructure_secrets.openobserve_password is search('[0-9]')
+      - infrastructure_secrets.openobserve_password is search('[^A-Za-z0-9]')
+    fail_msg: >-
+      openobserve_password must be 8–128 characters with at least one lowercase,
+      uppercase, digit, and special character (OpenObserve v0.91+).
+  no_log: true
+
 - name: Generate OpenObserve ingest auth key (base64 email:password)
   ansible.builtin.set_fact:
     openobserve_ingest_auth: "{{ (infrastructure_secrets.openobserve_username + '@observe.local:' + infrastructure_secrets.openobserve_password) | b64encode }}"
