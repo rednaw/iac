@@ -4,7 +4,7 @@
 
 Self-hosted VPN on a **dedicated Hetzner VPS** for personal use (MacBook Pro + iPhone) during a trip to China. Managed by this IaC project. **Not legal advice** -- check current rules before you travel.
 
-**Prerequisite:** [platform cutover](../../.cursor/plans/rednaw-cutover.md) done — live platform on **`rednaw.nl`**, old Hetzner account gone. Shared layout is already in place: Terraform `modules/server`, Ansible `roles/base`, Task `_terraform:*` / `_ansible:*` (see [Roadmap](README.md#new-server-types)). This purpose adds `terraform/vpn/`, `roles/vpn/`, and a thin Task namespace.
+**Prerequisite:** live platform on **`rednaw.nl`**. Shared layout is already in place: Terraform `modules/server`, Ansible `roles/base`, Task `_terraform:*` / `_ansible:*` (see [Roadmap](README.md#new-server-types)). This purpose adds `terraform/vpn/`, `roles/vpn/`, and a thin Task namespace.
 
 ---
 
@@ -64,7 +64,7 @@ No OpenObserve on the VPN server. An OTEL collector container ships logs and sys
 iPhone/Mac  --[GFW]-->  VPN (sin1)  --[open internet]-->  OpenObserve (nbg1 prod)
 ```
 
-Check the OpenObserve dashboard through your VPN tunnel when needed. If the prod platform server is down, SSH into the VPN server and inspect container logs directly. Grafana dashboards are parked -- not needed for a one-month trip.
+Check the OpenObserve dashboard through your VPN tunnel when needed. If the prod platform server is down, SSH into the VPN server and inspect container logs directly.
 
 ---
 
