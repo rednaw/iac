@@ -163,13 +163,6 @@ processors:
     send_batch_size: 1024
 
 exporters:
-  otlp_http:
-    endpoint: http://openobserve:5080/api/default
-    tls:
-      insecure: true
-    headers:
-      Authorization: "Basic {{ openobserve_ingest_auth }}"
-
   otlp_http/traefik:
     endpoint: http://openobserve:5080/api/default
     tls:
@@ -218,11 +211,11 @@ exporters:
 
 service:
   pipelines:
-    # Host + Docker + Traefik metrics: Prometheus remote write (for PromQL/dashboards) and OTLP (OpenObserve native)
+    # Host + Docker + Traefik metrics: Prometheus remote write only (dashboards are PromQL)
     metrics:
       receivers: [hostmetrics, docker_stats, prometheus]
       processors: [filter/drop_blockio]
-      exporters: [prometheusremotewrite, otlp_http]
+      exporters: [prometheusremotewrite]
     # Logs pipelines: one exporter per stream so OpenObserve shows separate streams (traefik-access, docker-containers, syslog, auth, fail2ban)
     logs/traefik:
       receivers: [filelog/traefik]
