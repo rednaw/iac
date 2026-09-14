@@ -6,23 +6,14 @@ Completed baseline includes platform layout, secrets/mounts, and the Sveltia CMS
 
 ```mermaid
 flowchart LR
-  cutover[rednaw.nl cutover]
   subgraph servers [New server types]
     vpn[VPN]
     honeypot[Honeypot]
   end
   subgraph enhancements [Platform enhancements]
-    grafana[Grafana]
     backup[Backup shape]
   end
-  cutover --> vpn
 ```
-
-## Platform cutover
-
-Destroy the current VPS, provision on a new Hetzner account. Platform on **`rednaw.nl`**, band site stays on **`tientjeketama.nl`**. Blocks VPN. Domain split is on main.
-
-Design: [rednaw-cutover.md](../../.cursor/plans/rednaw-cutover.md)
 
 ## New server types
 
@@ -42,12 +33,6 @@ Design: [honeypot.md](honeypot.md)
 
 ## Platform enhancements
 
-### Grafana
-
-Optional dashboards on top of OpenObserve when built-in UI is not enough. Parked.
-
-Design: [grafana-exploration.md](grafana-exploration.md)
-
 ### Smaller open items
 
 | Item | Notes |
@@ -57,4 +42,5 @@ Design: [grafana-exploration.md](grafana-exploration.md)
 
 ## Done (reference)
 
+- **Platform on `rednaw.nl`** — live; band site stays `tientjeketama.nl`.
 - **CMS OAuth proxy** — implemented; contract notes: [oauth-auth-proxy-implementor-brief.md](oauth-auth-proxy-implementor-brief.md)

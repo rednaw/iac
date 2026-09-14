@@ -8,4 +8,5 @@ alwaysApply: false
 
 - Root: `terraform/platform/` (workspaces `dev` / `prod`, state in Terraform Cloud).
 - Shared VPS module: `terraform/modules/server/`.
-- Vars / locals / outputs in the platform root. New server types add another root beside `platform/` composing the same module.
+- Vars / locals / outputs in the platform root. Optional `app_domain`: site apex/www and env app hosts on that zone; `dev`/`prod`/`auth`/`registry` stay on `base_domain`. Empty `app_domain` = one zone.
+- New server types add another root beside `platform/` composing the same module.
