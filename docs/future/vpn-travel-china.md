@@ -4,7 +4,7 @@
 
 Self-hosted VPN on a **dedicated Hetzner VPS** for personal use (MacBook Pro + iPhone) during a trip to China. Managed by this IaC project. **Not legal advice** -- check current rules before you travel.
 
-**Prerequisite:** shared Terraform `modules/server`, Ansible `roles/base` + purpose role, Task `_terraform:*` / `_ansible:*` (see [Roadmap](README.md#new-server-types)). This document assumes that layout is in place.
+**Prerequisite:** [platform cutover](rednaw-cutover.md) done — live platform on **`rednaw.nl`**, old Hetzner account gone. Shared layout is already in place: Terraform `modules/server`, Ansible `roles/base`, Task `_terraform:*` / `_ansible:*` (see [Roadmap](README.md#new-server-types)). This purpose adds `terraform/vpn/`, `roles/vpn/`, and a thin Task namespace.
 
 ---
 
@@ -12,11 +12,13 @@ Self-hosted VPN on a **dedicated Hetzner VPS** for personal use (MacBook Pro + i
 
 | Question | Decision |
 |----------|----------|
-| Server | **Dedicated VPS**, VPN-only (no app stack, registry, Traefik, etc.) |
+| Server | **Dedicated VPS**, VPN-only (no app stack, registry, Traefik, etc.). Same Hetzner account as platform (`rednaw.nl`). |
 | Locations | **`nbg1` (Nuremberg)** for dev/testing, **`sin1` (Singapore)** for actual use in China |
 | Protocols | **All three**: Xray/VLESS+REALITY, Xray/VLESS+WS+TLS, WireGuard -- maximise chances |
-| Clients | MacBook Pro + iPhone (personal) |
-| Timeline | ~6 months -- enough to build, test, iterate |
+| Clients | MacBook Pro + iPhone: **OneXray** + official **WireGuard** |
+| Timeline | **~1 month** -- build, test, iterate before travel |
+
+Still open: REALITY dest site.
 
 ---
 
@@ -25,8 +27,8 @@ Self-hosted VPN on a **dedicated Hetzner VPS** for personal use (MacBook Pro + i
 ```mermaid
 flowchart TB
     subgraph clients ["Devices in China"]
-        mac["MacBook Pro<br/>FoXray + WireGuard"]
-        phone["iPhone<br/>FoXray + WireGuard"]
+        mac["MacBook Pro<br/>OneXray + WireGuard"]
+        phone["iPhone<br/>OneXray + WireGuard"]
     end
 
     subgraph vps ["Dedicated Hetzner VPS"]
@@ -50,7 +52,7 @@ flowchart TB
 | 443/TCP | REALITY + WS+TLS | Xray (two inbounds, one listener with fallback routing) |
 | 51820/UDP | WireGuard | Fallback VPN |
 
-Xray on 443 with REALITY as the primary inbound. Connections that don't match REALITY auth fall through to a **real HTTPS response** (static page or proxy to a legitimate site), making the server look like an ordinary web host to probes. The WS+TLS inbound shares 443 via Xray's path-based routing (e.g. `/ws`), using a real Let's Encrypt cert for `vpn.<base_domain>`.
+Xray on 443 with REALITY as the primary inbound. Connections that don't match REALITY auth fall through to a **real HTTPS response** (static page or proxy to a legitimate site), making the server look like an ordinary web host to probes. The WS+TLS inbound shares 443 via Xray's path-based routing (e.g. `/ws`), using a real Let's Encrypt cert for `vpn-dev.<base_domain>` / `vpn-prod.<base_domain>`.
 
 WireGuard on a separate UDP port -- zero interaction with Xray. Works when filtering is light.
 
@@ -62,7 +64,7 @@ No OpenObserve on the VPN server. An OTEL collector container ships logs and sys
 iPhone/Mac  --[GFW]-->  VPN (sin1)  --[open internet]-->  OpenObserve (nbg1 prod)
 ```
 
-Check the OpenObserve dashboard through your VPN tunnel when needed. If the prod platform server is down, SSH into the VPN server and inspect container logs directly.
+Check the OpenObserve dashboard through your VPN tunnel when needed. If the prod platform server is down, SSH into the VPN server and inspect container logs directly. Grafana dashboards are parked -- not needed for a one-month trip.
 
 ---
 
@@ -72,12 +74,13 @@ Uses the new-server-type pattern in [Roadmap](README.md#new-server-types):
 
 ### Terraform
 
-**`terraform/vpn/`** -- composes `modules/server` with VPN-specific resources:
+**`terraform/vpn/`** -- composes `modules/server` with VPN-specific resources (`location` and `additional_firewall_rules` already exist on the module):
 - Firewall rules for 443/TCP, 51820/UDP
 - One DNS record: `vpn-dev.<base_domain>` / `vpn-prod.<base_domain>` A/AAAA
 - Backend prefix: `vpn-`
 - Default location: `sin1` for prod, `nbg1` for dev
-- Minimal server type: `cx22` (~4 EUR/month)
+- Server type: `cx23` (same cheapest type as platform, ~€3.50/month)
+- Same `hcloud_token` / `ssh_keys` as platform
 
 ### Ansible
 
@@ -93,16 +96,16 @@ Uses the new-server-type pattern in [Roadmap](README.md#new-server-types):
 
 ### Task
 
-**`tasks/Taskfile.vpn.yml`** -- calls the shared internal tasks with VPN parameters:
+**`tasks/Taskfile.vpn.yml`** -- same shape as `tasks/Taskfile.platform.yml` (thin wrappers over `_terraform:*` / `_ansible:*`):
 
 | Command | What it does |
 |---------|-------------|
-| `task vpn:plan -- dev` | Terraform plan for VPN server |
-| `task vpn:apply -- dev` | Terraform apply |
-| `task vpn:destroy -- dev` | Terraform destroy |
-| `task vpn:bootstrap -- dev` | First-time server setup as root |
-| `task vpn:run -- dev` | Ansible: configure VPN server |
-| `task vpn:config` | Generate client configs / QR codes |
+| `task vpn:provision:plan -- dev` | Terraform plan for VPN server |
+| `task vpn:provision:apply -- dev` | Terraform apply |
+| `task vpn:provision:destroy -- dev` | Terraform destroy |
+| `task vpn:configure:bootstrap -- dev` | First-time server setup as root |
+| `task vpn:configure:apply -- dev` | Ansible: configure VPN server |
+| `task vpn:config` | Generate client configs / QR codes (VPN-only extra) |
 
 ### Secrets
 
@@ -121,36 +124,24 @@ VPN secrets added to **`secrets/infra.yml`** (fork-local, SOPS-encrypted); keep 
 
 ## Client apps
 
-**Verify App Store availability in your region before committing to a client.** Some Xray clients are region-restricted (e.g. FoXray is unavailable in the Netherlands App Store). Install and test **before** the trip -- you cannot count on downloading new apps in China.
+Install both **before** the trip -- you cannot count on downloading new apps in China.
 
-Xray (VLESS+REALITY, VLESS+WS+TLS) candidates -- pick one that's available in your App Store:
+| App | Protocols | Import |
+|-----|-----------|--------|
+| [OneXray](https://apps.apple.com/app/onexray/id6745748773) (iOS + macOS) | VLESS+REALITY, VLESS+WS+TLS | vless:// link or QR |
+| [WireGuard](https://apps.apple.com/app/wireguard/id1441195209) (iOS + macOS) | WireGuard | `.conf` or QR |
 
-| App | iOS | macOS | Notes |
-|-----|-----|-------|-------|
-| [V2Ray Client+](https://apps.apple.com/app/v2ray-client/id6747379524) | Yes | -- | Free. Supports VLESS+REALITY. Import via vless:// link or QR. |
-| [OneXray](https://apps.apple.com/app/onexray/id6745748773) | Yes | Yes (universal) | Free. Cross-platform Xray-core client. |
-| [Streisand](https://apps.apple.com/app/streisand/id6450534064) | Yes | -- | Supports VLESS, VMess, Trojan. |
-| [V2RayXS](https://github.com/tzmax/V2RayXS) | -- | Yes | Free, open source. macOS GUI for Xray-core. |
-| [GoXRay Desktop](https://github.com/goxray/desktop) | -- | Yes | Free, open source. Go + Fyne UI. |
-| [FoXray](https://apps.apple.com/app/foxray/id6448898396) | Yes | Yes | Region-restricted -- may not be available. |
-
-WireGuard:
-
-| App | iOS | macOS | Notes |
-|-----|-----|-------|-------|
-| [WireGuard](https://apps.apple.com/app/wireguard/id1441195209) | Yes | Yes | Official app. Import `.conf` file or QR code. |
-
-You need **one Xray client** (same app on both devices if possible) and **WireGuard**. Two apps total, three protocol configs.
+Two apps, three protocol configs. Configure all three before departure.
 
 ---
 
 ## Connection priority (when in China)
 
 1. **VLESS+REALITY** -- try first. Looks like a TLS connection to a popular site. Best GFW resistance.
-2. **VLESS+WS+TLS** -- if REALITY is disrupted. Looks like HTTPS to `vpn.<base_domain>`. Different fingerprint may bypass different filters.
+2. **VLESS+WS+TLS** -- if REALITY is disrupted. Looks like HTTPS to `vpn-prod.<base_domain>`. Different fingerprint may bypass different filters.
 3. **WireGuard** -- last resort. Fast when it works, but UDP is easily throttled.
 
-Configure all three in the client apps before departure. Switching is a tap.
+Switching is a tap.
 
 ---
 
@@ -159,8 +150,8 @@ Configure all three in the client apps before departure. Switching is a tap.
 | Risk | Mitigation |
 |------|-----------|
 | All protocols blocked in China | No technical fix; have non-VPN fallbacks for essentials. |
-| Server IP gets flagged | Budget for changing IP (destroy + re-apply) or a second VPS on a different provider. |
-| iOS client app removed from App Store | Download FoXray before trip; have WireGuard as backup (always available). |
+| Server IP gets flagged | `task vpn:provision:destroy` + re-apply (new IP). Account-level flags would also hit the platform VPS — they share one Hetzner account. |
+| iOS client app removed from App Store | Install OneXray + WireGuard before trip; WireGuard stays in the App Store. |
 
 ---
 
@@ -168,23 +159,23 @@ Configure all three in the client apps before departure. Switching is a tap.
 
 | Phase | What | When |
 |-------|------|------|
-| **1. VPN Terraform** | `terraform/vpn/` composing the server module. | Foundation |
-| **2. VPN Ansible** | `roles/vpn/` (WireGuard first -- validates full pipeline). | Foundation |
-| **3. VPN Task namespace** | `tasks/Taskfile.vpn.yml` calling shared internal tasks. | Foundation |
-| **4. Xray REALITY** | Add Xray container + REALITY inbound. Test with FoXray. | Middle |
-| **5. Xray WS+TLS** | Second inbound, cert automation. | Middle |
-| **6. Singapore prod** | `task vpn:apply -- prod`. Test latency. | Before trip |
-| **7. Harden + client configs** | Final configs, offline backups, QR codes. | Before trip |
-| **8. Post-trip** | `task vpn:destroy -- prod`. | After trip |
+| **1. VPN Terraform** | `terraform/vpn/` composing the server module. | Week 1 |
+| **2. VPN Ansible** | `roles/vpn/` (WireGuard first -- validates full pipeline). | Week 1 |
+| **3. VPN Task namespace** | `tasks/Taskfile.vpn.yml` calling shared internal tasks. | Week 1 |
+| **4. Xray REALITY** | Add Xray container + REALITY inbound. Test with OneXray. | Week 2 |
+| **5. Xray WS+TLS** | Second inbound, cert automation. | Week 2 |
+| **6. Singapore prod** | `task vpn:provision:apply -- prod`. Test latency. | Week 3 |
+| **7. Harden + client configs** | Final configs, offline backups, QR codes. | Week 3–4 |
+| **8. Post-trip** | `task vpn:provision:destroy -- prod`. | After trip |
 
 ---
 
 ## Before travel checklist
 
 - [ ] All three protocols tested from home (both devices, Wi-Fi + cellular)
-- [ ] Client apps installed and configs imported **offline** (no cloud sync dependency)
+- [ ] OneXray + WireGuard installed; configs imported **offline** (no cloud sync dependency)
 - [ ] Singapore prod server running and tested for latency
 - [ ] Hetzner console access verified (out-of-band recovery without SSH)
 - [ ] Banking / essential services tested **without** VPN (some block VPN IPs)
 - [ ] Server auto-updates enabled (unattended-upgrades)
-- [ ] Destroy plan documented (`task vpn:destroy -- prod`)
+- [ ] Destroy plan documented (`task vpn:provision:destroy -- prod`)

@@ -6,6 +6,8 @@ Completed baseline includes platform layout, secrets/mounts, and the Sveltia CMS
 
 ```mermaid
 flowchart LR
+  split[domain split]
+  cutover[rednaw.nl cutover]
   subgraph servers [New server types]
     vpn[VPN]
     honeypot[Honeypot]
@@ -14,7 +16,14 @@ flowchart LR
     grafana[Grafana]
     backup[Backup shape]
   end
+  split --> cutover --> vpn
 ```
+
+## Platform cutover
+
+Blocked on the **domain split** landing on main (backward compatible). Then destroy the current VPS and provision on a new Hetzner account. Platform on **`rednaw.nl`**, band site stays on **`tientjeketama.nl`**. Blocks VPN.
+
+Design: [rednaw-cutover.md](rednaw-cutover.md)
 
 ## New server types
 
