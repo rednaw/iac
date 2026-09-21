@@ -1,0 +1,6 @@
+---
+- name: Restart Xray
+  community.docker.docker_container:
+    name: xray
+    state: started
+    restart: true

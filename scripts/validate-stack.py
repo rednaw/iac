@@ -11,11 +11,12 @@ import time
 from pathlib import Path
 
 
-def run_task(task_name: str, workspace: str = None) -> int:
-    """Run a task command. Returns exit code."""
+def run_task(task_name: str, *args: str) -> int:
+    """Run a task command with optional CLI args after --. Returns exit code."""
     cmd = ['task', task_name]
-    if workspace:
-        cmd.extend(['--', workspace])
+    if args:
+        cmd.append('--')
+        cmd.extend(args)
     
     result = subprocess.run(cmd, check=False)
     return result.returncode
@@ -87,6 +88,16 @@ def main():
     if not wait_for_server(workspace):
         print("\n❌ Step failed: Server not ready")
         sys.exit(1)
+    print("")
+    
+    # Step 2b: Accept host key by API IPv4 (Ansible runs StrictHostKeyChecking=yes)
+    print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    print("2️⃣b Accepting new host key (hostkeys:accept)...")
+    print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    exit_code = run_task("hostkeys:accept", "platform", workspace)
+    if exit_code != 0:
+        print("\n❌ Step failed: Accepting host key")
+        sys.exit(exit_code)
     print("")
     
     # Step 3: Bootstrap

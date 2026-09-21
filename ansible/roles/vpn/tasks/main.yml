@@ -1,0 +1,10 @@
+---
+# VPN role: one Xray REALITY inbound on 443, network_mode host, nothing else.
+# No cert, no port 80, no Traefik — the REALITY handshake borrows the dest's
+# identity; this box must look like a plain server forwarding to that site.
+
+- name: Hold Docker packages (travel window)
+  ansible.builtin.import_tasks: apt-hold.yml
+
+- name: Configure Xray REALITY container
+  ansible.builtin.import_tasks: xray.yml

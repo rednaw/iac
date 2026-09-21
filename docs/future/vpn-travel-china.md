@@ -2,180 +2,105 @@
 
 # VPN for China travel
 
-Self-hosted VPN on a **dedicated Hetzner VPS** for personal use (MacBook Pro + iPhone) during a trip to China. Managed by this IaC project. **Not legal advice** -- check current rules before you travel.
+Dedicated Hetzner VPS for a personal trip (MacBook + iPhone). Same account as platform (`rednaw.nl`). **Not legal advice.**
 
-**Prerequisite:** live platform on **`rednaw.nl`**. Shared layout is already in place: Terraform `modules/server`, Ansible `roles/base`, Task `_terraform:*` / `_ansible:*` (see [Roadmap](README.md#new-server-types)). This purpose adds `terraform/vpn/`, `roles/vpn/`, and a thin Task namespace.
-
----
-
-## Decisions
-
-| Question | Decision |
-|----------|----------|
-| Server | **Dedicated VPS**, VPN-only (no app stack, registry, Traefik, etc.). Same Hetzner account as platform (`rednaw.nl`). |
-| Locations | **`nbg1` (Nuremberg)** for dev/testing, **`sin1` (Singapore)** for actual use in China |
-| Protocols | **All three**: Xray/VLESS+REALITY, Xray/VLESS+WS+TLS, WireGuard -- maximise chances |
-| Clients | MacBook Pro + iPhone: **OneXray** + official **WireGuard** |
-| Timeline | **~1 month** -- build, test, iterate before travel |
-
-Still open: REALITY dest site.
+**Implemented** (files in repo, nothing provisioned): `terraform/vpn/` (managed `hcloud_primary_ip` + server), `ansible/roles/vpn/` + `playbooks/vpn.yml`, `tasks/Taskfile.vpn.yml` (`provision:renew-ip`), purpose-parameterised `hostkeys:*` / `_terraform:*` / `_ansible:*` (ansible_host = API IPv4, `StrictHostKeyChecking=yes`), `hostkeys:accept`, root `ssh-allow-me` / `ssh-revoke-me`, firewall label `iac_managed=true` in `modules/server`. Do = rollout + smoke. Dest is a roster (pick at smoke). Operator manual: [vpn-travel-china-manual.md](vpn-travel-china-manual.md).
 
 ---
 
-## Architecture
+## Decided
 
-```mermaid
-flowchart TB
-    subgraph clients ["Devices in China"]
-        mac["MacBook Pro<br/>OneXray + WireGuard"]
-        phone["iPhone<br/>OneXray + WireGuard"]
-    end
+| | |
+|--|--|
+| Box | **Two Hetzner servers, one account.** **Platform** = long-running (`rednaw.nl`, stable IPs, **dev and prod**). **VPN** = one throwaway **prod** box (destroy when done). No `vpn-dev`. VPN-only stack (no Traefik, registry, apps). `nbg1`. `cx23`. `backups = false`. Home smoke is this same box. |
+| Account | Same Hetzner **account** as platform. Shared `hcloud_token`. |
+| Cloud admin | **Full secrets stay on this laptop** (`hcloud_token` / TFC / TransIP). No VPN-only project, no off-machine stash. Theft/unlock = APIs for the whole account. After `ssh-allow-me`, `platform:configure:*` from China works. |
+| Exit use | **Personal only** (this Mac + iPhone). No sharing QR/UUID, P2P/torrent, SMTP, scanning, mining. Intended use is not a ToS complaint. Residual: leaked keys or a compromised box → Hetzner email, usually **that IP/server** first; account freeze is ignore/repeat and would still hit **`rednaw.nl`**. Watch the account mail on the trip. |
+| Admin | **This MacBook** is the only admin device (age key, SSH private key, clone, Docker). It travels. The iPhone is a VPN **client** only — no SOPS, no `task`. Not a “trusted devices” layer (no MDM, no device certs, no Tailscale). SE-bound SSH is platform work: [ssh-admin-t2.md](ssh-admin-t2.md). This trip may keep the file key. |
+| Network vs device | **SSH standing lists trust home IPs**, not this laptop. Not at home → `ssh-allow-me` (all iac boxes). **Cloud APIs follow the disk.** |
+| Singapore | Out. |
+| Protocol | **REALITY only** on TCP **443**: VLESS + `xtls-rprx-vision`. No Let’s Encrypt cert on 443. No WS+TLS, WireGuard, or Hysteria2. **One dest live at a time** (client SNI = `dest` / `serverNames` / `fp=`). Not a multi-site inbound. Hostname is a **roster**, not frozen in this plan. |
+| Xray | Container on `roles/base` Docker, **`network_mode: host`** (bridge cannot egress IPv6). Pin image digest. No native binary. |
+| Keys | UUID + REALITY keypair + short_id **persist** in secrets. IP renew or wipe keeps them; QR differs in address (and SNI if dest stepped with a burn). Rotate UUID/keys only if a QR leaked (manual). |
+| Client | [OneXray](https://apps.apple.com/us/app/onexray/id6745748773) only (both devices; App Store, macOS 13+). Rule: `geosite:cn` **direct**, rest VLESS. No `geoip:cn` (poisoned DNS). Download GeoData at home. Not per-app VPN. TUN IPv6 **on** (app default). Do not disable IPv6 on the devices. |
+| IPv6 | VPS stays dual-stack. Share links IPv4-only. Device IPv6 is captured by OneXray TUN and egresses from the VPS, not the hotel. Home SSH may use AAAA if home IPv6 is on the standing list. Travel extra SSH is IPv4 `/32` only. |
+| Primary IPv4 | VPN uses a Terraform **`hcloud_primary_ip`** (`nbg1`, `auto_delete = false`) attached via `public_net.ipv4`. Not ephemeral-with-server. Platform unchanged. |
+| Leak | Non-CN traffic that leaves via hotel/eSIM while OneXray is on (destinations see a Chinese IP). Usual hole: IPv6 Happy-Eyeballs skipping an IPv4-only TUN. Also DNS to the hotel resolver, WebRTC STUN, tunnel down with no kill switch. `geosite:cn` **direct** is not a leak. |
+| eSIMs | **Consumer + management.** At least one **home-routed** travel eSIM for **iPhone daily cellular** (Western apps, no OneXray on cell). Confirm home-routing before buy; watch FUP if labelled unlimited. **Second** (or more) eSIM/carrier for repair if the first is bad. Admin (IaC / Console / SSH) still uses eSIM cellular with OneXray **off**. Not a guarantee — routing can change. |
+| Internet | **Split.** iPhone **cellular** → home-routed eSIM (OneXray off). **Hotel Wi-Fi + MacBook** → OneXray → this VPS (LAN only reaches the tunnel). Habit: hotel = VPN on, outside = VPN off. When VPS IP is burned: phone stays on eSIM; Mac waits for IP renew (or wipe if wedged) or brief tether. No second commercial VPN brand. |
+| Ops DNS | No `vpn.rednaw.nl`. No TransIP record in `terraform/vpn/`. TLS name is dest, never ours. Share links embed **IPv4**. |
+| SSH/Ansible host | Always IPv4 from TFC / `hcloud`, never the hostname. |
+| Timeline | ~1 month. |
+| SSH | **Never `0.0.0.0/0` / `::/0`.** Standing lists: platform `allowed_ssh_ips` and VPN `vpn_allowed_ssh_ips` = **home only**. Do not put the VPN IP on platform’s list. Do not put platform IPs on the VPN list. No jump `platform → VPN`. |
+| Travel SSH | Root tasks `ssh-allow-me` / `ssh-revoke-me` — **all** iac-managed Hetzner firewalls in one go (platform dev+prod, VPN, later honeypot). **Skip at home.** Extra rule: current public IPv4 `/32` only. Detect `-4`; SSH `-4`. Fail loud if no public v4. Refuse if that IP is any iac server. Extra rules are not Terraform, not SOPS, not git. Next `<purpose>:provision:apply` **drops** that box’s extra rule — expected. No per-purpose allow-me. |
+| Travel admin | **This MacBook** — only machine with the age key, clone, and Docker. It travels. Repair is eSIM + this laptop (devcontainer). Do not Console-delete the VM (TFC desync). Wedged box → Console and/or `ssh-allow-me`, then wipe path if needed. |
+| Burned IP | **Default: renew IPv4, keep disk.** OneXray off → replace `hcloud_primary_ip` only → **fail loud if new address equals old** (retry) → `ssh-allow-me` (**skip at home**) → `hostkeys:accept -- vpn` → optional next `vpn_dest` → `vpn:config` (both devices) → OneXray on. No bootstrap/configure. Same SOPS keys. |
+| Wedged / wipe | Disk bad, Docker/Xray wedged, or compromise → destroy/recreate **server** (and IP as needed) → `hostkeys:accept` → bootstrap → configure → `vpn:config`. Full circle. |
+| Hostkey | Provision never SSH. VPN has no FQDN — `hostkeys:prepare` does not invent one. After IP renew or wipe (+ `ssh-allow-me` when away), `hostkeys:accept -- vpn` to the API IPv4 (`-4`, `accept-new`, own-IP wipe first) must succeed before Ansible with `StrictHostKeyChecking=yes`. |
+| Post-trip | Destroy VPN primary IP + server + firewall and TFC `vpn-prod`. No DNS record to delete. |
+| Competition (ops) | **Home-routed roaming eSIM** can carry Western apps on **phone cellular** with no tunnel (hotel Wi-Fi and laptop still need something else). **Commercial apps** (Astrill etc.) are flaky in 2026; Astrill’s strong mode is weak on **iOS** — OneXray+REALITY stays the right primary for this Mac+iPhone pair. **iCal/shared-pool “airports”** are not our path. Treat any single tunnel as **disposable** (already Burned IP). Prefer a **heterogeneous** fallback when the VPS is dead — not two copies of the same REALITY box unless we explicitly add standby. |
 
-    subgraph vps ["Dedicated Hetzner VPS"]
-        xray["Xray container<br/>port 443/TCP<br/>VLESS+REALITY / VLESS+WS+TLS"]
-        wg["WireGuard container<br/>port 51820/UDP"]
-    end
+REALITY: VPS forwards keyless probes to dest. Our name is not in the handshake. If REALITY fails: phone keeps working on eSIM cellular; use eSIM to **repair** (Burned IP renew, or wipe if wedged), then OneXray again on Wi-Fi/Mac. No dest change on a **live** (burned) IP. A successful renew may take the next roster name (`vpn:config` both devices).
 
-    mac --> xray
-    mac --> wg
-    phone --> xray
-    phone --> wg
-    xray --> internet((Internet))
-    wg --> internet
-```
+Dropped: Tailscale / Headscale / wstunnel / public 22 / jump `platform → VPN`. Renewing the primary IPv4 is the GFW-IP lever; wipe only when the disk is the problem; platform stays put.
 
-**Port layout** (no Traefik on this server -- Xray owns 443):
+**Dest** (one live at a time; pick at home smoke from the CX23; Burned IP may step). Must: TLS 1.3 + h2 + **X25519**, HTTP 200 on the SNI hostname (no 301-to-`www`, no other bounce), looks like the real site from `nbg1` (not CDN 403), cert/handshake record under 8192. Local pre-filter is not enough — re-check from the box (manual §2.3).
 
-| Port | Protocol | Service |
-|------|----------|---------|
-| 22/TCP | SSH | Admin (restricted to allowed IPs) |
-| 443/TCP | REALITY + WS+TLS | Xray (two inbounds, one listener with fallback routing) |
-| 51820/UDP | WireGuard | Fallback VPN |
+Try order:
 
-Xray on 443 with REALITY as the primary inbound. Connections that don't match REALITY auth fall through to a **real HTTPS response** (static page or proxy to a legitimate site), making the server look like an ordinary web host to probes. The WS+TLS inbound shares 443 via Xray's path-based routing (e.g. `/ws`), using a real Let's Encrypt cert for `vpn-dev.<base_domain>` / `vpn-prod.<base_domain>`.
+| Rank | Host | Why |
+|--|--|--|
+| 1 | `seapalace.nl` | TransIP `77.72.150.234` (Signet NL). Apex canonical. Rare SNI. |
+| 2 | `jamstudios.nl` | Denit `80.247.175.21`. Apex canonical. Rare SNI. |
+| 3 | `decorrespondent.nl` | One EC2 `eu-central-1`, nginx. Apex canonical. |
 
-WireGuard on a separate UDP port -- zero interaction with Xray. Works when filtering is light.
+Spares (same IPs as #1/#2 — reverse-IP neighbours that passed local pre-filter). Prefer a different SNI after a burn; still verify from the CX23 before setting `vpn_dest`.
 
-### Observability
+- TransIP / seapalace IP: `amateurkunstamstelveen.nl` `arcadic.nl` `catercompany.eu` `damiro-ontruiming.nl` `fueldesign.nl` `getsalesdone.eu` `jbscleaningservice.nl` `jbsgroep.nl` `lindeman-schuttingen.nl` `lobatto.eu` `nickfalkenberg.com` `puuragenturen.com` `radicalcup.nl` `shirtshop-amsterdam.com` `shirtshop-amsterdam.nl` `svrap.nl` `time2choco.nl` `toffeebreak.com` `toffeebreak.eu` `toffeebreak.net` `xbrands.nl`
+- Denit / jamstudios IP: `advocatenkantoor.nl` `autom8-it.nl` `auvimedia.nl` `beertema.nl` `dependans.nl` `elsburgeronland.nl` `haagspreventienetwerk.nl` `idmaker.nl` `inclusiefmedia.nl` `joytofilms.com` `kerkdebron.org` `kippenburg.nl` `lindhout-es.nl` `maartenwoud.nl` `mijderwijk.nl` `mijndenhaag.org` `mirjam-ouwerkerk.nl` `paian.nl` `radiobeurslisse.nl` `robvankan.nl` `sinister.nl` `slampampers.nl` `smartlappenkoor.com` `teletrailer-huren.nl` `thatsmagic.nl` `tradeservice.nl` `trouwautoverhuur.nl` `van-grinsven.nl` `vioolpianolesnijmegen.nl` `waltergoeting.nl`
 
-No OpenObserve on the VPN server. An OTEL collector container ships logs and system metrics to the **prod platform's OpenObserve** in Nuremberg. The VPN server in Singapore has unrestricted internet access (the GFW sits between your devices and the internet, not between Singapore and Nuremberg), so this works during the trip too:
-
-```
-iPhone/Mac  --[GFW]-->  VPN (sin1)  --[open internet]-->  OpenObserve (nbg1 prod)
-```
-
-Check the OpenObserve dashboard through your VPN tunnel when needed. If the prod platform server is down, SSH into the VPN server and inspect container logs directly.
-
----
-
-## How it fits in the repo
-
-Uses the new-server-type pattern in [Roadmap](README.md#new-server-types):
-
-### Terraform
-
-**`terraform/vpn/`** -- composes `modules/server` with VPN-specific resources (`location` and `additional_firewall_rules` already exist on the module):
-- Firewall rules for 443/TCP, 51820/UDP
-- One DNS record: `vpn-dev.<base_domain>` / `vpn-prod.<base_domain>` A/AAAA
-- Backend prefix: `vpn-`
-- Default location: `sin1` for prod, `nbg1` for dev
-- Server type: `cx23` (same cheapest type as platform, ~€3.50/month)
-- Same `hcloud_token` / `ssh_keys` as platform
-
-### Ansible
-
-**`roles/vpn/`** -- VPN services:
-
-| Task file | Purpose |
-|-----------|---------|
-| `xray.yml` | Xray container, config template (REALITY + WS+TLS inbounds) |
-| `wireguard.yml` | WireGuard container, key management |
-| `otel-collector.yml` | OTEL collector, forwards to prod OpenObserve |
-
-**`playbooks/vpn.yml`**: `roles: [base, vpn]` -- hardened server + VPN only.
-
-### Task
-
-**`tasks/Taskfile.vpn.yml`** -- same shape as `tasks/Taskfile.platform.yml` (thin wrappers over `_terraform:*` / `_ansible:*`):
-
-| Command | What it does |
-|---------|-------------|
-| `task vpn:provision:plan -- dev` | Terraform plan for VPN server |
-| `task vpn:provision:apply -- dev` | Terraform apply |
-| `task vpn:provision:destroy -- dev` | Terraform destroy |
-| `task vpn:configure:bootstrap -- dev` | First-time server setup as root |
-| `task vpn:configure:apply -- dev` | Ansible: configure VPN server |
-| `task vpn:config` | Generate client configs / QR codes (VPN-only extra) |
-
-### Secrets
-
-VPN secrets added to **`secrets/infra.yml`** (fork-local, SOPS-encrypted); keep VPN-specific keys separate from app **`/workspaces/<app>/.iac/`** secrets.
-
-| Secret | Purpose |
-|--------|---------|
-| `vpn_xray_uuid` | VLESS client auth (UUID) |
-| `vpn_reality_private_key` | REALITY server key (x25519) |
-| `vpn_reality_short_id` | REALITY short ID |
-| `vpn_wg_server_private_key` | WireGuard server key |
-| `vpn_wg_client_public_keys` | Per-device WireGuard public keys |
-| `vpn_wg_preshared_key` | WireGuard PSK |
+Out: our names (`tientjeketama.nl` `rednaw.nl` `*.github.io`); landlord / GFW-class (`www.hetzner.com` `www.apple.com`); gov costume (`ind.nl`); CDN / TLS1.2 / geo (`bol.com` Akamai; `ah.nl` `funda.nl` `nu.nl` `www.ns.nl` Akamai; `marktplaats.nl` `knmi.nl` `npo.nl` CloudFront/AGA; Cloudflare edges; `www.kieskeurig.nl` Bunny; `www.startpagina.nl` TLS1.2; `sap.com` geo); apex→`www` (`independer.nl` Azure App Gateway — `www` is canonical). Shared-host adjacency is for **finding** spares, not a REALITY benefit by itself.
 
 ---
 
-## Client apps
+## Decide
 
-Install both **before** the trip -- you cannot count on downloading new apps in China.
+None.
 
-| App | Protocols | Import |
-|-----|-----------|--------|
-| [OneXray](https://apps.apple.com/app/onexray/id6745748773) (iOS + macOS) | VLESS+REALITY, VLESS+WS+TLS | vless:// link or QR |
-| [WireGuard](https://apps.apple.com/app/wireguard/id1441195209) (iOS + macOS) | WireGuard | `.conf` or QR |
+## Do
 
-Two apps, three protocol configs. Configure all three before departure.
+### 0. Rollout (one-time, at home)
 
----
+- TFC: create workspace `vpn-prod` in the org, then `task vpn:provision:reconfigure`.
+- Secrets: generate + add `vpn_uuid`, `vpn_reality_private_key`, `vpn_reality_public_key`, `vpn_short_id`, `vpn_dest` (roster #1 for now), `vpn_allowed_ssh_ips` (home only). Manual §2.1. Generate **once**; never regenerate on apply.
+- Platform migration: `platform:provision:apply -- prod` adds the `iac_managed=true` firewall label (done). Skip platform-dev. Then one-time `task hostkeys:accept -- platform prod` if Ansible IPv4/`StrictHostKeyChecking=yes` is not yet proven on prod.
+### 1. Home smoke, then trip
 
-## Connection priority (when in China)
+Home tests on this **prod** box prove the stack, **not** the GFW. Try dest **try-order then spares from the CX23**; first that TLS-1.3-handshakes and HTTP-looks-like-the-site is the trip dest until a Burned IP (checks incl. X25519: manual §2.3).
 
-1. **VLESS+REALITY** -- try first. Looks like a TLS connection to a popular site. Best GFW resistance.
-2. **VLESS+WS+TLS** -- if REALITY is disrupted. Looks like HTTPS to `vpn-prod.<base_domain>`. Different fingerprint may bypass different filters.
-3. **WireGuard** -- last resort. Fast when it works, but UDP is easily throttled.
+Operator: OneXray installed on **Mac and iPhone** before departure; GeoData downloaded; iOS one VPN at a time, Private Relay off, **clock correct** (REALITY is intolerant); Rule `geosite:cn` direct; kill switch; TUN IPv6 on. Home smoke: with VPN on, v4 **and** v6 test pages show the VPS, not the house; DNS not the ISP; WebRTC not the LAN. Rehearse **Burned IP renew** (`task vpn:provision:renew-ip`) at home (skip `ssh-allow-me`); rehearse wipe path once if time. Rehearse **split habit**: cellular data = travel eSIM + OneXray off; join a Wi-Fi → OneXray on → confirm egress is VPS; leave Wi-Fi → OneXray off.
 
-Switching is a tap.
+Buy/install **home-routed** travel eSIM(s) before departure; verify Western apps on cellular **without** VPN at home if the plan allows a pre-trip check (or accept first verify on arrival).
 
----
+Day-0: captive portal (OneXray off) → join hotel Wi-Fi → OneXray on (Mac + iPhone). Outside: OneXray off, iPhone on eSIM cellular. Admin/repair: eSIM + OneXray off on the MacBook path as today.
 
-## Risks
-
-| Risk | Mitigation |
-|------|-----------|
-| All protocols blocked in China | No technical fix; have non-VPN fallbacks for essentials. |
-| Server IP gets flagged | `task vpn:provision:destroy` + re-apply (new IP). Account-level flags would also hit the platform VPS — they share one Hetzner account. |
-| iOS client app removed from App Store | Install OneXray + WireGuard before trip; WireGuard stays in the App Store. |
+If REALITY dies: phone stays on eSIM; Mac offline or brief tether; eSIM to run Burned IP renew (or wipe if wedged); then OneXray on Wi-Fi/Mac again. Chinese apps / banking without VPN as needed. Do not download a new client in China. Hetzner abuse mail: answer it; see Exit use.
 
 ---
 
-## Implementation order
+## Trip checklist
 
-| Phase | What | When |
-|-------|------|------|
-| **1. VPN Terraform** | `terraform/vpn/` composing the server module. | Week 1 |
-| **2. VPN Ansible** | `roles/vpn/` (WireGuard first -- validates full pipeline). | Week 1 |
-| **3. VPN Task namespace** | `tasks/Taskfile.vpn.yml` calling shared internal tasks. | Week 1 |
-| **4. Xray REALITY** | Add Xray container + REALITY inbound. Test with OneXray. | Week 2 |
-| **5. Xray WS+TLS** | Second inbound, cert automation. | Week 2 |
-| **6. Singapore prod** | `task vpn:provision:apply -- prod`. Test latency. | Week 3 |
-| **7. Harden + client configs** | Final configs, offline backups, QR codes. | Week 3–4 |
-| **8. Post-trip** | `task vpn:provision:destroy -- prod`. | After trip |
-
----
-
-## Before travel checklist
-
-- [ ] All three protocols tested from home (both devices, Wi-Fi + cellular)
-- [ ] OneXray + WireGuard installed; configs imported **offline** (no cloud sync dependency)
-- [ ] Singapore prod server running and tested for latency
-- [ ] Hetzner console access verified (out-of-band recovery without SSH)
-- [ ] Banking / essential services tested **without** VPN (some block VPN IPs)
-- [ ] Server auto-updates enabled (unattended-upgrades)
-- [ ] Destroy plan documented (`task vpn:provision:destroy -- prod`)
+- [ ] OneXray (Mac + iPhone) + offline configs (IPv4 + dest SNI) + GeoData
+- [ ] Rule `geosite:cn` direct; kill switch; TUN IPv6 on; clock; home smoke (VPS v4+v6, not house; DNS; WebRTC)
+- [ ] **Split habit** rehearsed: cell = eSIM + VPN off; hotel Wi-Fi = VPN on
+- [ ] Home-routed travel eSIM installed (Cellular Data = that line; voice/SMS on home if desired); FUP known; spare carrier if possible
+- [ ] This MacBook travels (age key + clone + Docker; no other copy)
+- [ ] eSIM usable for **management** (Console/TFC); MacBook can tether; OneXray **off** when admin’ing on cellular
+- [ ] Hetzner Console, TFC, TransIP logins + 2FA verified from this MacBook (the whole repair path assumes them)
+- [ ] Banking / essentials without VPN
+- [ ] Day-0 procedure
+- [ ] Burned IP renew (eSIM, OneXray off): `task vpn:provision:renew-ip` → `ssh-allow-me` (skip at home) → `hostkeys:accept -- vpn` → optional next dest → `vpn:config` (both devices) → OneXray on
+- [ ] Wedged wipe path known: `vpn:provision:destroy` / `apply` → bootstrap → configure → `vpn:config`
+- [ ] `ssh-allow-me` / `ssh-revoke-me` (not at home; all iac boxes)
+- [ ] docker-ce + Xray digest held
+- [ ] Post-trip destroy VPN box + TFC `vpn-prod`

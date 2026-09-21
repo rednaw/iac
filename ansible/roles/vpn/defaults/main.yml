@@ -1,0 +1,16 @@
+---
+# Pinned by digest (spec: no floating tags on the travel box).
+# Digest resolved from ghcr.io/xtls/xray-core:26.3.27 (Xray-core v26.3.27).
+vpn_xray_image: "ghcr.io/xtls/xray-core@sha256:592ec4d11f656db95598d01e76dbcc6e002d67360b96a5436500a938230f52c7"
+
+vpn_xray_config_dir: /etc/xray
+
+# Held so nothing bounces dockerd (and with it Xray) during the travel window.
+# Belt-and-braces: unattended-upgrades Allowed-Origins is Ubuntu-only, so
+# download.docker.com packages are never auto-upgraded anyway.
+vpn_held_packages:
+  - docker-ce
+  - docker-ce-cli
+  - containerd.io
+  - docker-buildx-plugin
+  - docker-compose-plugin

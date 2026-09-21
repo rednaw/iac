@@ -1,0 +1,6 @@
+---
+- name: Hold Docker packages so nothing bounces dockerd mid-trip
+  ansible.builtin.dpkg_selections:
+    name: "{{ item }}"
+    selection: hold
+  loop: "{{ vpn_held_packages }}"

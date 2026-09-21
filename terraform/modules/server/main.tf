@@ -21,6 +21,10 @@ resource "hcloud_firewall" "this" {
   }
   name = local.firewall_name
 
+  # iac_managed marks every firewall of this module so root task ssh-allow-me
+  # can enumerate them all (travel SSH /32) regardless of purpose.
+  labels = merge(var.labels, { iac_managed = "true" })
+
   rule {
     direction   = "in"
     source_ips  = var.allowed_ssh_ips
@@ -68,5 +72,7 @@ resource "hcloud_server" "this" {
   public_net {
     ipv4_enabled = true
     ipv6_enabled = true
+    # Null omits the attribute → ephemeral IPv4. Set → managed primary IP.
+    ipv4 = var.primary_ipv4_id
   }
 }

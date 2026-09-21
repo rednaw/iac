@@ -14,6 +14,7 @@ includes:
   _terraform: tasks/Taskfile._terraform.yml
   _ansible: tasks/Taskfile._ansible.yml
   platform: tasks/Taskfile.platform.yml
+  vpn: tasks/Taskfile.vpn.yml
   secrets: tasks/Taskfile.secrets.yml
   workflow: tasks/Taskfile.workflow.yml
   server: tasks/Taskfile.server.yml
@@ -47,6 +48,18 @@ tasks:
         echo "  task platform:configure:bootstrap   -- [dev|prod] # One-time bootstrap as root"
         echo "  task platform:configure:apply       -- [dev|prod] # Apply server configuration"
         echo ""
+        echo "VPN — travel VPN box (single prod box, no env arg; docs/future/vpn-travel-china-manual.md):"
+        echo "  task vpn:provision:plan|apply|destroy|output    # Terraform (managed primary IPv4)"
+        echo "  task vpn:provision:renew-ip                     # Burned IP: new IPv4, keep disk"
+        echo "  task vpn:configure:bootstrap|apply              # Ansible (base + Xray REALITY)"
+        echo "  task vpn:config                                 # OneXray share link/QR (no SSH)"
+        echo ""
+        echo "Host keys / travel SSH:"
+        echo "  task hostkeys:accept -- platform dev|prod       # accept recreated box's key by IPv4"
+        echo "  task hostkeys:accept -- vpn                     #   after renew-ip or wipe recreate"
+        echo "  task ssh-allow-me                               # travel: allow my /32 on ALL iac firewalls"
+        echo "  task ssh-revoke-me                              # remove those travel rules"
+        echo ""
         echo "Workflow (Prefect):"
         echo "  task workflow:deploy  -- [dev|prod]   # Deploy Prefect flows"
         echo ""
@@ -79,6 +92,18 @@ tasks:
         echo "  task backup:restore   -- [dev|prod] <app> [snap] [...] # Restore (same slug rule as deploy)"
         echo "  task backup:download  -- [dev|prod] <app>              # Server Restic repo → .backup-repos/<slug>/"
         echo "  task backup:upload    -- [dev|prod] <app>              # .backup-repos/<slug>/ → server (replaces remote repo)"
+
+  ssh-allow-me:
+    desc: "Travel only: allow current public IPv4 /32 (TCP/22) on every iac firewall (skip at home)"
+    silent: true
+    cmds:
+      - ./scripts/ssh-allow-me.sh
+
+  ssh-revoke-me:
+    desc: "Remove all ssh-allow-me travel rules (home rules untouched)"
+    silent: true
+    cmds:
+      - ./scripts/ssh-revoke-me.sh
 
   # Internal validation tasks - used by other tasks via deps or direct calls
   _check:sops-key:

@@ -66,3 +66,14 @@ variable "backups" {
   type        = bool
   default     = true
 }
+
+variable "primary_ipv4_id" {
+  description = <<-EOT
+    Optional Hetzner primary IPv4 ID to attach (hcloud_primary_ip.id).
+    Null = provider-managed ephemeral IPv4 (platform default).
+    Set by VPN so Burned IP can replace the address without wiping the disk.
+  EOT
+  type        = number
+  default     = null
+  nullable    = true
+}

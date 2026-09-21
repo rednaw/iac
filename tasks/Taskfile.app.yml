@@ -56,13 +56,13 @@ tasks:
 
         IMAGE_NAME=$(yq -r '.image_name' "$_iac")
 
-        HOSTNAME=$(task hostkeys:hostname -- "{{.WORKSPACE}}")
+        IP=$(task hostkeys:ip -- platform "{{.WORKSPACE}}") || exit 1
         PLATFORM=$(task hostkeys:platform)
         ANSIBLE_CONFIG="{{.IAC_ROOT}}/ansible/ansible.cfg" \
         ansible-playbook \
           -i "${PLATFORM}-{{.WORKSPACE}}," \
           "{{.IAC_ROOT}}/ansible/playbooks/deploy-app.yml" \
-          -e "ansible_host=${HOSTNAME}" \
+          -e "ansible_host=${IP}" \
           -e "app_root={{.APP_ROOT}}" \
           -e "workspace={{.WORKSPACE}}" \
           -e "sha={{.SHA}}" \
