@@ -4,7 +4,7 @@
 
 Dedicated Hetzner VPS for a personal trip (MacBook + iPhone). Same account as platform (`rednaw.nl`). **Not legal advice.**
 
-**Implemented** (files in repo, nothing provisioned): `terraform/vpn/` (managed `hcloud_primary_ip` + server), `ansible/roles/vpn/` + `playbooks/vpn.yml`, `tasks/Taskfile.vpn.yml` (`provision:renew-ip`), purpose-parameterised `hostkeys:*` / `_terraform:*` / `_ansible:*` (ansible_host = API IPv4, `StrictHostKeyChecking=yes`), `hostkeys:accept`, root `ssh-allow-me` / `ssh-revoke-me`, firewall label `iac_managed=true` in `modules/server`. Do = rollout + smoke. Dest is a roster (pick at smoke). Operator manual: [vpn-travel-china-manual.md](vpn-travel-china-manual.md).
+**Implemented** (files in repo, nothing provisioned): `terraform/vpn/` (managed `hcloud_primary_ip` + server), `ansible/roles/vpn/` + `playbooks/vpn.yml`, `tasks/Taskfile.vpn.yml` (`provision:renew-ip`), purpose-parameterised `hostkeys:*` / `_terraform:*` / `_ansible:*` (ansible_host = API IPv4, `StrictHostKeyChecking=yes`), `hostkeys:accept`, root `ssh-allow-me` / `ssh-revoke-me`, firewall label `iac_managed=true` in `modules/server`. Do = review fixes + rollout + smoke. Dest is a roster (pick at smoke). Operator manual: [vpn-travel-china-manual.md](vpn-travel-china-manual.md).
 
 ---
 
@@ -34,11 +34,12 @@ Dedicated Hetzner VPS for a personal trip (MacBook + iPhone). Same account as pl
 | SSH | **Never `0.0.0.0/0` / `::/0`.** Standing lists: platform `allowed_ssh_ips` and VPN `vpn_allowed_ssh_ips` = **home only**. Do not put the VPN IP on platform’s list. Do not put platform IPs on the VPN list. No jump `platform → VPN`. |
 | Travel SSH | Root tasks `ssh-allow-me` / `ssh-revoke-me` — **all** iac-managed Hetzner firewalls in one go (platform dev+prod, VPN, later honeypot). **Skip at home.** Extra rule: current public IPv4 `/32` only. Detect `-4`; SSH `-4`. Fail loud if no public v4. Refuse if that IP is any iac server. Extra rules are not Terraform, not SOPS, not git. Next `<purpose>:provision:apply` **drops** that box’s extra rule — expected. No per-purpose allow-me. |
 | Travel admin | **This MacBook** — only machine with the age key, clone, and Docker. It travels. Repair is eSIM + this laptop (devcontainer). Do not Console-delete the VM (TFC desync). Wedged box → Console and/or `ssh-allow-me`, then wipe path if needed. |
-| Burned IP | **Default: renew IPv4, keep disk.** OneXray off → replace `hcloud_primary_ip` only → **fail loud if new address equals old** (retry) → `ssh-allow-me` (**skip at home**) → `hostkeys:accept -- vpn` → optional next `vpn_dest` → `vpn:config` (both devices) → OneXray on. No bootstrap/configure. Same SOPS keys. |
+| Burned IP | **Default: renew IPv4, keep disk.** OneXray off → replace `hcloud_primary_ip` only → **fail loud if new address equals old** (retry) → `ssh-allow-me` (**skip at home**) → `hostkeys:accept -- vpn` → optional next `vpn_dest` → `vpn:config` (both devices) → OneXray on. No bootstrap/configure. Same SOPS keys. Disk survives because `public_net` is **not** ForceNew (provider updates the server in place); the box hard power-cycles **twice per attempt** and is briefly IPv4-less. |
 | Wedged / wipe | Disk bad, Docker/Xray wedged, or compromise → destroy/recreate **server** (and IP as needed) → `hostkeys:accept` → bootstrap → configure → `vpn:config`. Full circle. |
 | Hostkey | Provision never SSH. VPN has no FQDN — `hostkeys:prepare` does not invent one. After IP renew or wipe (+ `ssh-allow-me` when away), `hostkeys:accept -- vpn` to the API IPv4 (`-4`, `accept-new`, own-IP wipe first) must succeed before Ansible with `StrictHostKeyChecking=yes`. |
 | Post-trip | Destroy VPN primary IP + server + firewall and TFC `vpn-prod`. No DNS record to delete. |
 | Competition (ops) | **Home-routed roaming eSIM** can carry Western apps on **phone cellular** with no tunnel (hotel Wi-Fi and laptop still need something else). **Commercial apps** (Astrill etc.) are flaky in 2026; Astrill’s strong mode is weak on **iOS** — OneXray+REALITY stays the right primary for this Mac+iPhone pair. **iCal/shared-pool “airports”** are not our path. Treat any single tunnel as **disposable** (already Burned IP). Prefer a **heterogeneous** fallback when the VPS is dead — not two copies of the same REALITY box unless we explicitly add standby. |
+| fail2ban on VPN | **Off.** No package, no sshd jail, no AbuseIPDB. Safe because Hetzner already gates TCP/22 to `vpn_allowed_ssh_ips` (home) + travel `/32` via `ssh-allow-me` — the jail cannot see attackers the firewall rejects, and on a first hotel SSH it can only ban the operator (`ignoreip` is platform `allowed_ssh_ips`, never the travel IP). Platform keeps base jail + Traefik as today. |
 
 REALITY: VPS forwards keyless probes to dest. Our name is not in the handshake. If REALITY fails: phone keeps working on eSIM cellular; use eSIM to **repair** (Burned IP renew, or wipe if wedged), then OneXray again on Wi-Fi/Mac. No dest change on a **live** (burned) IP. A successful renew may take the next roster name (`vpn:config` both devices).
 
@@ -65,16 +66,38 @@ Out: our names (`tientjeketama.nl` `rednaw.nl` `*.github.io`); landlord / GFW-cl
 
 ## Decide
 
-None.
+### Platform box lookup in `hostkeys:ip`?
+
+`-- platform <env>` re-derives `${BASE_DOMAIN//./-}-<env>`, a second copy of `locals.server_name`, which silently breaks if `var.server_name` is ever set.
+
+| | Option |
+|--|--------|
+| **A** | Keep the re-derivation. `var.server_name` stays unused in practice. |
+| **B** | Look up by label instead (`hcloud server list -l …`): platform `environment=<env>`, VPN `purpose=vpn`. Name-independent; both roots already carry the labels. |
+
+Choice: _unpicked_
 
 ## Do
 
-### 0. Rollout (one-time, at home)
+### 0. Review fixes
+
+can start now — all of this (fail2ban pick locked).
+
+- **fail2ban off on VPN**: `roles/base` default on; `playbooks/vpn.yml` sets the skip var. Skip the whole `fail2ban.yml` import (no package → no jail → no AbuseIPDB). Platform unchanged. Manual §4: note fail2ban is platform-only on this trip box.
+- **`renew-ip` init** (`tasks/Taskfile.vpn.yml`): call `:_terraform:init` with `TF_DIR` + `WORKSPACE` instead of the hand-rolled `terraform init`. It currently unsets `TF_WORKSPACE`, omits `-input=false` / `-reconfigure`, and sends stdout to `/dev/null` — the inverse of `_terraform:init`, which documents that prefix backends need `TF_WORKSPACE` at init to stay non-interactive. Without `.terraform/environment` it can block on an invisible prompt, on the one path run from a hotel.
+- **`hostkeys:accept` retry** (`tasks/Taskfile.hostkeys.yml`): bounded loop (~10 × 5 s) around the `ubuntu`/`root` attempt. A single `ConnectTimeout=10` shot races cloud-init on a fresh box and the power-cycle after `renew-ip`. Fix or drop the gate in `scripts/validate-stack.py` too: `server:check-status` exits 0 even when unreachable and takes no workspace, so `wait_for_server` never waits.
+- **`ssh-revoke-me` multi-IP rule** (`scripts/ssh-revoke-me.sh`): `delete-rule` matches a whole rule, so a marker rule holding two `source_ips` never matches `--source-ips "$IP"`. Delete per rule, not per IP. Reachable via the by-hand Console fallback manual §5 recommends.
+- **`ssh-allow-me` robustness** (`scripts/ssh-allow-me.sh`): a second detection URL after `api.ipify.org`; capture `hcloud server list` into a variable before `grep -Fxq`, because `grep -q` plus `pipefail` makes the "refuse an iac server address" guard fail open when `hcloud` takes SIGPIPE.
+- **`vpn-tf-secrets.sh` null guard**: fail with "missing from `secrets/infra.yml` (manual §2.1)" rather than handing Terraform `null` for `ssh_keys` / `vpn_allowed_ssh_ips`. Otherwise the first rollout error is a raw type error.
+- **Manual edits** (`vpn-travel-china-manual.md`): §6.1 — renew hard power-cycles the box twice per attempt (poweroff → unassign → on → delete IP, then off → assign → on) and it is briefly IPv4-less; Xray returns on `unless-stopped`. §2.2 — `provision:apply` does not print the IPv4, `provision:output` does. §2.4 — one link, not links. Back-link `../../README.md` like every other `docs/future/*.md`.
+
+### 1. Rollout (one-time, at home)
 
 - TFC: create workspace `vpn-prod` in the org, then `task vpn:provision:reconfigure`.
 - Secrets: generate + add `vpn_uuid`, `vpn_reality_private_key`, `vpn_reality_public_key`, `vpn_short_id`, `vpn_dest` (roster #1 for now), `vpn_allowed_ssh_ips` (home only). Manual §2.1. Generate **once**; never regenerate on apply.
-- Platform migration: `platform:provision:apply -- prod` adds the `iac_managed=true` firewall label (done). Skip platform-dev. Then one-time `task hostkeys:accept -- platform prod` if Ansible IPv4/`StrictHostKeyChecking=yes` is not yet proven on prod.
-### 1. Home smoke, then trip
+- Platform migration: `platform:provision:apply -- prod` for the `iac_managed=true` firewall label. Skip platform-dev. Then one-time `task hostkeys:accept -- platform prod` if Ansible IPv4/`StrictHostKeyChecking=yes` is not yet proven on prod.
+
+### 2. Home smoke, then trip
 
 Home tests on this **prod** box prove the stack, **not** the GFW. Try dest **try-order then spares from the CX23**; first that TLS-1.3-handshakes and HTTP-looks-like-the-site is the trip dest until a Burned IP (checks incl. X25519: manual §2.3).
 
