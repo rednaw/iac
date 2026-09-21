@@ -71,6 +71,7 @@ tasks:
     cmds:
       - |
         set -euo pipefail
+        # shellcheck disable=SC2269  # Task {{.TF_DIR}} → $TF_DIR for shellcheck only
         TF_DIR="{{.TF_DIR}}"
         MAX="{{.RENEW_IP_MAX_ATTEMPTS}}"
         export SOPS_KEY_FILE="{{.SOPS_KEY_FILE}}"
@@ -88,7 +89,7 @@ tasks:
         unset TF_WORKSPACE || true
         terraform -chdir="$TF_DIR" init -backend-config="organization=${TFC_ORG}" >/dev/null
         terraform -chdir="$TF_DIR" workspace select "{{.WORKSPACE}}"
-        export TF_WORKSPACE='{{.WORKSPACE}}'
+        export TF_WORKSPACE="{{.WORKSPACE}}"
         # shellcheck disable=SC1090
         . "./{{.SECRETS_SCRIPT}}"
 
