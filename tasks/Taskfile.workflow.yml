@@ -13,6 +13,6 @@ tasks:
       - task: :_ansible:install
       - |
         echo "🔄 Deploying Prefect flows to workspace: {{.WORKSPACE}}..."
-        HOSTNAME=$(task hostkeys:hostname -- "{{.WORKSPACE}}")
+        IP=$(task hostkeys:ip -- platform "{{.WORKSPACE}}") || exit 1
         PLATFORM=$(task hostkeys:platform)
-        ansible-playbook -i "${PLATFORM}-{{.WORKSPACE}}," playbooks/prefect-deploy.yml -e "ansible_host=${HOSTNAME}" -e "target_workspace=${PLATFORM}-{{.WORKSPACE}}"
+        ansible-playbook -i "${PLATFORM}-{{.WORKSPACE}}," playbooks/prefect-deploy.yml -e "ansible_host=${IP}" -e "target_workspace=${PLATFORM}-{{.WORKSPACE}}"

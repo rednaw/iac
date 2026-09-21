@@ -134,9 +134,13 @@ TFC_TOKEN=$(echo "$DECRYPTED" | yq -r '.terraform_cloud_token // ""')
 [ -n "$TFC_TOKEN" ] || { echo "ERROR: terraform_cloud_token missing from $INFRA_FILE." >&2; exit 1; }
 
 export TF_TOKEN_app_terraform_io="$TFC_TOKEN"
+# Always refresh — a stale line in bashrc/zshrc survives rebuilds when $HOME persists
+# and otherwise leaves TF_TOKEN pointing at a revoked token ("No existing workspaces").
 for profile in "${HOME}/.bashrc" "${HOME}/.zshrc"; do
-  [ -f "$profile" ] && ! grep -q "TF_TOKEN_app_terraform_io" "$profile" 2>/dev/null && \
+  if [ -f "$profile" ]; then
+    grep -v 'TF_TOKEN_app_terraform_io=' "$profile" > "${profile}.tmp" && mv "${profile}.tmp" "$profile"
     printf '\nexport TF_TOKEN_app_terraform_io="%s"\n' "$TFC_TOKEN" >> "$profile"
+  fi
 done
 echo "Terraform Cloud token configured."
 

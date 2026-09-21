@@ -12,18 +12,19 @@ flowchart LR
   end
   subgraph enhancements [Platform enhancements]
     backup[Backup shape]
+    sshT2[Admin SSH T2]
   end
 ```
 
 ## New server types
 
-Pattern: `terraform/<purpose>/` composing `modules/server`, Ansible `roles/<purpose>/` + playbook `[base, <purpose>]`, thin Task namespace over `_terraform:*` / `_ansible:*`.
+Pattern: `terraform/<purpose>/` composing `modules/server`, Ansible `roles/<purpose>/` + playbook `[base, <purpose>]`, thin Task namespace (`provision` / `configure`). `_terraform:*` / `_ansible:*` / `hostkeys:*` are purpose-parameterised (landed with the VPN): `ansible_host` is always the API IPv4, `hostkeys:accept -- <purpose> [env]` records host keys, and root `ssh-allow-me` / `ssh-revoke-me` add/remove a travel `/32` on **all** iac firewalls (label `iac_managed=true`); next provision apply on a box drops its extra rule.
 
 ### VPN
 
-Personal VPN VPS (Xray/VLESS+REALITY, WireGuard); destroyable after use.
+Personal travel VPN: throwaway VPS next to long-running platform (`nbg1`). REALITY-only (dest roster, pick at smoke). Daily path = OneXray; eSIMs = management only.
 
-Design: [vpn-travel-china.md](vpn-travel-china.md)
+Design: [vpn-travel-china.md](vpn-travel-china.md) · Manual: [vpn-travel-china-manual.md](vpn-travel-china-manual.md)
 
 ### Honeypot
 
@@ -33,12 +34,22 @@ Design: [honeypot.md](honeypot.md)
 
 ## Platform enhancements
 
+### Admin SSH (T2)
+
+This Intel Mac’s Secure Enclave as the iac SSH identity (P-256, not the file Ed25519). Uncoupled from the China trip.
+
+Design: [ssh-admin-t2.md](ssh-admin-t2.md)
+
 ### Smaller open items
 
 | Item | Notes |
 |------|--------|
 | Backup shape | Standardize `backup:` in `iac.yml` vs `.iac/backup.yml`; align Taskfile + Prefect |
 | Platform UX | Docker context naming, registry hostname clarity across envs |
+
+## Business (portfolio)
+
+Lives in sibling `rednaw`: [`.cursor/ideas/monetize-rednaw.md`](../../../rednaw/.cursor/ideas/monetize-rednaw.md). Not an iac roadmap.
 
 ## Done (reference)
 

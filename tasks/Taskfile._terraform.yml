@@ -4,27 +4,41 @@
 # (e.g. platform:provision:plan -> _terraform:plan).
 #
 # Parameters consumers pass:
-#   TF_DIR          Terraform root directory (e.g. "terraform")
+#   TF_DIR          Terraform root directory (e.g. "terraform/platform")
+#   PURPOSE         Server purpose (e.g. "platform", "vpn") — hostkeys handling
 #   WORKSPACE       Terraform workspace (e.g. "dev", "prod")
-#   PREFIX          Workspace prefix label for log output (e.g. "platform")
+#   WORKSPACES      Space-separated workspace list for reconfigure (e.g. "dev prod")
+#   PREFIX          Workspace prefix label for log output only (TFC prefix lives
+#                   in terraform/<purpose>/versions.tf)
 #   SECRETS_SCRIPT  Sourceable script that exports TF_VAR_* (e.g. "scripts/platform-tf-secrets.sh")
+#
+# apply/destroy never SSH. Host keys: hostkeys:prepare wipes name-keyed entries
+# before apply; hostkeys:accept (run by the operator after apply, and after
+# ssh-allow-me when travelling) records the new key by API IPv4.
 #
 # Tasks run from the IaC repo root; Terraform invocations use -chdir={{.TF_DIR}}.
 version: '3'
 
 tasks:
   reconfigure:
-    desc: "(internal) Reconfigure Terraform backend for both workspaces"
+    desc: "(internal) Reconfigure Terraform backend for a purpose's workspaces"
     internal: true
     silent: true
     deps: [":_check:sops-key"]
     cmds:
       - |
         TFC_ORG=$(SOPS_AGE_KEY_FILE="{{.SOPS_KEY_FILE}}" sops -d secrets/infra.yml | yq -r '.terraform_cloud_organization')
-        for WORKSPACE in dev prod; do
-          export TF_WORKSPACE="${WORKSPACE}"
+        if [ -z "${TFC_ORG}" ] || [ "${TFC_ORG}" = "null" ]; then
+          echo "❌ terraform_cloud_organization missing from secrets/infra.yml" >&2
+          exit 1
+        fi
+        rm -f "{{.TF_DIR}}/.terraform/environment"
+        # shellcheck disable=SC2153  # WORKSPACES is a Task template parameter
+        for WORKSPACE in {{.WORKSPACES}}; do
           echo "🔁 Reconfiguring Terraform backend for workspace: {{.PREFIX}}-${WORKSPACE} (org: ${TFC_ORG})..."
-          terraform -chdir="{{.TF_DIR}}" init -reconfigure -backend-config="organization=${TFC_ORG}"
+          export TF_WORKSPACE="${WORKSPACE}"
+          terraform -chdir="{{.TF_DIR}}" init -input=false -reconfigure -backend-config="organization=${TFC_ORG}"
+          terraform -chdir="{{.TF_DIR}}" workspace select "${WORKSPACE}"
         done
 
   init:
@@ -35,9 +49,19 @@ tasks:
     cmds:
       - |
         TFC_ORG=$(SOPS_AGE_KEY_FILE="{{.SOPS_KEY_FILE}}" sops -d secrets/infra.yml | yq -r '.terraform_cloud_organization')
-        export TF_WORKSPACE='{{.WORKSPACE | default "dev"}}'
-        if ! output=$(terraform -chdir="{{.TF_DIR}}" init -backend-config="organization=${TFC_ORG}" 2>&1); then
+        if [ -z "${TFC_ORG}" ] || [ "${TFC_ORG}" = "null" ]; then
+          echo "❌ terraform_cloud_organization missing from secrets/infra.yml" >&2
+          exit 1
+        fi
+        WS='{{.WORKSPACE | default "dev"}}'
+        # Prefix backends have no "default" workspace. Set TF_WORKSPACE for init
+        # so it is non-interactive; -input=false fails closed if selection can't.
+        export TF_WORKSPACE="${WS}"
+        rm -f "{{.TF_DIR}}/.terraform/environment"
+        if ! output=$(terraform -chdir="{{.TF_DIR}}" init -input=false -reconfigure -backend-config="organization=${TFC_ORG}" 2>&1); then
           echo "$output"
+          echo "" >&2
+          echo "If token/auth errors: refresh terraform_cloud_token in secrets, rebuild container (or re-export TF_TOKEN_app_terraform_io)." >&2
           exit 1
         fi
 
@@ -51,6 +75,8 @@ tasks:
         vars: { TF_DIR: '{{.TF_DIR}}', WORKSPACE: '{{.WORKSPACE}}' }
       - |
         echo "📋 Planning Terraform changes for workspace: {{.PREFIX}}-{{.WORKSPACE}}..."
+        # TF_WORKSPACE overrides select; clear any leftover from the shell or init.
+        unset TF_WORKSPACE || true
         terraform -chdir="{{.TF_DIR}}" workspace select "{{.WORKSPACE}}"
         export SOPS_KEY_FILE="{{.SOPS_KEY_FILE}}"
         # shellcheck disable=SC1090
@@ -67,16 +93,17 @@ tasks:
         vars: { TF_DIR: '{{.TF_DIR}}', WORKSPACE: '{{.WORKSPACE}}' }
       - |
         echo "✨ Applying Terraform changes to workspace: {{.PREFIX}}-{{.WORKSPACE}}"
+        unset TF_WORKSPACE || true
         terraform -chdir="{{.TF_DIR}}" workspace select "{{.WORKSPACE}}"
         export SOPS_KEY_FILE="{{.SOPS_KEY_FILE}}"
         # shellcheck disable=SC1090
         . "./{{.SECRETS_SCRIPT}}"
-        echo "🔑 Removing old host key for workspace from known_hosts..."
-        task hostkeys:prepare -- "{{.WORKSPACE}}"
+        echo "🔑 Removing old name-keyed host keys from known_hosts..."
+        task hostkeys:prepare -- "{{.PURPOSE}}" "{{.WORKSPACE}}"
         terraform -chdir="{{.TF_DIR}}" apply
-        echo "🔑 Accepting new host key..."
-        HOSTNAME=$(task hostkeys:hostname -- "{{.WORKSPACE}}")
-        ssh -o StrictHostKeyChecking=accept-new -o ConnectTimeout=5 -o BatchMode=yes "ubuntu@${HOSTNAME}" "echo" >/dev/null 2>&1 || true
+        echo ""
+        echo "💡 If the server was (re)created: task hostkeys:accept -- {{.PURPOSE}} {{.WORKSPACE}}"
+        echo "   (away from home: task ssh-allow-me first), then configure:bootstrap + configure:apply."
 
   destroy:
     desc: "(internal) Destroy Terraform resources"
@@ -90,13 +117,14 @@ tasks:
         echo "⚠️  WARNING: This will DESTROY all resources in workspace: {{.PREFIX}}-{{.WORKSPACE}}"
         echo "Terraform will ask for confirmation..."
         echo ""
+        unset TF_WORKSPACE || true
         terraform -chdir="{{.TF_DIR}}" workspace select "{{.WORKSPACE}}"
         export SOPS_KEY_FILE="{{.SOPS_KEY_FILE}}"
         # shellcheck disable=SC1090
         . "./{{.SECRETS_SCRIPT}}"
         terraform -chdir="{{.TF_DIR}}" destroy
         echo "🧹 Cleaning server host key from known_hosts..."
-        task hostkeys:prepare -- "{{.WORKSPACE}}"
+        task hostkeys:prepare -- "{{.PURPOSE}}" "{{.WORKSPACE}}"
         echo "✅ Host key removed"
 
   output:
@@ -106,6 +134,7 @@ tasks:
       - task: init
         vars: { TF_DIR: '{{.TF_DIR}}', WORKSPACE: '{{.WORKSPACE}}' }
       - |
+        unset TF_WORKSPACE || true
         terraform -chdir="{{.TF_DIR}}" workspace select "{{.WORKSPACE}}"
         echo "📤 Getting Terraform outputs for workspace: {{.PREFIX}}-{{.WORKSPACE}}..."
         terraform -chdir="{{.TF_DIR}}" output

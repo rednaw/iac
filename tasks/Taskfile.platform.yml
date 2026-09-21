@@ -12,6 +12,7 @@ version: '3'
 
 vars:
   TF_DIR: terraform/platform
+  PURPOSE: platform
   PREFIX: platform
   SECRETS_SCRIPT: scripts/platform-tf-secrets.sh
   PLAYBOOK_SERVER: playbooks/server.yml
@@ -25,6 +26,7 @@ tasks:
         vars:
           TF_DIR: '{{.TF_DIR}}'
           PREFIX: '{{.PREFIX}}'
+          WORKSPACES: 'dev prod'
 
   provision:plan:
     desc: "Plan provisioning changes (use: task platform:provision:plan -- dev or -- prod)"
@@ -48,6 +50,7 @@ tasks:
       - task: :_terraform:apply
         vars:
           TF_DIR: '{{.TF_DIR}}'
+          PURPOSE: '{{.PURPOSE}}'
           WORKSPACE: '{{.WORKSPACE}}'
           PREFIX: '{{.PREFIX}}'
           SECRETS_SCRIPT: '{{.SECRETS_SCRIPT}}'
@@ -61,6 +64,7 @@ tasks:
       - task: :_terraform:destroy
         vars:
           TF_DIR: '{{.TF_DIR}}'
+          PURPOSE: '{{.PURPOSE}}'
           WORKSPACE: '{{.WORKSPACE}}'
           PREFIX: '{{.PREFIX}}'
           SECRETS_SCRIPT: '{{.SECRETS_SCRIPT}}'
@@ -85,6 +89,7 @@ tasks:
     cmds:
       - task: :_ansible:bootstrap
         vars:
+          PURPOSE: '{{.PURPOSE}}'
           WORKSPACE: '{{.WORKSPACE}}'
           PLAYBOOK: '{{.PLAYBOOK_BOOTSTRAP}}'
 
@@ -96,5 +101,6 @@ tasks:
     cmds:
       - task: :_ansible:run
         vars:
+          PURPOSE: '{{.PURPOSE}}'
           WORKSPACE: '{{.WORKSPACE}}'
           PLAYBOOK: '{{.PLAYBOOK_SERVER}}'

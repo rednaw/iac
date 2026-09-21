@@ -59,34 +59,40 @@ tasks:
         fi
 
   terraform:validate:
-    desc: Validate Terraform configuration
+    desc: Validate Terraform configuration (all roots)
     silent: true
-    dir: terraform/platform
+    dir: terraform
     cmds:
       - |
         echo "🔍 Validating Terraform configuration..."
-        if ! terraform init -backend=false; then
-          echo ""
-          echo "❌ Terraform initialization failed."
-          echo "   Common cause: mise tried to install Terraform under /opt/mise/installs (root-owned)."
-          echo "   Fix: rebuild/pull the dev image (tools should be baked), or run: sudo mise install"
-          exit 1
-        fi
-        if ! terraform validate; then
-          echo "❌ Terraform validation failed"
-          exit 1
-        fi
+        for root in platform vpn; do
+          echo "  → terraform/${root}"
+          if ! terraform -chdir="$root" init -backend=false >/dev/null; then
+            echo ""
+            echo "❌ Terraform initialization failed (terraform/${root})."
+            echo "   Common cause: mise tried to install Terraform under /opt/mise/installs (root-owned)."
+            echo "   Fix: rebuild/pull the dev image (tools should be baked), or run: sudo mise install"
+            exit 1
+          fi
+          if ! terraform -chdir="$root" validate; then
+            echo "❌ Terraform validation failed (terraform/${root})"
+            exit 1
+          fi
+        done
       - echo "✅ Terraform validation passed"
 
   terraform:security:
-    desc: Run Terraform security scan (tfsec)
-    dir: terraform/platform
+    desc: Run Terraform security scan (tfsec, all roots)
+    dir: terraform
     silent: true
     cmds:
       - |
         echo ""
         echo "🔒 Running security scan with tfsec..."
-        tfsec . --minimum-severity MEDIUM || (echo "❌ Security scan found issues" && exit 1)
+        for root in platform vpn; do
+          echo "  → terraform/${root}"
+          tfsec "$root" --minimum-severity MEDIUM || (echo "❌ Security scan found issues (terraform/${root})" && exit 1)
+        done
       - echo "✅ Security scan passed"
 
   ansible:lint:

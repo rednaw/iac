@@ -1,0 +1,19 @@
+---
+# VPN server playbook: hardened base + Xray REALITY container.
+# Design: docs/future/vpn-travel-china.md — manual: vpn-travel-china-manual.md
+# Inventory name is "vpn" (own fact cache); ansible_host is always the API IPv4.
+
+- name: Configure VPN Server
+  hosts: all
+  become: true
+
+  pre_tasks:
+    - name: Decrypt and load infrastructure secrets
+      ansible.builtin.import_tasks: ../tasks/secrets.yml
+
+    - name: Manage SSH authorized keys
+      ansible.builtin.import_tasks: ../tasks/authorized-keys.yml
+
+  roles:
+    - base
+    - vpn
