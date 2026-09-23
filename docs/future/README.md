@@ -28,7 +28,7 @@ Design: [vpn-travel-china.md](vpn-travel-china.md) · Manual: [vpn-travel-china-
 
 ### Honeypot
 
-Isolated T-Pot style host, strict egress.
+Ephemeral standalone T-Pot Hive on CX53. Strict runtime egress. Kibana on the box only (no OpenObserve). Manual campaign length; destroy when done.
 
 Design: [honeypot.md](honeypot.md)
 
