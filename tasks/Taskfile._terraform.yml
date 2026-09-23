@@ -38,6 +38,7 @@ tasks:
           echo "🔁 Reconfiguring Terraform backend for workspace: {{.PREFIX}}-${WORKSPACE} (org: ${TFC_ORG})..."
           export TF_WORKSPACE="${WORKSPACE}"
           terraform -chdir="{{.TF_DIR}}" init -input=false -reconfigure -backend-config="organization=${TFC_ORG}"
+          unset TF_WORKSPACE || true
           terraform -chdir="{{.TF_DIR}}" workspace select "${WORKSPACE}"
         done
 
