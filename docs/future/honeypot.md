@@ -1,240 +1,124 @@
-[**<---**](../../README.md)
+[**<---**](README.md)
 
 # Honeypot server
 
-A dedicated Hetzner VPS running honeypot services to observe attacker behavior after a "compromise." Managed by this IaC project. **Not a real vulnerable system** -- uses established honeypot software that simulates services without giving real access.
+Ephemeral dedicated Hetzner VPS running a standalone [T-Pot](https://github.com/telekom-security/tpotce) Hive to observe internet attackers. Completely isolated from the platform and VPN boxes. Not a real vulnerable system — simulated services only. Kibana lives on the box; no OpenObserve shipping.
 
-**Prerequisite:** shared Terraform `modules/server`, Ansible `roles/base` + purpose role, Task `_terraform:*` / `_ansible:*` (see [Roadmap](README.md#new-server-types)).
+## Decided
 
----
+| | |
+|--|--|
+| Interaction | Low-interaction only (T-Pot Hive). High-interaction deferred |
+| Software | Standalone T-Pot **Hive** (upstream Sensor requires a Hive and cannot target OpenObserve — rejected) |
+| Host | Dedicated CX53 (32 GB RAM, 320 GB local disk). No block volume. Hetzner backups off |
+| Lifecycle | Ephemeral campaigns: provision → observe → destroy. Duration chosen by the human |
+| Naming | TFC workspace `honeypot`; server / firewall / Ansible inventory `honeypot` (mirror VPN). No DNS |
+| Isolation | No private network to platform/VPN. No platform credentials, registry, or SOPS key on the box. Dedicated SSH key |
+| Inbound | Public TCP/UDP **1–64000**. Cowrie on public **22**. Real SSH **64295** and web UI **64297** restricted to admin IPs |
+| Observability | Built-in Elastic/Kibana on the box only. No OpenObserve, no public ingest endpoint |
+| Community | T-Pot community data submission **disabled** |
+| Retention | Local honeypot data ~7 days; malware/binaries stay on the box and die with destroy |
+| Egress | Maintenance mode: temporary HTTPS for install/update. Runtime: established + fixed DNS resolvers only |
+| Pattern | Same as VPN: `terraform/honeypot/` → `modules/server`; `roles/honeypot/` + `playbooks/honeypot.yml` = `[base, honeypot]`; `tasks/Taskfile.honeypot.yml` |
 
-## Decisions
+## Decide
 
-| Question | Decision |
-|----------|----------|
-| Interaction level | **Low-interaction** (simulated services). Safe, no real shell access for attackers. Graduate to high-interaction later if needed. |
-| Software | **[T-Pot](https://github.com/telekom-security/tpotce)** -- multi-honeypot platform with built-in dashboards |
-| Server | **Dedicated VPS**, completely isolated from the platform server |
-| Logging | Ship to **prod platform's OpenObserve** (one-way push) |
-| Egress | **Restricted** -- only allow outbound to logging endpoint + DNS |
+None.
 
----
+## Do
 
-## Why low-interaction first
+Checkboxes track status only. The agent may change only **Agent** boxes; only the human may change **Human** boxes. Task bodies assign the work.
 
-| | Low-interaction | High-interaction |
-|---|---|---|
-| **What** | Simulated services (fake SSH, HTTP, SMB, etc.) | Real OS with weak passwords, real shell |
-| **Risk** | Low -- attacker never gets real access | High -- real shell, real outbound abuse potential |
-| **Data** | Who scans, what credentials they try, what commands they attempt | Full attacker toolkit, lateral movement, malware drops |
-| **Outbound abuse** | Not possible | Real risk without strict egress filtering |
-| **Complexity** | Deploy containers, done | Sandboxing, egress rules, legal considerations |
+### 0. Prerequisites and secrets
 
-Low-interaction gives 90% of interesting data with 10% of the risk. T-Pot bundles ~20 honeypots (Cowrie for SSH, Dionaea for malware, Honeytrap for TCP, and more) with a Kibana dashboard out of the box.
+- [ ] Agent: implemented
+- [ ] Human: reviewed
 
----
+**Agent will implement** — after `remove-dev.md` and `public-secrets.md` land (or against current `secrets/` until then): add honeypot keys to the secrets scaffold (`honeypot_allowed_ssh_ips`, dedicated SSH key IDs, T-Pot web user/password hash, pinned T-Pot version/repo); add `scripts/honeypot-tf-secrets.sh` mirroring `vpn-tf-secrets.sh`; assert only honeypot keys are required on that purpose.
 
-## Server sizing and cost
+**Human must:** Create TFC workspace `honeypot`. Generate a dedicated Hetzner SSH key for this purpose only. Store `honeypot_allowed_ssh_ips`, key IDs, and T-Pot web credentials in the active SOPS secrets repo. Do not paste plaintext secrets into chat.
 
-T-Pot's [system requirements](https://github.com/telekom-security/tpotce?tab=readme-ov-file#system-requirements):
+### 1. Shared plumbing
 
-| T-Pot type | RAM | Storage |
-|------------|-----|---------|
-| Hive (standalone, all-in-one) | 16 GB | 256 GB SSD |
-| Sensor (honeypots only, ships logs elsewhere) | 8 GB | 128 GB SSD |
+- [ ] Agent: implemented
+- [ ] Human: reviewed
 
-Hetzner [pricing](https://costgoat.com/pricing/hetzner) (April 2026, Germany/Finland, incl. IPv4):
+**Agent will implement** — can start now:
+- Parameterize SSH listen port in `terraform/modules/server/` (default 22; honeypot uses 64295) and in `ansible/roles/base` SSH + fail2ban jails.
+- Extend `tasks/Taskfile.hostkeys.yml` and `tasks/Taskfile._ansible.yml` for purpose `honeypot` (inventory name `honeypot`, API IPv4, port 64295).
+- Add `honeypot` to `tasks/Taskfile.test.yml` validation loops.
+- Prove platform and VPN still plan/configure with unchanged defaults.
 
-| Instance | vCPU | RAM | Storage | Monthly cost |
-|----------|------|-----|---------|-------------|
-| CX33 | 4 | 8 GB | 80 GB | €6.99 |
-| CX43 | 8 | 16 GB | 160 GB | €12.49 |
-| CX53 | 16 | 32 GB | 320 GB | €22.99 |
-| CAX31 | 8 | 16 GB | 160 GB | €16.49 |
+**Human must:** Review the shared-module diffs; confirm no change to platform SSH on 22 or VPN behavior.
 
-Block storage: €0.057/GB/month. IPv4: +€0.50/month (included in costs above).
+### 2. Terraform root
 
-### Option A: T-Pot Hive (standalone) -- recommended
+- [ ] Agent: implemented
+- [ ] Human: reviewed
 
-Full T-Pot with Elastic Stack dashboards, attack maps, all honeypots. No dependency on the platform server for visualization.
+**Agent will implement** — after 1: create `terraform/honeypot/` composing `modules/server`:
+- Image Debian 13 (T-Pot supported), type `cx53`, `backups = false`, no TransIP/DNS, workspace `name = "honeypot"`.
+- Inbound: TCP/UDP 1–64000 from anywhere; SSH rule on **64295** from `honeypot_allowed_ssh_ips`; management **64297** from the same allowlist; ICMP as module default.
+- Labels `purpose=honeypot`, `iac_managed=true` (via module).
 
-- **CX43** (16 GB RAM, 160 GB) + **96 GB block storage** = **~€18/month**
-- **CX53** (32 GB RAM, 320 GB) = **€23/month** -- headroom, no block storage needed
+**Human must:** Review `task honeypot:provision:plan` (in-place create only). Apply. Run `task hostkeys:accept -- honeypot` against port 64295.
 
-### Option B: T-Pot Sensor (honeypots only)
+### 3. T-Pot Hive install
 
-Runs honeypots only, ships all logs to a T-Pot Hive or (with adaptation) to OpenObserve on the platform. Cheaper, but no local Kibana/attack map.
+- [ ] Agent: implemented
+- [ ] Human: reviewed
 
-- **CX33** (8 GB RAM, 80 GB) + **48 GB block storage** = **~€10/month**
+**Agent will implement** — after 2:
+- `ansible/playbooks/honeypot.yml` = `[base, honeypot]`. Adjust base Docker install so it does not conflict with T-Pot's installer (clean host path preferred: skip or defer stock Docker when purpose is honeypot).
+- `roles/honeypot/tasks/tpot.yml`: pinned upstream unattended Hive install (`install.sh -s -t h …`); disable Ewsposter / community submission; set local retention ~7 days; reboot + second run for idempotence.
+- Document that T-Pot moves real SSH to 64295 and binds Cowrie on 22.
 
-### Recommendation
+**Human must:** Run `task honeypot:configure:apply`, allow the reboot, rerun until idempotent. Confirm Cowrie answers on public 22 and `ssh -p 64295` still works from an allowlisted IP.
 
-Start with **Option A on CX43 (~€18/month)**. T-Pot's built-in Kibana dashboards and attack map are the main appeal for exploring attacker behavior -- running as a Sensor without them loses most of the fun. If storage pressure builds from log volume, add block storage or bump to CX53.
+### 4. Egress containment
 
-T-Pot's requirements are for the full standard install (20+ honeypots + Elastic Stack). A custom subset via T-Pot's `customizer.py` could run on less, but it's not worth optimizing upfront.
+- [ ] Agent: implemented
+- [ ] Human: reviewed
 
----
+**Agent will implement** — after 3: `roles/honeypot/tasks/egress.yml` with two modes covering host + Docker IPv4/IPv6:
+- **Maintenance:** allow DNS + HTTPS (and whatever the installer needs) for install/update.
+- **Runtime:** allow established/related + fixed DNS resolvers only; drop everything else (no arbitrary HTTP/HTTPS/SMTP, no path to platform/VPN IPs).
+- Task hooks to switch modes; default after configure is **runtime**.
 
-## Architecture
+**Human must:** Enter maintenance, pull/update once, switch to runtime, then prove `curl` to arbitrary hosts fails while DNS still works. Do this before treating the box as exposed.
 
-```mermaid
-flowchart TB
-    subgraph internet ["Internet"]
-        attackers["Attackers / Scanners"]
-    end
+### 5. Task namespace
 
-    subgraph vps ["Dedicated Hetzner VPS (honeypot)"]
-        tpot["T-Pot<br/>Cowrie, Dionaea, Honeytrap, ..."]
-        otel["OTEL collector<br/>ships logs to prod"]
-        fw["nftables<br/>egress filtering"]
-    end
+- [ ] Agent: implemented
+- [ ] Human: reviewed
 
-    subgraph platform ["Platform server (prod)"]
-        oo["OpenObserve<br/>honeypot logs + dashboards"]
-    end
+**Agent will implement** — after 1–2: `tasks/Taskfile.honeypot.yml` with `provision:*`, `configure:*`, `maintenance:on|off`, status, and destroy; include from root `Taskfile.yml` help; no env argument.
 
-    attackers -->|inbound: many ports| tpot
-    tpot --> fw
-    fw -->|allow: OpenObserve endpoint, DNS| otel
-    fw -->|drop: everything else| drop((dropped))
-    otel -->|push logs| oo
-```
+**Human must:** Use the new commands without `dev`/`prod`. Prefer destroy over long idle billing.
 
-**Port layout:**
+### 6. Exposure and verify
 
-| Port | Service | Notes |
-|------|---------|-------|
-| 22/TCP | Real SSH | Restricted to allowed IPs (admin only) |
-| 2222/TCP | Cowrie (fake SSH) | Simulated SSH, logs everything |
-| 80/TCP, 443/TCP | Web honeypots | Simulated HTTP/HTTPS |
-| Many others | T-Pot services | Dionaea, Honeytrap, etc. on various ports |
+- [ ] Agent: implemented
+- [ ] Human: reviewed
 
-Real SSH on 22 is firewalled to your IPs only. Attackers hitting 22 from other IPs get no response. Cowrie listens on 2222, but Hetzner firewall forwards external port 22 traffic from non-allowed IPs to 2222 -- or T-Pot handles this with its own port mapping.
+**Agent will implement** — after 4–5: read-only checks — public honeypot ports open; 64295/64297 closed from non-allowlisted IPs; community submission off; runtime egress holds; no route/credentials toward platform.
 
----
+**Human must:** Open `https://<honeypot-ip>:64297`, log into Kibana, confirm live captures, then accept the campaign.
 
-## Isolation (safety)
+### 7. Campaign destroy
 
-This is the most important section. The honeypot must have **zero path** to real infrastructure.
+- [ ] Agent: implemented
+- [ ] Human: reviewed
 
-| Concern | Mitigation |
-|---------|-----------|
-| **Network isolation** | Separate Hetzner server, no private network, no shared VPC. Hetzner servers can't reach each other unless you explicitly create a network. |
-| **No shared secrets** | Own SSH keys, no SOPS key, no registry credentials, no Terraform Cloud token. Honeypot-specific keys live only in **`secrets/infra.yml`** (fork-local) or a dedicated secrets file — never in **`/workspaces/<app>/.iac/`**. |
-| **Egress filtering** | nftables on the box: allow outbound to OpenObserve IP + DNS (53/UDP). Drop everything else. Prevents the server from being weaponized for spam/DDoS/mining. |
-| **No shared credentials** | Hetzner API token is shared (same project), but the honeypot server has no access to it. The token only exists in the devcontainer. |
-| **Hetzner ToS** | Low-interaction honeypots don't result in actual compromise -- no illegal content gets hosted, no outbound abuse. Safe under standard ToS. |
-| **Logging survives wipe** | Logs ship to OpenObserve continuously. If an attacker somehow wipes the honeypot, data is preserved externally. |
+**Agent will implement** — after 5: pre-destroy checklist task; after destroy, verify no residual Hetzner volume, DNS, primary IP, or Terraform resources for `honeypot`.
 
-### Egress rules (nftables)
+**Human must:** Export only sanitized notes/screenshots if desired — **never** copy malware binaries off the box. Run `task honeypot:provision:destroy`. Revoke campaign-specific web password / rotate allowlist entries if they were temporary.
 
-```
-# Allow established connections (responses to our outbound)
-allow out: established/related
-# Allow logging to OpenObserve
-allow out: TCP to <openobserve_ip>:5081
-# Allow DNS
-allow out: UDP to any:53
-# Drop everything else
-drop out: all
-```
+### 8. Roadmap sync
 
-Deployed by Ansible as part of `roles/honeypot/`.
+- [ ] Agent: implemented
+- [ ] Human: reviewed
 
----
+**Agent will implement** — with this rewrite: keep `docs/future/README.md` honeypot blurb aligned; remove any remaining Sensor / OpenObserve / `honeypot-dev` / tunnel references in iac docs that this plan supersedes.
 
-## How it fits in the repo
-
-Uses the new-server-type pattern in [Roadmap](README.md#new-server-types).
-
-### Terraform
-
-**`terraform/honeypot/`** -- composes `modules/server` with honeypot-specific resources:
-- Firewall rules: wide-open inbound (the point is to attract traffic), restricted admin SSH
-- One DNS record: `honeypot-dev.<base_domain>` / `honeypot-prod.<base_domain>`
-- Backend prefix: `honeypot-`
-- Server type: `cx43` (16 GB RAM, 160 GB disk) + 96 GB block storage volume
-
-### Ansible
-
-**`roles/honeypot/`** -- honeypot services:
-
-| Task file | Purpose |
-|-----------|---------|
-| `tpot.yml` | T-Pot container deployment and config |
-| `egress.yml` | nftables egress filtering rules |
-| `otel-collector.yml` | OTEL collector, forwards to prod OpenObserve |
-
-**`playbooks/honeypot.yml`**: `roles: [base, honeypot]` -- hardened server + honeypot services.
-
-Note: `roles/base/` provides SSH hardening, unattended-upgrades, and Docker. The honeypot role adds T-Pot on top.
-
-### Task
-
-**`tasks/Taskfile.honeypot.yml`** -- calls shared internal tasks:
-
-| Command | What it does |
-|---------|-------------|
-| `task honeypot:plan -- dev` | Terraform plan |
-| `task honeypot:apply -- dev` | Terraform apply |
-| `task honeypot:destroy -- dev` | Terraform destroy |
-| `task honeypot:bootstrap -- dev` | First-time server setup |
-| `task honeypot:run -- dev` | Ansible: configure honeypot server |
-
-### Secrets
-
-Honeypot secrets in **`secrets/infra.yml`** (fork-local, SOPS-encrypted).
-
-| Secret | Purpose |
-|--------|---------|
-| `honeypot_openobserve_endpoint` | Where to ship logs |
-| `honeypot_openobserve_token` | Auth for log shipping |
-
-Minimal secrets -- the honeypot doesn't need registry access, app tokens, or Terraform Cloud credentials beyond what the shared `_terraform:*` tasks already use.
-
----
-
-## Observability
-
-T-Pot includes its own **Kibana** dashboard (Elastic stack) for honeypot-specific analytics: attack maps, credential clouds, top source IPs, session replays (Cowrie). Access via SSH tunnel (`task honeypot:tunnel -- dev`).
-
-Additionally, ship raw logs to **prod OpenObserve** for correlation with platform logs and long-term retention. The OTEL collector on the honeypot pushes to OpenObserve; the honeypot has no credentials to read or modify platform data.
-
----
-
-## What you'll see
-
-Typical data from a low-interaction honeypot on a public IP:
-
-- **SSH brute-force:** credential lists, attempted commands after "login" (Cowrie logs full sessions)
-- **Web scanning:** vulnerability probes, path enumeration, exploit attempts
-- **Malware drops:** binaries uploaded to Dionaea, captured for analysis
-- **Port scanning:** who's scanning what, from where, how often
-- **Botnets:** automated attack patterns, C2 communication attempts (blocked by egress rules)
-
-Most activity appears within hours of the server going live. A public IP on Hetzner gets scanned constantly.
-
----
-
-## Risks
-
-| Risk | Mitigation |
-|------|-----------|
-| Egress rules misconfigured, server used for abuse | Test egress rules in dev first. Verify with `curl` to external hosts (should fail). Monitor Hetzner abuse notifications. |
-| T-Pot vulnerability gives real access | Keep T-Pot updated (unattended-upgrades + Renovate for container images). Even if compromised, egress rules limit damage. |
-| Hetzner flags the server | Low-interaction = no actual compromise = no ToS violation. If flagged, explain it's a honeypot. Worst case: server gets suspended, destroy and move on. |
-| Attacker detects it's a honeypot | Expected with low-interaction. Sophisticated attackers move on; you still capture the initial probe data. |
-| Log volume overwhelms OpenObserve | Filter at the OTEL collector level -- ship summaries, not every packet. Monitor storage usage. |
-
----
-
-## Implementation order
-
-| Phase | What | When |
-|-------|------|------|
-| **1. Honeypot Terraform** | `terraform/honeypot/` composing the server module. | Foundation |
-| **2. Honeypot Ansible** | `roles/honeypot/` (T-Pot + egress rules). | Foundation |
-| **3. Honeypot Task namespace** | `tasks/Taskfile.honeypot.yml` calling shared internal tasks. | Foundation |
-| **4. Egress hardening** | nftables rules, test in dev. Verify no outbound leaks. | Before exposing to internet |
-| **5. Log shipping** | OTEL collector → prod OpenObserve. | After platform OpenObserve is running |
-| **6. Go live** | `task honeypot:apply -- prod`. Watch the dashboard. | When ready |
+**Human must:** Review the operational campaign workflow end-to-end once implementation exists.

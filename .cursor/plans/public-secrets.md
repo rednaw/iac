@@ -23,26 +23,58 @@ None.
 
 ## Do
 
+Checkboxes track status only. The agent may change only **Agent** boxes; only the human may change **Human** boxes. Task bodies assign the work.
+
 ### 0. Private sibling
 
-can start now — Create private GitHub repo (e.g. `rednaw/iac-secrets`). Seed from current `secrets/`. Document path (e.g. `../iac-secrets`). Point `task secrets:*` / devcontainer at sibling if they hardcode `iac/secrets/`.
+- [ ] Agent: implemented
+- [ ] Human: reviewed
+
+**Agent will implement** — after the human supplies the chosen sibling path: update `task secrets:*`, the devcontainer and every runtime reference so `iac` reads encrypted secrets from the private sibling; add checks that fail clearly when it is missing.
+
+**Human must:** Create a private GitHub repository for the secrets, clone it beside `iac`, copy the current `secrets/` tree into it without decrypting files, and tell the agent its repository name and local path. Keep it private; do not commit or push the public-tree removal yet.
 
 ### 1. Clean public tip
 
-can start now — Gitignore secrets paths; `git rm` tracked `secrets/` from `iac` tip; commit; push. Runtime reads sibling. **Do not** orphan/force-push history yet.
+- [ ] Agent: implemented
+- [ ] Human: reviewed
+
+**Agent will implement** — after 0: ignore secret paths in public `iac`, remove tracked secret files from its working tree, update templates/setup for the sibling, and verify platform/VPN commands resolve the sibling. Do **not** rewrite history.
+
+**Human must:** Review the deletion and path changes, confirm the private sibling decrypts first, then commit and push the clean public tip normally. Do not orphan or force-push yet.
 
 ### 2. Full rotate
 
-after 0 (sibling can hold new ciphertext) — Inventory keys; mint new Hetzner, TFC, TransIP, registry, OAuth, VPN UUID/REALITY/short_id if present, etc.; write only to sibling; revoke old tokens in consoles; refresh `TF_TOKEN` / hcloud via setup (bashrc overwrite).
+- [ ] Agent: implemented
+- [ ] Human: reviewed
+
+**Agent will implement** — after 0: inventory every secret key consumed by Terraform, Ansible, tasks, apps and VPN; produce a provider-by-provider rotation checklist; update non-secret wiring and validate that setup refreshes `TF_TOKEN` and hcloud credentials from the sibling.
+
+**Human must:** In each provider console, mint replacements for every exposed value (Hetzner, TFC, TransIP, registry, GitHub OAuth and VPN UUID/REALITY/short ID when present), store only the replacements in the encrypted sibling, test them, then revoke the old values. Never paste plaintext values into chat or the public repo.
 
 ### 3. Replace public history (last)
 
-after 2 — Orphan root from current tip (no secrets); force-push `main`; delete or recreate stale `origin` branches/tags that still point at the old graph (including `v1.0.0` or move it); assume prior clones may remain. Optional: keep a **private** `iac-legacy` archive of the old history for yourself only.
+- [ ] Agent: implemented
+- [ ] Human: reviewed
+
+**Agent will implement** — after 2: inspect all local and remote refs, prepare the exact orphan-root/ref-cleanup commands, and verify the candidate root contains no secret paths. The agent will not commit, force-push or delete remote refs.
+
+**Human must:** Only after every old credential is revoked, create the orphan root and force-push `main`; delete or recreate every stale remote branch/tag that reaches the old graph, including `v1.0.0`. Optionally preserve the old history in a private `iac-legacy` archive; assume third-party clones remain forever.
 
 ### 4. Docs
 
-can start now — Public template + private sibling; no fork/`git add -f` / “SOPS-in-this-public-repo” as the ops default.
+- [ ] Agent: implemented
+- [ ] Human: reviewed
+
+**Agent will implement** — can start now: update existing operator documentation and setup text to describe public `iac` plus a private secrets sibling; remove fork, `git add -f` and “ciphertext in public git” as the default workflow.
+
+**Human must:** Review the documented clone/bootstrap workflow from the perspective of a fresh machine and confirm the private repository remains undiscoverable to public users.
 
 ### 5. Verify
 
-after 3 — Public `main` is a single root (or shallow history) with no secret paths; `git log --all` on origin doesn’t reintroduce old graph via leftover branches; sibling decrypts; platform/vpn tasks work.
+- [ ] Agent: implemented
+- [ ] Human: reviewed
+
+**Agent will implement** — after 3: perform read-only local/remote history and path scans; verify public `main` is a single clean root (or intended shallow history), no remaining origin ref reaches the old graph, the sibling decrypts, and platform/VPN commands resolve it.
+
+**Human must:** Inspect GitHub while signed out to confirm no secret files or old refs are public, run the platform and VPN smoke commands with the new credentials, and accept the migration.
