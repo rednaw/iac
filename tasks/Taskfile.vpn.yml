@@ -12,7 +12,7 @@
 version: '3'
 
 vars:
-  TF_DIR: terraform/vpn
+  VPN_TF_DIR: terraform/vpn
   PURPOSE: vpn
   PREFIX: vpn
   WORKSPACE: prod
@@ -28,7 +28,7 @@ tasks:
     cmds:
       - task: :_terraform:reconfigure
         vars:
-          TF_DIR: '{{.TF_DIR}}'
+          TF_DIR: '{{.VPN_TF_DIR}}'
           PREFIX: '{{.PREFIX}}'
           WORKSPACES: 'prod'
 
@@ -37,7 +37,7 @@ tasks:
     cmds:
       - task: :_terraform:plan
         vars:
-          TF_DIR: '{{.TF_DIR}}'
+          TF_DIR: '{{.VPN_TF_DIR}}'
           WORKSPACE: '{{.WORKSPACE}}'
           PREFIX: '{{.PREFIX}}'
           SECRETS_SCRIPT: '{{.SECRETS_SCRIPT}}'
@@ -47,7 +47,7 @@ tasks:
     cmds:
       - task: :_terraform:apply
         vars:
-          TF_DIR: '{{.TF_DIR}}'
+          TF_DIR: '{{.VPN_TF_DIR}}'
           PURPOSE: '{{.PURPOSE}}'
           WORKSPACE: '{{.WORKSPACE}}'
           PREFIX: '{{.PREFIX}}'
@@ -58,7 +58,7 @@ tasks:
     cmds:
       - task: :_terraform:destroy
         vars:
-          TF_DIR: '{{.TF_DIR}}'
+          TF_DIR: '{{.VPN_TF_DIR}}'
           PURPOSE: '{{.PURPOSE}}'
           WORKSPACE: '{{.WORKSPACE}}'
           PREFIX: '{{.PREFIX}}'
@@ -71,8 +71,8 @@ tasks:
     cmds:
       - |
         set -euo pipefail
-        # shellcheck disable=SC2269  # Task {{.TF_DIR}} → $TF_DIR for shellcheck only
-        TF_DIR="{{.TF_DIR}}"
+        # shellcheck disable=SC2269  # Task {{.VPN_TF_DIR}} → $TF_DIR for shellcheck only
+        TF_DIR="{{.VPN_TF_DIR}}"
         MAX="{{.RENEW_IP_MAX_ATTEMPTS}}"
         export SOPS_KEY_FILE="{{.SOPS_KEY_FILE}}"
         TFC_ORG=$(SOPS_AGE_KEY_FILE="{{.SOPS_KEY_FILE}}" sops -d secrets/infra.yml | yq -r '.terraform_cloud_organization')
@@ -119,7 +119,7 @@ tasks:
     cmds:
       - task: :_terraform:output
         vars:
-          TF_DIR: '{{.TF_DIR}}'
+          TF_DIR: '{{.VPN_TF_DIR}}'
           WORKSPACE: '{{.WORKSPACE}}'
           PREFIX: '{{.PREFIX}}'
 
