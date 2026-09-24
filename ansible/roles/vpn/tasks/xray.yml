@@ -8,7 +8,7 @@
       - infrastructure_secrets.vpn_dest is defined and infrastructure_secrets.vpn_dest | length > 0
     fail_msg: >-
       vpn_uuid / vpn_reality_private_key / vpn_short_id / vpn_dest missing from
-      secrets/infra.yml — generate them once (manual §2.1); they persist across recreates.
+      ../secrets/infra.yml — generate them once (manual §2.1); they persist across recreates.
     quiet: true
 
 - name: Create Xray config directory

@@ -62,7 +62,7 @@ flowchart LR
 
 ### The four secrets
 
-All in `secrets/infra.yml` (SOPS), generated **once** — they survive IP renew and wipe:
+All in `../secrets/infra.yml` (SOPS), generated **once** — they survive IP renew and wipe:
 
 | Secret | What it is | Client or server |
 |---|---|---|
@@ -90,7 +90,7 @@ docker run --rm "$XRAY" x25519    # → vpn_reality_private_key + vpn_reality_pu
 openssl rand -hex 8               # → vpn_short_id
 ```
 
-Put `vpn_uuid`, `vpn_reality_private_key`, `vpn_reality_public_key`, `vpn_short_id`, `vpn_dest` (leave the roster #1 for now), and `vpn_allowed_ssh_ips` (home only) into `secrets/infra.yml` via `sops`. Never regenerate these on apply.
+Put `vpn_uuid`, `vpn_reality_private_key`, `vpn_reality_public_key`, `vpn_short_id`, `vpn_dest` (leave the roster #1 for now), and `vpn_allowed_ssh_ips` (home only) into `../secrets/infra.yml` via `sops`. Never regenerate these on apply.
 
 ### 2.2 Provision and configure
 
@@ -264,7 +264,7 @@ task vpn:provision:destroy    # primary IP + box + firewall
 task ssh-revoke-me            # if any extra rules are left anywhere
 ```
 
-Then delete the `vpn` workspace in Terraform Cloud. The secrets can stay in `secrets/infra.yml` for a next trip — they are worthless without a running box. There is no DNS record to clean up.
+Then delete the `vpn` workspace in Terraform Cloud. The secrets can stay in `../secrets/infra.yml` for a next trip — they are worthless without a running box. There is no DNS record to clean up.
 
 ---
 
@@ -287,7 +287,7 @@ Sysadmin staples (DNS, SSH, TCP, TLS, NAT…) are assumed; this covers the censo
 | pbk / sid | Share-link parameters: REALITY **p**ublic **k**ey / **s**hort **id** |
 | REALITY | Xray's certificate-less TLS camouflage: authenticates real clients inside the ClientHello, forwards everyone else to the dest (not an acronym, just branded caps) |
 | SNI | Server Name Indication — the plaintext hostname in a TLS ClientHello; what the GFW reads, and what we set to the dest |
-| SOPS | Secrets OPerationS — encrypted-file tool (age keys) holding `secrets/infra.yml` |
+| SOPS | Secrets OPerationS — encrypted-file tool (age keys) holding `../secrets/infra.yml` |
 | TFC | Terraform Cloud — remote Terraform state; workspace `vpn` |
 | TUN | Virtual network interface at the IP layer — how OneXray captures *all* device traffic, both address families |
 | uTLS | Go library that forges specific browsers' TLS ClientHello fingerprints (see `fp`) |

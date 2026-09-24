@@ -18,7 +18,7 @@
 | GitHub OAuth App | **One** app; callback `https://auth.<base_domain>/callback` |
 | Allowlist | Both (all) Pages hostnames that may open the CMS popup |
 | Providers (v1) | **GitHub.com only** |
-| IaC shape | **Platform service** (`roles/platform` → `cms-oauth`), secrets in **`secrets/infra.yml`** — not an `apps/` deploy |
+| IaC shape | **Platform service** (`roles/platform` → `cms-oauth`), secrets in **`../secrets/infra.yml`** — not an `apps/` deploy |
 | Implementation | Tiny Python image under `ansible/roles/platform/files/cms-oauth/`; skipped until OAuth secrets are set |
 
 ```mermaid
@@ -123,7 +123,7 @@ Clear CSRF cookie after the callback attempt.
 
 1. Create **one** GitHub **OAuth App**.
 2. Authorization callback URL: `https://auth.<base_domain>/callback`.
-3. Put client id + secret in **`secrets/infra.yml`** (SOPS); never commit plaintext.
+3. Put client id + secret in **`../secrets/infra.yml`** (SOPS); never commit plaintext.
 4. Authors who publish need **write** access to each site’s GitHub repo (OAuth does not bypass ACLs).
 5. Point each Sveltia `backend.base_url` at `https://auth.<base_domain>`.
 

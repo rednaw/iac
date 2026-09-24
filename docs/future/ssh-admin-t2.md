@@ -51,7 +51,7 @@ after Agent on the Mac — install A or B. Forward `SSH_AUTH_SOCK` into `.devcon
 
 ### 1. Enroll on platform
 
-after Touch ID pick — upload pubkey to Hetzner; add the key ID to `secrets/infra.yml` `ssh_keys`; `authorized-keys.yml` already pulls those IDs. `task platform:configure:apply`. Then remove the file Ed25519 from Hetzner and from the box.
+after Touch ID pick — upload pubkey to Hetzner; add the key ID to `../secrets/infra.yml` `ssh_keys`; `authorized-keys.yml` already pulls those IDs. `task platform:configure:apply`. Then remove the file Ed25519 from Hetzner and from the box.
 
 ### 2. Later purposes
 

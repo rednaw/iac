@@ -39,7 +39,7 @@ Checkboxes track status only. The agent may change only **Agent** boxes; only th
 ### 1. Clean public tip
 
 - [x] Agent: implemented
-- [ ] Human: reviewed
+- [x] Human: reviewed
 
 **Agent will implement** — after 0: ignore secret paths in public `iac`, remove tracked secret files from its working tree, update templates/setup for the sibling, and verify platform/VPN commands resolve the sibling. Do **not** rewrite history.
 
@@ -67,12 +67,14 @@ Checkboxes track status only. The agent may change only **Agent** boxes; only th
 
 ### 4. Docs
 
-- [ ] Agent: implemented
+- [x] Agent: implemented
 - [ ] Human: reviewed
 
 **Agent will implement** — can start now: update existing operator documentation and setup text to describe public `iac` plus a private secrets sibling; remove fork, `git add -f` and “ciphertext in public git” as the default workflow.
 
 **Human must:** Review the documented clone/bootstrap workflow from the perspective of a fresh machine and confirm the private repository remains undiscoverable to public users.
+
+**Done as:** README bootstrap = clone `iac` + private `secrets` sibling; help text + future docs + Ansible fail messages point at `../secrets`. No `git add -f secrets/` workflow.
 
 ### 5. Verify
 
