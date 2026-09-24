@@ -53,7 +53,7 @@ tasks:
   provision:renew-ip:
     desc: "Burned IP: replace managed primary IPv4, keep disk; fail if address unchanged"
     silent: true
-    deps: [":_check:sops-key"]
+    deps: [":_check:sops-key", ":_check:secrets"]
     cmds:
       - |
         set -euo pipefail
@@ -61,7 +61,9 @@ tasks:
         TF_DIR="{{.VPN_TF_DIR}}"
         MAX="{{.RENEW_IP_MAX_ATTEMPTS}}"
         export SOPS_KEY_FILE="{{.SOPS_KEY_FILE}}"
-        TFC_ORG=$(SOPS_AGE_KEY_FILE="{{.SOPS_KEY_FILE}}" sops -d secrets/infra.yml | yq -r '.terraform_cloud_organization')
+        export SECRETS_DIR="{{.SECRETS_DIR}}"
+        export SECRETS_INFRA="{{.SECRETS_INFRA}}"
+        TFC_ORG=$(SOPS_AGE_KEY_FILE="{{.SOPS_KEY_FILE}}" sops -d "{{.SECRETS_INFRA}}" | yq -r '.terraform_cloud_organization')
 
         old_ip=$(task hostkeys:ip -- vpn) || {
           echo "❌ No VPN server to renew (provision first?)" >&2
@@ -123,17 +125,17 @@ tasks:
   config:
     desc: "Emit OneXray share link + QR from secrets and the current IPv4 (no SSH; does not install Xray)"
     silent: true
-    deps: [":_check:sops-key"]
+    deps: [":_check:sops-key", ":_check:secrets"]
     cmds:
       - |
-        SECRETS=$(SOPS_AGE_KEY_FILE="{{.SOPS_KEY_FILE}}" sops -d secrets/infra.yml)
+        SECRETS=$(SOPS_AGE_KEY_FILE="{{.SOPS_KEY_FILE}}" sops -d "{{.SECRETS_INFRA}}")
         UUID=$(echo "$SECRETS" | yq -r '.vpn_uuid // ""')
         PBK=$(echo "$SECRETS" | yq -r '.vpn_reality_public_key // ""')
         SID=$(echo "$SECRETS" | yq -r '.vpn_short_id // ""')
         DEST=$(echo "$SECRETS" | yq -r '.vpn_dest // ""')
         for pair in "vpn_uuid:$UUID" "vpn_reality_public_key:$PBK" "vpn_short_id:$SID" "vpn_dest:$DEST"; do
           if [ -z "${pair#*:}" ]; then
-            echo "❌ ${pair%%:*} missing from secrets/infra.yml (see manual §2.1)" >&2
+            echo "❌ ${pair%%:*} missing from {{.SECRETS_INFRA}} (see manual §2.1)" >&2
             exit 1
           fi
         done

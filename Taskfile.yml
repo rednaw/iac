@@ -8,6 +8,15 @@ vars:
     sh: echo $HOME
   SOPS_CONFIG_DIR: '{{.HOME}}/.config/sops/age'
   SOPS_KEY_FILE: '{{.SOPS_CONFIG_DIR}}/keys.txt'
+  # Private sibling clone (rednaw/secrets), always beside this repo
+  SECRETS_DIR:
+    sh: realpath -m "$(git rev-parse --show-toplevel)/../secrets"
+  SECRETS_INFRA: '{{.SECRETS_DIR}}/infra.yml'
+
+env:
+  SECRETS_DIR: '{{.SECRETS_DIR}}'
+  SECRETS_INFRA: '{{.SECRETS_INFRA}}'
+  SOPS_KEY_FILE: '{{.SOPS_KEY_FILE}}'
 
 includes:
   hostkeys: tasks/Taskfile.hostkeys.yml
@@ -108,6 +117,21 @@ tasks:
     preconditions:
       - sh: test -f "{{.SOPS_KEY_FILE}}"
         msg: "SOPS key file not found. Run 'task secrets:keygen' first."
+
+  _check:secrets-dir:
+    desc: "(internal) Ensure private secrets sibling directory exists"
+    internal: true
+    preconditions:
+      - sh: test -d "{{.SECRETS_DIR}}"
+        msg: "Secrets sibling missing at {{.SECRETS_DIR}}. Clone private rednaw/secrets beside iac (../secrets from the iac root)."
+
+  _check:secrets:
+    desc: "(internal) Ensure private secrets sibling has encrypted infra.yml"
+    internal: true
+    deps: [_check:secrets-dir]
+    preconditions:
+      - sh: test -f "{{.SECRETS_INFRA}}"
+        msg: "Encrypted infra missing: {{.SECRETS_INFRA}}. Copy or init in the private secrets sibling (task secrets:init)."
 
   _check:app:
     desc: "(internal) Validate APP arg resolves to /workspaces/<name>/.iac/ contract"

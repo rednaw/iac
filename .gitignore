@@ -23,8 +23,8 @@ prefect/.restore-work/
 # Cutover ferry (restic + image tar)
 ferry/
 
-# Fork-only: infra secrets + age recipient pubs for secrets/infra.yml.
-# Upstream ignores the tree so merges never touch real secrets; forks `git add -f secrets/` or drop this line locally.
+# Infra secrets live in the private sibling ../secrets — never in this tree.
+# Keep ignoring secrets/ so an accidental local copy is not committed.
 secrets/
 
 .DS_Store
