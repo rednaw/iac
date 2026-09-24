@@ -1,6 +1,6 @@
 ---
 # Sveltia/Decap-compatible GitHub OAuth proxy at auth.<base_domain>.
-# Skips when github_oauth_client_id is unset/empty (forks can add secrets later).
+# Skips when github_oauth_client_id is unset/empty (add OAuth keys in the secrets sibling).
 # Image is built on the host: sync build context from the controller first.
 
 - name: Check base_domain for cms-oauth
@@ -8,7 +8,7 @@
     that:
       - base_domain is defined
       - base_domain | length > 0
-    fail_msg: "'base_domain' is missing from secrets/infra.yml."
+    fail_msg: "'base_domain' is missing from ../secrets/infra.yml."
 
 - name: Decide whether cms-oauth is configured
   ansible.builtin.set_fact:
