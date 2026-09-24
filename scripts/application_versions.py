@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import sys
-import os
 import subprocess
 import yaml
 import json
@@ -30,21 +29,19 @@ def die(message: str):
 # Workspace / remote helpers
 # ------------------------------------------------------------
 
-def get_hostname(workspace: str) -> str:
-    if workspace not in ("dev", "prod"):
-        die(f"Invalid workspace '{workspace}'. Use: dev or prod")
-    base_domain = os.environ.get("BASE_DOMAIN")
-    if not base_domain:
-        die("BASE_DOMAIN must be set by devcontainer (from base_domain in secrets)")
-    return f"{workspace}.{base_domain}"
+def get_platform_ip() -> str:
+    ip = run("task hostkeys:ip -- platform")
+    if not ip:
+        die("Could not resolve platform IPv4 (task hostkeys:ip -- platform)")
+    return ip
 
 
-def read_remote_file(hostname: str, path: str) -> str:
+def read_remote_file(ip: str, path: str) -> str:
     return run(
-        f'ssh -o StrictHostKeyChecking=accept-new '
+        f'ssh -4 -o StrictHostKeyChecking=accept-new '
         f'-o ConnectTimeout=5 '
         f'-o BatchMode=yes '
-        f'ubuntu@{hostname} "cat {path} 2>/dev/null"'
+        f'ubuntu@{ip} "cat {path} 2>/dev/null"'
     )
 
 
@@ -52,30 +49,18 @@ def read_remote_file(hostname: str, path: str) -> str:
 # Deployment state
 # ------------------------------------------------------------
 
-def get_current_deployed_digest(hostname: str, app_name: str, workspace: str) -> str:
-    """
-    Return the digest of the *currently deployed* image for the workspace,
-    based on the last matching entry in deploy-history.yml.
-    """
+def get_current_deployed_digest(ip: str, app_name: str) -> str:
+    """Return the digest of the currently deployed image (last history entry)."""
     path = f"/opt/iac/deploy/{app_name}/deploy-history.yml"
-    content = read_remote_file(hostname, path)
+    content = read_remote_file(ip, path)
     if not content:
         return ""
 
     data = yaml.safe_load(content)
-    if not isinstance(data, list):
+    if not isinstance(data, list) or not data:
         return ""
 
-    # Only entries for this workspace
-    entries = [
-        e for e in data
-        if e.get("deployment", {}).get("workspace") == workspace
-    ]
-
-    if not entries:
-        return ""
-
-    latest = entries[-1]
+    latest = data[-1]
     digest = latest.get("image", {}).get("digest", "").strip()
 
     if digest and not digest.startswith("sha256:"):
@@ -209,23 +194,21 @@ def print_overview(full_repo: str, tags: list[str], deployed_digest: str):
 def main():
     args = sys.argv[1:]
 
-    if len(args) != 4:
+    if len(args) != 3:
         die(
-            "Usage: task app:versions -- <environment>\n"
-            "Example: task app:versions -- dev"
+            "Usage: task app:versions -- <app>\n"
+            "Example: task app:versions -- tientje-ketama"
         )
 
-    workspace, registry, image_repo, deploy_slug = args
-    hostname = get_hostname(workspace)
+    registry, image_repo, deploy_slug = args
+    ip = get_platform_ip()
 
     full_repo = f"{registry}/{image_repo}"
     app_name = deploy_slug
 
     print(f"IMAGE: {image_repo}\n")
 
-    deployed_digest = get_current_deployed_digest(
-        hostname, app_name, workspace
-    )
+    deployed_digest = get_current_deployed_digest(ip, app_name)
 
     tags = list_tags(full_repo)
     if not tags:

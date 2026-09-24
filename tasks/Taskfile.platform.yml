@@ -8,99 +8,69 @@
 #
 # Thin wrappers over _terraform:* and _ansible:* internals; future server
 # purposes (vpn, honeypot, ...) follow the same shape with different params.
+#
+# provision:* and configure:* have no env argument (single platform box).
+#
+# Do not put PURPOSE / SECRETS_SCRIPT / PLAYBOOK_* in include-level `vars:` —
+# Task merges those into one scope and a later include (vpn) overwrites them.
 version: '3'
 
 vars:
   PLATFORM_TF_DIR: terraform/platform
-  PURPOSE: platform
-  PREFIX: platform
-  SECRETS_SCRIPT: scripts/platform-tf-secrets.sh
-  PLAYBOOK_SERVER: playbooks/server.yml
-  PLAYBOOK_BOOTSTRAP: playbooks/bootstrap.yml
 
 tasks:
   provision:reconfigure:
-    desc: "Reconfigure Terraform backend after org/project change (dev+prod)"
+    desc: "Reconfigure Terraform backend after org/project change"
     cmds:
       - task: :_terraform:reconfigure
         vars:
           TF_DIR: '{{.PLATFORM_TF_DIR}}'
-          PREFIX: '{{.PREFIX}}'
-          WORKSPACES: 'dev prod'
 
   provision:plan:
-    desc: "Plan provisioning changes (use: task platform:provision:plan -- dev or -- prod)"
-    vars:
-      WORKSPACE: "{{.CLI_ARGS}}"
-    deps: [":_check:workspace"]
+    desc: "Plan provisioning changes"
     cmds:
       - task: :_terraform:plan
         vars:
           TF_DIR: '{{.PLATFORM_TF_DIR}}'
-          WORKSPACE: '{{.WORKSPACE}}'
-          PREFIX: '{{.PREFIX}}'
-          SECRETS_SCRIPT: '{{.SECRETS_SCRIPT}}'
+          SECRETS_SCRIPT: scripts/platform-tf-secrets.sh
 
   provision:apply:
-    desc: "Apply provisioning changes (use: task platform:provision:apply -- dev or -- prod)"
-    vars:
-      WORKSPACE: "{{.CLI_ARGS}}"
-    deps: [":_check:workspace"]
+    desc: "Apply provisioning changes"
     cmds:
       - task: :_terraform:apply
         vars:
           TF_DIR: '{{.PLATFORM_TF_DIR}}'
-          PURPOSE: '{{.PURPOSE}}'
-          WORKSPACE: '{{.WORKSPACE}}'
-          PREFIX: '{{.PREFIX}}'
-          SECRETS_SCRIPT: '{{.SECRETS_SCRIPT}}'
+          PURPOSE: platform
+          SECRETS_SCRIPT: scripts/platform-tf-secrets.sh
 
   provision:destroy:
-    desc: "Destroy provisioned resources (use: task platform:provision:destroy -- dev or -- prod)"
-    vars:
-      WORKSPACE: "{{.CLI_ARGS}}"
-    deps: [":_check:workspace"]
+    desc: "Destroy provisioned resources"
     cmds:
       - task: :_terraform:destroy
         vars:
           TF_DIR: '{{.PLATFORM_TF_DIR}}'
-          PURPOSE: '{{.PURPOSE}}'
-          WORKSPACE: '{{.WORKSPACE}}'
-          PREFIX: '{{.PREFIX}}'
-          SECRETS_SCRIPT: '{{.SECRETS_SCRIPT}}'
+          PURPOSE: platform
+          SECRETS_SCRIPT: scripts/platform-tf-secrets.sh
 
   provision:output:
-    desc: "Show provisioning outputs (use: task platform:provision:output -- dev or -- prod)"
-    vars:
-      WORKSPACE: "{{.CLI_ARGS}}"
-    deps: [":_check:workspace"]
+    desc: "Show provisioning outputs"
     cmds:
       - task: :_terraform:output
         vars:
           TF_DIR: '{{.PLATFORM_TF_DIR}}'
-          WORKSPACE: '{{.WORKSPACE}}'
-          PREFIX: '{{.PREFIX}}'
 
   configure:bootstrap:
-    desc: "One-time bootstrap as root (use: task platform:configure:bootstrap -- dev or -- prod)"
-    vars:
-      WORKSPACE: "{{.CLI_ARGS}}"
-    deps: [":_check:workspace"]
+    desc: "One-time bootstrap as root"
     cmds:
       - task: :_ansible:bootstrap
         vars:
-          PURPOSE: '{{.PURPOSE}}'
-          WORKSPACE: '{{.WORKSPACE}}'
-          PLAYBOOK: '{{.PLAYBOOK_BOOTSTRAP}}'
+          PURPOSE: platform
+          PLAYBOOK: playbooks/bootstrap.yml
 
   configure:apply:
-    desc: "Apply server configuration (use: task platform:configure:apply -- dev or -- prod)"
-    vars:
-      WORKSPACE: "{{.CLI_ARGS}}"
-    deps: [":_check:workspace"]
+    desc: "Apply server configuration"
     cmds:
       - task: :_ansible:run
         vars:
-          PURPOSE: '{{.PURPOSE}}'
-          WORKSPACE: '{{.WORKSPACE}}'
-          PLAYBOOK: '{{.PLAYBOOK_SERVER}}'
+          PURPOSE: platform
+          PLAYBOOK: playbooks/server.yml

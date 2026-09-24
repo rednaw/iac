@@ -18,7 +18,7 @@ flowchart LR
 
 ## New server types
 
-Pattern: `terraform/<purpose>/` composing `modules/server`, Ansible `roles/<purpose>/` + playbook `[base, <purpose>]`, thin Task namespace (`provision` / `configure`). `_terraform:*` / `_ansible:*` / `hostkeys:*` are purpose-parameterised (landed with the VPN): `ansible_host` is always the API IPv4, `hostkeys:accept -- <purpose> [env]` records host keys, and root `ssh-allow-me` / `ssh-revoke-me` add/remove a travel `/32` on **all** iac firewalls (label `iac_managed=true`); next provision apply on a box drops its extra rule.
+Pattern: `terraform/<purpose>/` composing `modules/server`, Ansible `roles/<purpose>/` + playbook `[base, <purpose>]`, thin Task namespace (`provision` / `configure`). `_terraform:*` / `_ansible:*` / `hostkeys:*` are purpose-parameterised (landed with the VPN): `ansible_host` is always the API IPv4, `hostkeys:accept -- <purpose>` records host keys, and root `ssh-allow-me` / `ssh-revoke-me` add/remove a travel `/32` on **all** iac firewalls (label `iac_managed=true`); next provision apply on a box drops its extra rule.
 
 ### VPN
 
@@ -45,7 +45,7 @@ Design: [ssh-admin-t2.md](ssh-admin-t2.md)
 | Item | Notes |
 |------|--------|
 | Backup shape | Standardize `backup:` in `iac.yml` vs `.iac/backup.yml`; align Taskfile + Prefect |
-| Platform UX | Docker context naming, registry hostname clarity across envs |
+| Platform UX | Docker context naming, registry hostname clarity |
 
 ## Business (portfolio)
 
@@ -53,5 +53,5 @@ Lives in sibling `rednaw`: [`.cursor/ideas/monetize-rednaw.md`](../../../rednaw/
 
 ## Done (reference)
 
-- **Platform on `rednaw.nl`** — live; band site stays `tientjeketama.nl`.
+- **Platform on `rednaw.nl`** — live; band site apex `tientjeketama.nl`.
 - **CMS OAuth proxy** — implemented; contract notes: [oauth-auth-proxy-implementor-brief.md](oauth-auth-proxy-implementor-brief.md)

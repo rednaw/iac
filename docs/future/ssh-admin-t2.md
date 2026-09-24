@@ -47,11 +47,11 @@ Choice: _unpicked_
 
 ### 0. Host agent + container
 
-after Agent on the Mac — install A or B. Forward `SSH_AUTH_SOCK` into `.devcontainer/` (not only `~/.ssh`). Prove `ssh ubuntu@prod.${BASE_DOMAIN}` **from the container** with no file private key.
+after Agent on the Mac — install A or B. Forward `SSH_AUTH_SOCK` into `.devcontainer/` (not only `~/.ssh`). Prove `ssh platform` **from the container** with no file private key.
 
 ### 1. Enroll on platform
 
-after Touch ID pick — upload pubkey to Hetzner; add the key ID to `secrets/infra.yml` `ssh_keys`; `authorized-keys.yml` already pulls those IDs. `platform:configure:apply` on **prod** (and dev). Then remove the file Ed25519 from Hetzner and from the boxes.
+after Touch ID pick — upload pubkey to Hetzner; add the key ID to `secrets/infra.yml` `ssh_keys`; `authorized-keys.yml` already pulls those IDs. `task platform:configure:apply`. Then remove the file Ed25519 from Hetzner and from the box.
 
 ### 2. Later purposes
 

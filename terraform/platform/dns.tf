@@ -1,12 +1,13 @@
 # DNS records and DNSSEC for the platform.
 #
 # TransIP is both registrar and DNS provider — no zone creation needed.
-# Record ownership: each workspace manages records pointing to its own server.
-# DNSSEC is managed by TransIP defaults/policy outside Terraform.
+# Records point at this single platform server. DNSSEC is managed by TransIP
+# defaults/policy outside Terraform.
+#
+# No platform hostname on base_domain (SSH/Ansible use API IPv4). App apex/www
+# live on site_domain. Other app subdomains (e.g. prod.) have no records.
 
 locals {
-  is_prod     = local.environment == "prod"
-  is_dev      = local.environment == "dev"
   server_ipv4 = module.server.ipv4_address
   server_ipv6 = module.server.ipv6_address
   site_domain = coalesce(var.app_domain, var.base_domain)
@@ -14,51 +15,10 @@ locals {
 }
 
 # ──────────────────────────────────────────────
-# Dev records (destroyed with dev server)
+# Site + platform service records
 # ──────────────────────────────────────────────
-
-resource "transip_dns_record" "dev_a" {
-  count   = local.is_dev ? 1 : 0
-  domain  = var.base_domain
-  name    = "dev"
-  type    = "A"
-  expire  = 60
-  content = [local.server_ipv4]
-}
-
-resource "transip_dns_record" "dev_aaaa" {
-  count   = local.is_dev ? 1 : 0
-  domain  = var.base_domain
-  name    = "dev"
-  type    = "AAAA"
-  expire  = 60
-  content = [local.server_ipv6]
-}
-
-# ──────────────────────────────────────────────
-# Prod server records
-# ──────────────────────────────────────────────
-
-resource "transip_dns_record" "prod_a" {
-  count   = local.is_prod ? 1 : 0
-  domain  = var.base_domain
-  name    = "prod"
-  type    = "A"
-  expire  = 60
-  content = [local.server_ipv4]
-}
-
-resource "transip_dns_record" "prod_aaaa" {
-  count   = local.is_prod ? 1 : 0
-  domain  = var.base_domain
-  name    = "prod"
-  type    = "AAAA"
-  expire  = 60
-  content = [local.server_ipv6]
-}
 
 resource "transip_dns_record" "apex_a" {
-  count   = local.is_prod ? 1 : 0
   domain  = local.site_domain
   name    = "@"
   type    = "A"
@@ -67,7 +27,6 @@ resource "transip_dns_record" "apex_a" {
 }
 
 resource "transip_dns_record" "apex_aaaa" {
-  count   = local.is_prod ? 1 : 0
   domain  = local.site_domain
   name    = "@"
   type    = "AAAA"
@@ -76,7 +35,6 @@ resource "transip_dns_record" "apex_aaaa" {
 }
 
 resource "transip_dns_record" "registry_a" {
-  count   = local.is_prod ? 1 : 0
   domain  = var.base_domain
   name    = "registry"
   type    = "A"
@@ -85,7 +43,6 @@ resource "transip_dns_record" "registry_a" {
 }
 
 resource "transip_dns_record" "registry_aaaa" {
-  count   = local.is_prod ? 1 : 0
   domain  = var.base_domain
   name    = "registry"
   type    = "AAAA"
@@ -94,7 +51,6 @@ resource "transip_dns_record" "registry_aaaa" {
 }
 
 resource "transip_dns_record" "auth_a" {
-  count   = local.is_prod ? 1 : 0
   domain  = var.base_domain
   name    = "auth"
   type    = "A"
@@ -103,7 +59,6 @@ resource "transip_dns_record" "auth_a" {
 }
 
 resource "transip_dns_record" "auth_aaaa" {
-  count   = local.is_prod ? 1 : 0
   domain  = var.base_domain
   name    = "auth"
   type    = "AAAA"
@@ -112,17 +67,14 @@ resource "transip_dns_record" "auth_aaaa" {
 }
 
 resource "transip_dns_record" "www" {
-  count   = local.is_prod ? 1 : 0
   domain  = local.site_domain
   name    = "www"
   type    = "CNAME"
   expire  = 60
-  content = ["prod.${local.site_domain}."]
+  content = ["${local.site_domain}."]
   depends_on = [
-    transip_dns_record.prod_a,
-    transip_dns_record.prod_aaaa,
-    transip_dns_record.app_prod_a,
-    transip_dns_record.app_prod_aaaa,
+    transip_dns_record.apex_a,
+    transip_dns_record.apex_aaaa,
   ]
 }
 
@@ -131,7 +83,6 @@ resource "transip_dns_record" "www" {
 # ──────────────────────────────────────────────
 
 resource "transip_dns_record" "null_mx" {
-  count   = local.is_prod ? 1 : 0
   domain  = var.base_domain
   name    = "@"
   type    = "MX"
@@ -140,7 +91,6 @@ resource "transip_dns_record" "null_mx" {
 }
 
 resource "transip_dns_record" "apex_spf" {
-  count   = local.is_prod ? 1 : 0
   domain  = var.base_domain
   name    = "@"
   type    = "TXT"
@@ -149,7 +99,6 @@ resource "transip_dns_record" "apex_spf" {
 }
 
 resource "transip_dns_record" "dmarc" {
-  count   = local.is_prod ? 1 : 0
   domain  = var.base_domain
   name    = "_dmarc"
   type    = "TXT"
@@ -157,45 +106,8 @@ resource "transip_dns_record" "dmarc" {
   content = ["v=DMARC1; p=reject;"]
 }
 
-# Site env hosts on app_domain (same IPs). count=0 unless app_domain is set and differs.
-resource "transip_dns_record" "app_dev_a" {
-  count   = local.dns_split && local.is_dev ? 1 : 0
-  domain  = var.app_domain
-  name    = "dev"
-  type    = "A"
-  expire  = 60
-  content = [local.server_ipv4]
-}
-
-resource "transip_dns_record" "app_dev_aaaa" {
-  count   = local.dns_split && local.is_dev ? 1 : 0
-  domain  = var.app_domain
-  name    = "dev"
-  type    = "AAAA"
-  expire  = 60
-  content = [local.server_ipv6]
-}
-
-resource "transip_dns_record" "app_prod_a" {
-  count   = local.dns_split && local.is_prod ? 1 : 0
-  domain  = var.app_domain
-  name    = "prod"
-  type    = "A"
-  expire  = 60
-  content = [local.server_ipv4]
-}
-
-resource "transip_dns_record" "app_prod_aaaa" {
-  count   = local.dns_split && local.is_prod ? 1 : 0
-  domain  = var.app_domain
-  name    = "prod"
-  type    = "AAAA"
-  expire  = 60
-  content = [local.server_ipv6]
-}
-
 resource "transip_dns_record" "app_null_mx" {
-  count   = local.dns_split && local.is_prod ? 1 : 0
+  count   = local.dns_split ? 1 : 0
   domain  = var.app_domain
   name    = "@"
   type    = "MX"
@@ -204,7 +116,7 @@ resource "transip_dns_record" "app_null_mx" {
 }
 
 resource "transip_dns_record" "app_apex_spf" {
-  count   = local.dns_split && local.is_prod ? 1 : 0
+  count   = local.dns_split ? 1 : 0
   domain  = var.app_domain
   name    = "@"
   type    = "TXT"
@@ -213,7 +125,7 @@ resource "transip_dns_record" "app_apex_spf" {
 }
 
 resource "transip_dns_record" "app_dmarc" {
-  count   = local.dns_split && local.is_prod ? 1 : 0
+  count   = local.dns_split ? 1 : 0
   domain  = var.app_domain
   name    = "_dmarc"
   type    = "TXT"

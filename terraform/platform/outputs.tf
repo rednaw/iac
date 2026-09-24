@@ -10,5 +10,5 @@ output "server_ipv6" {
 
 output "ssh_command" {
   description = "Command to SSH into the server (as ubuntu user for manual admin work)"
-  value       = nonsensitive("ssh ubuntu@${local.environment}.${local.base_domain}")
+  value       = nonsensitive("ssh ubuntu@${module.server.ipv4_address}")
 }

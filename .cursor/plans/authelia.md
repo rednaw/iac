@@ -24,7 +24,7 @@ SSO/forward-auth gate on the platform VPS. Admin UIs first; gated-audience surfa
 | Second factor | Staged: one-factor everywhere first (admin hosts included, Prefect's only gate); TOTP on admin later — accepted risk |
 | Platform | Single environment after `remove-dev.md`. Hosts: `login.`, `traefik.`, `prefect.`, `openobserve.<base_domain>`; one cookie on `base_domain` |
 | Gated surfaces | Traefik dashboard (→ `api@internal`), Prefect UI, OpenObserve UI |
-| SSH tunnel | Persistent tunnel, aliases and `prod.<base_domain>` are already removed by `remove-dev.md`. SSH (22) stays firewalled to your IP for Ansible/diagnosis; explicit API-IP `ssh -L` remains break-glass |
+| SSH tunnel | Until Authelia: keep `task tunnel:start` + `portal.html` (API-IP). No `prod.<base_domain>` host. SSH (22) stays firewalled to your IP for Ansible/diagnosis; explicit API-IP `ssh -L` remains break-glass |
 | Localhost bindings | `127.0.0.1:57800/57801/57802` stay — Ansible health checks and dashboard provisioning use them; one-off `ssh -L` can still target them |
 | Prefect | OSS has no auth: Authelia is its only gate. `PREFECT_UI_API_URL` → `https://<prefect host>/api`; Traefik joins `prefect-network`. Workers keep `http://prefect-server:4200/api` internally |
 | OpenObserve | OSS has no header/SSO login (enterprise only): its own root login stays behind Authelia (two logins). Traefik already on `openobserve-network` |

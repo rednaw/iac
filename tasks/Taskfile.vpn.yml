@@ -3,7 +3,7 @@
 # Public commands for the "vpn" server purpose (travel VPN, REALITY on 443).
 # Design: docs/future/vpn-travel-china.md — manual: vpn-travel-china-manual.md
 #
-# No env argument anywhere: there is exactly one VPN box (workspace vpn-prod).
+# No env argument anywhere: there is exactly one VPN box (TFC workspace "vpn").
 #
 # Burned IP (default): provision:renew-ip → [travel: ssh-allow-me] →
 #   hostkeys:accept -- vpn → [optional dest + configure:apply] → config.
@@ -13,24 +13,16 @@ version: '3'
 
 vars:
   VPN_TF_DIR: terraform/vpn
-  PURPOSE: vpn
-  PREFIX: vpn
-  WORKSPACE: prod
-  SECRETS_SCRIPT: scripts/vpn-tf-secrets.sh
-  PLAYBOOK_SERVER: playbooks/vpn.yml
-  PLAYBOOK_BOOTSTRAP: playbooks/bootstrap.yml
   # Hetzner can hand back the same IPv4 after delete; renew retries replace.
   RENEW_IP_MAX_ATTEMPTS: "5"
 
 tasks:
   provision:reconfigure:
-    desc: "Reconfigure Terraform backend after org/project change (vpn-prod only)"
+    desc: "Reconfigure Terraform backend after org/project change"
     cmds:
       - task: :_terraform:reconfigure
         vars:
           TF_DIR: '{{.VPN_TF_DIR}}'
-          PREFIX: '{{.PREFIX}}'
-          WORKSPACES: 'prod'
 
   provision:plan:
     desc: "Plan VPN provisioning changes"
@@ -38,9 +30,7 @@ tasks:
       - task: :_terraform:plan
         vars:
           TF_DIR: '{{.VPN_TF_DIR}}'
-          WORKSPACE: '{{.WORKSPACE}}'
-          PREFIX: '{{.PREFIX}}'
-          SECRETS_SCRIPT: '{{.SECRETS_SCRIPT}}'
+          SECRETS_SCRIPT: scripts/vpn-tf-secrets.sh
 
   provision:apply:
     desc: "Apply VPN provisioning (creates managed primary IPv4 + server)"
@@ -48,10 +38,8 @@ tasks:
       - task: :_terraform:apply
         vars:
           TF_DIR: '{{.VPN_TF_DIR}}'
-          PURPOSE: '{{.PURPOSE}}'
-          WORKSPACE: '{{.WORKSPACE}}'
-          PREFIX: '{{.PREFIX}}'
-          SECRETS_SCRIPT: '{{.SECRETS_SCRIPT}}'
+          PURPOSE: vpn
+          SECRETS_SCRIPT: scripts/vpn-tf-secrets.sh
 
   provision:destroy:
     desc: "Destroy VPN primary IP + box + firewall (platform untouched)"
@@ -59,10 +47,8 @@ tasks:
       - task: :_terraform:destroy
         vars:
           TF_DIR: '{{.VPN_TF_DIR}}'
-          PURPOSE: '{{.PURPOSE}}'
-          WORKSPACE: '{{.WORKSPACE}}'
-          PREFIX: '{{.PREFIX}}'
-          SECRETS_SCRIPT: '{{.SECRETS_SCRIPT}}'
+          PURPOSE: vpn
+          SECRETS_SCRIPT: scripts/vpn-tf-secrets.sh
 
   provision:renew-ip:
     desc: "Burned IP: replace managed primary IPv4, keep disk; fail if address unchanged"
@@ -85,13 +71,10 @@ tasks:
         echo "   Max attempts: ${MAX} (Hetzner may recycle the same address)"
         echo ""
 
-        # TF_WORKSPACE only for select/apply — never during init (remote prefix backends).
         unset TF_WORKSPACE || true
-        terraform -chdir="$TF_DIR" init -backend-config="organization=${TFC_ORG}" >/dev/null
-        terraform -chdir="$TF_DIR" workspace select "{{.WORKSPACE}}"
-        export TF_WORKSPACE="{{.WORKSPACE}}"
-        # shellcheck disable=SC1090
-        . "./{{.SECRETS_SCRIPT}}"
+        terraform -chdir="$TF_DIR" init -input=false -reconfigure -backend-config="organization=${TFC_ORG}" >/dev/null
+        # shellcheck disable=SC1091
+        . "./scripts/vpn-tf-secrets.sh"
 
         attempt=1
         while [ "$attempt" -le "$MAX" ]; do
@@ -120,26 +103,22 @@ tasks:
       - task: :_terraform:output
         vars:
           TF_DIR: '{{.VPN_TF_DIR}}'
-          WORKSPACE: '{{.WORKSPACE}}'
-          PREFIX: '{{.PREFIX}}'
 
   configure:bootstrap:
     desc: "One-time bootstrap as root (after wipe recreate + hostkeys:accept; not needed for renew-ip)"
     cmds:
       - task: :_ansible:bootstrap
         vars:
-          PURPOSE: '{{.PURPOSE}}'
-          WORKSPACE: '{{.WORKSPACE}}'
-          PLAYBOOK: '{{.PLAYBOOK_BOOTSTRAP}}'
+          PURPOSE: vpn
+          PLAYBOOK: playbooks/bootstrap.yml
 
   configure:apply:
     desc: "Apply VPN server configuration (base hardening + Xray REALITY container)"
     cmds:
       - task: :_ansible:run
         vars:
-          PURPOSE: '{{.PURPOSE}}'
-          WORKSPACE: '{{.WORKSPACE}}'
-          PLAYBOOK: '{{.PLAYBOOK_SERVER}}'
+          PURPOSE: vpn
+          PLAYBOOK: playbooks/vpn.yml
 
   config:
     desc: "Emit OneXray share link + QR from secrets and the current IPv4 (no SSH; does not install Xray)"

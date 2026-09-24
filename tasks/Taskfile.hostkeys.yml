@@ -2,54 +2,24 @@
 #
 # Host identity helpers, parameterised by server purpose (platform | vpn).
 #
-# Naming (single source of truth):
-#   BASE_DOMAIN is set by devcontainer-setup.sh from secrets.
-#   platform: DNS dev.<base_domain> / prod.<base_domain>; Hetzner server name
-#             <base_domain with dots as dashes>-<workspace>; Ansible inventory
-#             <base_domain first label>-<workspace> (e.g. rednaw-dev).
-#   vpn:      no DNS name at all; Hetzner server name "vpn"; inventory "vpn";
-#             workspace is always prod. SSH/Ansible always use the API IPv4.
+# Naming:
+#   platform: Hetzner server name "platform"; Ansible inventory "platform".
+#   vpn:      Hetzner server name "vpn"; inventory "vpn".
+#   SSH/Ansible always use the API IPv4 (no platform DNS name).
 version: '3'
 
 tasks:
-  platform:
-    desc: "Output platform name for current base_domain (use for Ansible inventory hostname prefix)"
-    silent: true
-    preconditions:
-      - sh: '[ -n "${BASE_DOMAIN:-}" ]'
-        msg: "BASE_DOMAIN must be set by devcontainer (from base_domain in secrets/infra.yml)"
-    cmds:
-      - echo "${BASE_DOMAIN%%.*}"
-
-  hostname:
-    desc: "Output platform DNS hostname for workspace (platform only; use: task hostkeys:hostname -- dev|prod)"
-    silent: true
-    vars:
-      WORKSPACE: "{{.CLI_ARGS}}"
-    deps: [":_check:workspace"]
-    preconditions:
-      - sh: '[ -n "${BASE_DOMAIN:-}" ]'
-        msg: "BASE_DOMAIN must be set by devcontainer (from base_domain in secrets)"
-    cmds:
-      - |
-        case "{{.WORKSPACE}}" in
-          dev)  echo "dev.${BASE_DOMAIN}" ;;
-          prod) echo "prod.${BASE_DOMAIN}" ;;
-        esac
-
   ip:
-    desc: "Output API IPv4 for a box (use: task hostkeys:ip -- platform dev|prod, or -- vpn)"
+    desc: "Output API IPv4 for a box (use: task hostkeys:ip -- platform|vpn)"
     silent: true
     vars:
       PURPOSE:
         sh: echo "{{.CLI_ARGS}}" | awk '{print $1}'
-      WORKSPACE:
-        sh: echo "{{.CLI_ARGS}}" | awk '{print $2}'
     deps: [_check:purpose]
     cmds:
       - |
         case "{{.PURPOSE}}" in
-          platform) SERVER_NAME="${BASE_DOMAIN//./-}-{{.WORKSPACE}}" ;;
+          platform) SERVER_NAME="platform" ;;
           vpn)      SERVER_NAME="vpn" ;;
         esac
         IP=$(hcloud server ip "$SERVER_NAME") || {
@@ -59,45 +29,27 @@ tasks:
         echo "$IP"
 
   prepare:
-    desc: "Remove a box's name-keyed known_hosts entries (use: task hostkeys:prepare -- platform dev|prod, or -- vpn)"
+    desc: "No-op (boxes have no DNS names; use: task hostkeys:prepare -- platform|vpn)"
     silent: true
     vars:
       PURPOSE:
         sh: echo "{{.CLI_ARGS}}" | awk '{print $1}'
-      WORKSPACE:
-        sh: echo "{{.CLI_ARGS}}" | awk '{print $2}'
     deps: [_check:purpose]
     cmds:
-      - |
-        # Only this box's FQDN and [fqdn]:22 — never the parent domain, never IPs.
-        # IP-keyed entries are hostkeys:accept's job (it wipes its own target IP):
-        # prepare runs before apply (no new IP yet) and after destroy (no state).
-        if [ "{{.PURPOSE}}" = "vpn" ]; then
-          exit 0  # vpn has no DNS name, nothing name-keyed to remove
-        fi
-        HOSTNAME="{{.WORKSPACE}}.${BASE_DOMAIN}"
-        KEYFILE="${HOME}/.ssh/known_hosts"
-        [ ! -f "$KEYFILE" ] && exit 0
-        for name in "$HOSTNAME" "[${HOSTNAME}]:22"; do
-          ssh-keygen -R "$name" -f "$KEYFILE" -q 2>/dev/null || true
-        done
+      - "true"
 
   accept:
-    desc: "Accept a recreated box's host key by API IPv4 (use: task hostkeys:accept -- platform dev|prod, or -- vpn)"
+    desc: "Accept a recreated box's host key by API IPv4 (use: task hostkeys:accept -- platform|vpn)"
     silent: true
     vars:
       PURPOSE:
         sh: echo "{{.CLI_ARGS}}" | awk '{print $1}'
-      WORKSPACE:
-        sh: echo "{{.CLI_ARGS}}" | awk '{print $2}'
     deps: [_check:purpose]
     cmds:
       - |
-        IP=$(task hostkeys:ip -- "{{.PURPOSE}}" "{{.WORKSPACE}}") || exit 1
-        # Hetzner recycles IPs within a project; a stale entry under this IP
-        # would hard-fail accept-new. Wipe our own target first.
+        IP=$(task hostkeys:ip -- "{{.PURPOSE}}") || exit 1
         ssh-keygen -R "$IP" -f "${HOME}/.ssh/known_hosts" -q 2>/dev/null || true
-        echo "🔑 Accepting host key of ${IP} ({{.PURPOSE}} {{.WORKSPACE}})..."
+        echo "🔑 Accepting host key of ${IP} ({{.PURPOSE}})..."
         for user in ubuntu root; do
           if ssh -4 -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10 -o BatchMode=yes \
               "${user}@${IP}" "exit" 2>/dev/null; then
@@ -110,7 +62,7 @@ tasks:
         exit 1
 
   _check:purpose:
-    desc: "(internal) Validate CLI_ARGS: platform dev|prod, or vpn [prod]"
+    desc: "(internal) Validate CLI_ARGS: platform|vpn"
     internal: true
     silent: true
     preconditions:
@@ -119,16 +71,8 @@ tasks:
     cmds:
       - |
         PURPOSE=$(echo "{{.CLI_ARGS}}" | awk '{print $1}')
-        WORKSPACE=$(echo "{{.CLI_ARGS}}" | awk '{print $2}')
         case "$PURPOSE" in
-          platform)
-            if [ "$WORKSPACE" != "dev" ] && [ "$WORKSPACE" != "prod" ]; then
-              echo "Usage: -- platform dev|prod" >&2; exit 1
-            fi ;;
-          vpn)
-            if [ -n "$WORKSPACE" ] && [ "$WORKSPACE" != "prod" ]; then
-              echo "Usage: -- vpn (workspace is always prod)" >&2; exit 1
-            fi ;;
+          platform|vpn) ;;
           *)
-            echo "Usage: -- platform dev|prod, or -- vpn" >&2; exit 1 ;;
+            echo "Usage: -- platform|vpn" >&2; exit 1 ;;
         esac

@@ -3,10 +3,7 @@ terraform {
 
   backend "remote" {
     workspaces {
-      # Workspaces are selected via terraform workspace select command
-      # Expected workspaces: platform-dev, platform-prod
-      # Use prefix to match all platform workspaces
-      prefix = "platform-"
+      name = "platform"
     }
   }
 

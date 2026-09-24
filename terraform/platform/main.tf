@@ -24,8 +24,7 @@ module "server" {
   ]
 
   labels = {
-    environment = local.environment
-    managed_by  = "terraform"
+    managed_by = "terraform"
   }
 
   backups = true

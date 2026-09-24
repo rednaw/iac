@@ -9,7 +9,6 @@
 #   image_tag: The SHA tag
 #   image_description: From OCI labels
 #   image_built_at: From OCI labels
-#   workspace: Environment name
 
 - name: Parse image digest
   ansible.builtin.set_fact:
@@ -29,7 +28,6 @@
   ansible.builtin.copy:
     content: |
       app: {{ app_name }}
-      workspace: {{ workspace }}
 
       image:
         repo: {{ image_repo }}
@@ -70,7 +68,6 @@
 
       deployment:
         deployed_at: {{ deploy_timestamp.stdout }}
-        workspace: {{ workspace }}
     EOF
   become: true
   become_user: iac

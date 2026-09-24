@@ -5,36 +5,31 @@ version: '3'
 
 tasks:
   start:
-    desc: "Start SSH tunnel to workspace for admin UIs. Use: task tunnel:start -- dev|prod"
+    desc: "Start SSH tunnel to platform for admin UIs"
     silent: true
-    vars:
-      WORKSPACE: "{{.CLI_ARGS}}"
-    deps: [":_check:workspace"]
     cmds:
       - |
-        HOSTNAME=$(task hostkeys:hostname -- "{{.WORKSPACE}}")
-        if pgrep -f "ssh.*-L 57800:localhost:57800.*ubuntu@$HOSTNAME" >/dev/null 2>&1; then
-          echo "Tunnel to {{.WORKSPACE}} already running."
+        IP=$(task hostkeys:ip -- platform) || exit 1
+        IAC_ROOT=$(realpath "{{.TASKFILE_DIR}}/..")
+        if pgrep -f "ssh.*-L 57800:localhost:57800.*ubuntu@${IP}" >/dev/null 2>&1; then
+          echo "Tunnel to platform already running."
         else
-          ssh -f -N -L 57800:localhost:57800 -L 57801:localhost:57801 -L 57802:localhost:57802 -o StrictHostKeyChecking=accept-new "ubuntu@$HOSTNAME" || { echo "Failed to start tunnel."; exit 1; }
-          echo "Tunnel to {{.WORKSPACE}} started."
+          ssh -f -N -L 57800:localhost:57800 -L 57801:localhost:57801 -L 57802:localhost:57802 -o StrictHostKeyChecking=accept-new "ubuntu@${IP}" || { echo "Failed to start tunnel."; exit 1; }
+          echo "Tunnel to platform started."
         fi
-        echo "  Landing page:      file://${IAC_ROOT_PATH}/portal.html (open in host browser)"
-        echo "  Stop: task tunnel:stop -- {{.WORKSPACE}}"
+        echo "  Landing page:      file://${IAC_ROOT}/portal.html (open in host browser)"
+        echo "  Stop: task tunnel:stop"
 
   stop:
-    desc: "Stop SSH tunnel for workspace. Use: task tunnel:stop -- dev|prod"
+    desc: "Stop SSH tunnel to platform"
     silent: true
-    vars:
-      WORKSPACE: "{{.CLI_ARGS}}"
-    deps: [":_check:workspace"]
     cmds:
       - |
-        HOSTNAME=$(task hostkeys:hostname -- "{{.WORKSPACE}}")
-        PIDS=$(pgrep -f "ssh.*-L 57800:localhost:57800.*ubuntu@$HOSTNAME" 2>/dev/null) || true
+        IP=$(task hostkeys:ip -- platform) || exit 1
+        PIDS=$(pgrep -f "ssh.*-L 57800:localhost:57800.*ubuntu@${IP}" 2>/dev/null) || true
         if [ -z "$PIDS" ]; then
-          echo "No tunnel to {{.WORKSPACE}} running."
+          echo "No tunnel to platform running."
         else
           echo "$PIDS" | xargs kill 2>/dev/null || true
-          echo "Tunnel to {{.WORKSPACE}} stopped."
+          echo "Tunnel to platform stopped."
         fi

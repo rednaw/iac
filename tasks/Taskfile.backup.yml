@@ -1,8 +1,8 @@
 # yaml-language-server: $schema=https://taskfile.dev/schema.json
 version: '3'
 
-# Backup: slug from /workspaces/<app>/.iac/iac.yml; SSH + docker run prefect-worker on server.
-# CLI_ARGS → first word = SSH host (dev|prod), second = app name.
+# Backup: slug from /workspaces/<app>/.iac/iac.yml; SSH + docker run prefect-worker on platform.
+# CLI_ARGS → first word = app name.
 #   restore  passes further args to restore_from_backup.py.
 # download: server → .backup-repos/<slug>/ via docker tar (host dir often root-only).
 # upload:   .backup-repos/<slug>/ → server (clears remote repo dir first, then tar extract; idle backups only).
@@ -23,18 +23,15 @@ tasks:
         msg: "Missing {{.APPS_ROOT}}/{{.APP}}/.iac/backup.yml (Restic contract)."
 
   restore:
-    desc: "Restic restore for an app. Use: task backup:restore -- <dev|prod> <app> [snapshot] [--confirm|...]"
-    deps: [":_check:workspace"]
+    desc: "Restic restore for an app. Use: task backup:restore -- <app> [snapshot] [--confirm|...]"
     silent: true
     vars:
-      WORKSPACE:
-        sh: echo "{{.CLI_ARGS}}" | awk '{print $1}'
       APP:
-        sh: echo "{{.CLI_ARGS}}" | awk '{print $2}'
+        sh: echo "{{.CLI_ARGS}}" | awk '{print $1}'
       APP_ROOT: '{{.APPS_ROOT}}/{{.APP}}'
     preconditions:
-      - sh: '[ $(echo "{{.CLI_ARGS}}" | wc -w | tr -d " ") -ge 2 ]'
-        msg: "Usage: task backup:restore -- <dev|prod> <app> [snapshot] [--confirm|...]"
+      - sh: '[ $(echo "{{.CLI_ARGS}}" | wc -w | tr -d " ") -ge 1 ]'
+        msg: "Usage: task backup:restore -- <app> [snapshot] [--confirm|...]"
     cmds:
       - task: ":_check:app"
         vars: { APP: '{{.APP}}' }
@@ -45,15 +42,15 @@ tasks:
 
         image_name=$(yq -r '.image_name' "{{.APP_ROOT}}/.iac/iac.yml")
         slug="${image_name##*/}"
+        IP=$(task hostkeys:ip -- platform) || exit 1
 
         set -- {{.CLI_ARGS | join " "}}
-        ssh_host=$1
-        shift 2  # drop env + app, leave any extra args for the python script
+        shift 1  # drop app, leave any extra args for the python script
 
         py_args=$(bash -c 'printf "%q " "$@"' _ "$slug" "$@")
         py_args=${py_args%% }
 
-        ssh -t "$ssh_host" "docker run --rm -i \
+        ssh -t "ubuntu@${IP}" "docker run --rm -i \
           -v /var/run/docker.sock:/var/run/docker.sock \
           -v /opt/iac:/opt/iac \
           -w /opt/iac/prefect/flows/backup \
@@ -61,16 +58,15 @@ tasks:
           python3 restore_from_backup.py ${py_args}"
 
   snapshots:
-    desc: "List local Restic snapshots for an app. Use: task backup:snapshots -- <dev|prod> <app>"
-    deps: [":_check:workspace"]
+    desc: "List local Restic snapshots for an app. Use: task backup:snapshots -- <app>"
     silent: true
     vars:
       APP:
-        sh: echo "{{.CLI_ARGS}}" | awk '{print $2}'
+        sh: echo "{{.CLI_ARGS}}" | awk '{print $1}'
       APP_ROOT: '{{.APPS_ROOT}}/{{.APP}}'
     preconditions:
-      - sh: '[ $(echo "{{.CLI_ARGS}}" | wc -w | tr -d " ") -eq 2 ]'
-        msg: "Usage: task backup:snapshots -- <dev|prod> <app>"
+      - sh: '[ $(echo "{{.CLI_ARGS}}" | wc -w | tr -d " ") -eq 1 ]'
+        msg: "Usage: task backup:snapshots -- <app>"
     cmds:
       - task: ":_check:app"
         vars: { APP: '{{.APP}}' }
@@ -79,11 +75,9 @@ tasks:
 
         image_name=$(yq -r '.image_name' "{{.APP_ROOT}}/.iac/iac.yml")
         slug="${image_name##*/}"
+        IP=$(task hostkeys:ip -- platform) || exit 1
 
-        set -- {{.CLI_ARGS | join " "}}
-        ssh_host=$1
-
-        ssh "$ssh_host" docker run --rm \
+        ssh "ubuntu@${IP}" docker run --rm \
           -v "/opt/iac/prefect/backups/${slug}:/repo:ro" \
           -e RESTIC_REPOSITORY=/repo \
           -e RESTIC_PASSWORD=local \
@@ -91,16 +85,15 @@ tasks:
           restic --no-lock snapshots
 
   download:
-    desc: "Copy server's local Restic repo to .backup-repos/<slug>/. Use: task backup:download -- <dev|prod> <app>"
-    deps: [":_check:workspace"]
+    desc: "Copy server's local Restic repo to .backup-repos/<slug>/. Use: task backup:download -- <app>"
     silent: true
     vars:
       APP:
-        sh: echo "{{.CLI_ARGS}}" | awk '{print $2}'
+        sh: echo "{{.CLI_ARGS}}" | awk '{print $1}'
       APP_ROOT: '{{.APPS_ROOT}}/{{.APP}}'
     preconditions:
-      - sh: '[ $(echo "{{.CLI_ARGS}}" | wc -w | tr -d " ") -eq 2 ]'
-        msg: "Usage: task backup:download -- <dev|prod> <app>"
+      - sh: '[ $(echo "{{.CLI_ARGS}}" | wc -w | tr -d " ") -eq 1 ]'
+        msg: "Usage: task backup:download -- <app>"
     cmds:
       - task: ":_check:app"
         vars: { APP: '{{.APP}}' }
@@ -108,25 +101,23 @@ tasks:
         set -eu
         image_name=$(yq -r '.image_name' "{{.APP_ROOT}}/.iac/iac.yml")
         slug="${image_name##*/}"
-        set -- {{.CLI_ARGS | join " "}}
-        ssh_host=$1
+        IP=$(task hostkeys:ip -- platform) || exit 1
         dest="{{.IAC_ROOT}}/.backup-repos/${slug}"
         mkdir -p "$dest"
         # shellcheck disable=SC2029
-        ssh "$ssh_host" "docker run --rm -v /opt/iac/prefect/backups/${slug}:/repo:ro prefect-worker tar -c -f - -C /repo ." \
+        ssh "ubuntu@${IP}" "docker run --rm -v /opt/iac/prefect/backups/${slug}:/repo:ro prefect-worker tar -c -f - -C /repo ." \
           | tar -xf - -C "$dest"
 
   upload:
-    desc: "Replace server's local Restic repo from .backup-repos/<slug>/. Use: task backup:upload -- <dev|prod> <app>"
-    deps: [":_check:workspace"]
+    desc: "Replace server's local Restic repo from .backup-repos/<slug>/. Use: task backup:upload -- <app>"
     silent: true
     vars:
       APP:
-        sh: echo "{{.CLI_ARGS}}" | awk '{print $2}'
+        sh: echo "{{.CLI_ARGS}}" | awk '{print $1}'
       APP_ROOT: '{{.APPS_ROOT}}/{{.APP}}'
     preconditions:
-      - sh: '[ $(echo "{{.CLI_ARGS}}" | wc -w | tr -d " ") -eq 2 ]'
-        msg: "Usage: task backup:upload -- <dev|prod> <app>"
+      - sh: '[ $(echo "{{.CLI_ARGS}}" | wc -w | tr -d " ") -eq 1 ]'
+        msg: "Usage: task backup:upload -- <app>"
     cmds:
       - task: ":_check:app"
         vars: { APP: '{{.APP}}' }
@@ -134,12 +125,11 @@ tasks:
         set -eu
         image_name=$(yq -r '.image_name' "{{.APP_ROOT}}/.iac/iac.yml")
         slug="${image_name##*/}"
-        set -- {{.CLI_ARGS | join " "}}
-        ssh_host=$1
+        IP=$(task hostkeys:ip -- platform) || exit 1
         src="{{.IAC_ROOT}}/.backup-repos/${slug}"
         test -f "${src}/config" || {
           echo "Missing Restic repo at ${src}/config (run task backup:download first)." >&2
           exit 1
         }
         # shellcheck disable=SC2029
-        tar -c -C "$src" . | ssh "$ssh_host" "docker run --rm -i -v /opt/iac/prefect/backups/${slug}:/repo prefect-worker sh -c 'find /repo -mindepth 1 -delete; tar -xf - -C /repo'"
+        tar -c -C "$src" . | ssh "ubuntu@${IP}" "docker run --rm -i -v /opt/iac/prefect/backups/${slug}:/repo prefect-worker sh -c 'find /repo -mindepth 1 -delete; tar -xf - -C /repo'"

@@ -3,25 +3,25 @@ version: '3'
 
 tasks:
   check-status:
-    desc: Check if servers are up and accessible (checks both dev and prod)
+    desc: Check if the platform server is up and accessible
     silent: true
     cmds:
       - |
-        for WORKSPACE in dev prod; do
-          echo "📋 Checking $WORKSPACE environment..."
-          HOSTNAME=$(task hostkeys:hostname -- "$WORKSPACE")
-          if ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=accept-new -o BatchMode=yes "ubuntu@$HOSTNAME" "echo 'Server is up'" >/dev/null 2>&1; then
-            echo "  ✅ Server is up and ubuntu user is accessible ($HOSTNAME)"
-          elif ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=accept-new -o BatchMode=yes "root@$HOSTNAME" "echo 'Server is up'" >/dev/null 2>&1; then
-            echo "  ✅ Server is up ($HOSTNAME)"
-            echo "  ⚠️  Root access available, run 'task platform:configure:bootstrap -- $WORKSPACE' to set up ubuntu user"
-          else
-            echo "  ❌ Server is not reachable ($HOSTNAME)"
-            ERR=$(ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new -o BatchMode=yes "ubuntu@$HOSTNAME" "echo" 2>&1) || true
-            echo "  │ ${ERR//$'\n'/$'\n  │ '}"
-          fi
-          echo ""
-        done
+        echo "📋 Checking platform..."
+        IP=$(task hostkeys:ip -- platform) || {
+          echo "  ❌ No platform server (not provisioned?)"
+          exit 1
+        }
+        if ssh -4 -o ConnectTimeout=5 -o StrictHostKeyChecking=accept-new -o BatchMode=yes "ubuntu@${IP}" "echo 'Server is up'" >/dev/null 2>&1; then
+          echo "  ✅ Server is up and ubuntu user is accessible (${IP})"
+        elif ssh -4 -o ConnectTimeout=5 -o StrictHostKeyChecking=accept-new -o BatchMode=yes "root@${IP}" "echo 'Server is up'" >/dev/null 2>&1; then
+          echo "  ✅ Server is up (${IP})"
+          echo "  ⚠️  Root access available, run 'task platform:configure:bootstrap' to set up ubuntu user"
+        else
+          echo "  ❌ Server is not reachable (${IP})"
+          ERR=$(ssh -4 -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new -o BatchMode=yes "ubuntu@${IP}" "echo" 2>&1) || true
+          echo "  │ ${ERR//$'\n'/$'\n  │ '}"
+        fi
 
   list-hetzner-keys:
     desc: List Hetzner SSH keys with IDs
@@ -33,4 +33,3 @@ tasks:
         hcloud ssh-key list -o columns=name,id
         echo ""
         echo "💡 Use the 'ID' column for secrets/infra.yml (ssh_keys: [\"ID\", ...])"
-

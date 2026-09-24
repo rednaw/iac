@@ -72,7 +72,7 @@ _CLI_ARGS_JOIN = re.compile(r"\{\{\s*\.CLI_ARGS\s*\|\s*join\s+\"\s*\"\s*\}\}")
 # Stub prepended when CLI_ARGS array expansion appears (matches Task's multi-arg join).
 _CLI_ARGS_STUB = (
     "# validate-taskfiles: Task expands CLI_ARGS at runtime; stub for shellcheck only.\n"
-    "CLI_ARGS=(dev latest --confirm)\n"
+    "CLI_ARGS=(tientje-ketama latest --confirm)\n"
 )
 _CLI_ARGS_STUB_LINES = _CLI_ARGS_STUB.count("\n")
 

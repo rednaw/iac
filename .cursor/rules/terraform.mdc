@@ -6,7 +6,7 @@ alwaysApply: false
 
 # Terraform
 
-- Root: `terraform/platform/` (workspaces `dev` / `prod`, state in Terraform Cloud).
+- Root: `terraform/platform/` (TFC workspace `platform`). VPN: `terraform/vpn/` (workspace `vpn`). Exact-name backends in each `versions.tf`.
 - Shared VPS module: `terraform/modules/server/`.
-- Vars / locals / outputs in the platform root. Optional `app_domain`: site apex/www and env app hosts on that zone; `dev`/`prod`/`auth`/`registry` stay on `base_domain`. Empty `app_domain` = one zone.
+- Vars / locals / outputs in the platform root. Optional `app_domain`: site apex/`www` on that zone; `auth`/`registry` stay on `base_domain`. Empty `app_domain` = one zone. No platform hostname on `base_domain`.
 - New server types add another root beside `platform/` composing the same module.
