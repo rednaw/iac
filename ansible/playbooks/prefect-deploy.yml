@@ -1,15 +1,13 @@
 ---
-# Deploy Prefect flow code to servers. Run with: task workflow:deploy -- <workspace>
+# Deploy Prefect flow code to servers. Run with: task workflow:deploy
 # This playbook syncs flow code from prefect/ to /opt/iac/prefect/flows on target hosts.
 # It rebuilds the worker image if Dockerfile changed, then restarts the worker.
 
 - name: Deploy Prefect flows to servers
-  hosts: "{{ target_workspace }}"
+  hosts: platform
   gather_facts: false
   become: true
   vars:
-    # Required at runtime: task workflow:deploy -- [dev|prod]. Default allows ansible-playbook --syntax-check to pass.
-    target_workspace: "localhost"
     prefect_flow_code_host_path: /opt/iac/prefect/flows
     prefect_worker_image: prefect-worker
     repo_root: "{{ playbook_dir }}/../.."

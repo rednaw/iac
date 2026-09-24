@@ -1,5 +1,5 @@
 # yaml-language-server: $schema=https://json.schemastore.org/traefik-v2.json
-# Redirect www and apex of the site zone to the app hostname
+# Redirect www to the apex (app serves the apex).
 http:
   routers:
     redirect-www:
@@ -10,24 +10,14 @@ http:
         certResolver: letsencrypt
       middlewares:
         - hsts-headers
-        - redirect-to-app
-      service: noop@internal
-    redirect-apex:
-      rule: "Host(`{{ site_domain }}`)"
-      entryPoints:
-        - websecure
-      tls:
-        certResolver: letsencrypt
-      middlewares:
-        - hsts-headers
-        - redirect-to-app
+        - redirect-to-apex
       service: noop@internal
 
   middlewares:
-    redirect-to-app:
+    redirect-to-apex:
       redirectRegex:
-        regex: "^https://(www\\.)?{{ site_domain | regex_escape() | replace('\\', '\\\\') }}(.*)"
-        replacement: "https://{{ traefik_redirect_target }}$2"
+        regex: "^https://www\\.{{ site_domain | regex_escape() | replace('\\', '\\\\') }}(.*)"
+        replacement: "https://{{ site_domain }}$1"
         permanent: true
     hsts-headers:
       headers:

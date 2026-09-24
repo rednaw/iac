@@ -7,7 +7,6 @@
 #   registry_name: Docker registry hostname
 #   image_name: Image name in registry
 #   app_root: Absolute path to the application directory
-#   workspace: Environment name (dev or prod)
 #   sha: Image tag / commit SHA to deploy
 #
 # Expected files in app_root:

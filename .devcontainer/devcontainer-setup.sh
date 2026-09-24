@@ -85,12 +85,8 @@ REG_USER=$(echo "$DECRYPTED" | yq -r '.registry_username // ""')
 REG_PASS=$(echo "$DECRYPTED" | yq -r '.registry_password // ""')
 
 # When both registry creds are present the platform stack is in use; otherwise
-# this is a non-platform fork (e.g. VPN-only) and the platform-specific setup
-# steps below are skipped.
-PLATFORM_ENABLED=0
+# this is a non-platform fork (e.g. VPN-only) and registry auth is skipped.
 if [ -n "$REG_USER" ] && [ -n "$REG_PASS" ]; then
-  PLATFORM_ENABLED=1
-
   mkdir -p "$(dirname "$DOCKER_CONFIG")"
   AUTH=$(printf '%s' "$REG_USER:$REG_PASS" | base64 | tr -d '\n')
 
@@ -145,32 +141,19 @@ done
 echo "Terraform Cloud token configured."
 
 ########################################
-# SSH config for Remote-SSH
+# SSH config (Host platform → API IPv4)
 ########################################
 
 cd /workspaces/iac || exit 1
 bash .devcontainer/setup-remote-ssh.sh
 
 ########################################
-# Docker contexts (host always; dev/prod only when platform stack is in use)
+# Docker context (local daemon only)
 ########################################
 
-# Named contexts: host = daemon running this container, dev/prod = platform servers over SSH.
-# dev/prod assume hostnames dev.<base_domain> / prod.<base_domain>, which is a
-# platform convention. Skipped when the fork doesn't use the platform stack.
 docker context create host --docker "host=unix:///var/run/docker.sock" 2>/dev/null || true
-
-if [ "$PLATFORM_ENABLED" = 1 ]; then
-  DEV_HOST="dev.${BASE_DOMAIN}"
-  PROD_HOST="prod.${BASE_DOMAIN}"
-  docker context create dev --docker "host=ssh://ubuntu@${DEV_HOST}" 2>/dev/null || true
-  docker context create prod --docker "host=ssh://ubuntu@${PROD_HOST}" 2>/dev/null || true
-  docker context use host
-  echo "Docker contexts: host (default) | dev | prod — docker context use <name>"
-else
-  docker context use host
-  echo "Docker context: host (only — non-platform fork has no dev/prod servers)."
-fi
+docker context use host
+echo "Docker context: host"
 
 ########################################
 # Cursor state

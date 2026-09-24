@@ -10,9 +10,6 @@
 #   export SOPS_KEY_FILE="$HOME/.config/sops/age/keys.txt"
 #   . ./scripts/platform-tf-secrets.sh
 #   terraform -chdir=terraform/platform plan
-#
-# This script is platform-specific. Future server purposes (vpn, honeypot)
-# add their own scripts and pass them via the SECRETS_SCRIPT task variable.
 
 : "${SOPS_KEY_FILE:?SOPS_KEY_FILE must be exported before sourcing this script}"
 

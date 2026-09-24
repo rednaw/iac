@@ -40,7 +40,7 @@
     "remote.containers.autoReopen": true
   },
 
-  // Keep in sync with LocalForward in setup-remote-ssh.sh and tunnel task.
+  // Host browser → container localhost for task tunnel:start (portal.html).
   "forwardPorts": [57800, 57801, 57802],
   "portsAttributes": {
     "57800": { "label": "OpenObserve", "onAutoForward": "silent" },

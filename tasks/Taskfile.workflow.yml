@@ -3,16 +3,12 @@ version: '3'
 
 tasks:
   deploy:
-    desc: "Deploy Prefect flows (use: task workflow:deploy -- dev or -- prod)"
+    desc: "Deploy Prefect flows (use: task workflow:deploy)"
     dir: ansible
     silent: true
-    vars:
-      WORKSPACE: "{{.CLI_ARGS}}"
-    deps: [":_check:workspace"]
     cmds:
       - task: :_ansible:install
       - |
-        echo "🔄 Deploying Prefect flows to workspace: {{.WORKSPACE}}..."
-        IP=$(task hostkeys:ip -- platform "{{.WORKSPACE}}") || exit 1
-        PLATFORM=$(task hostkeys:platform)
-        ansible-playbook -i "${PLATFORM}-{{.WORKSPACE}}," playbooks/prefect-deploy.yml -e "ansible_host=${IP}" -e "target_workspace=${PLATFORM}-{{.WORKSPACE}}"
+        echo "🔄 Deploying Prefect flows to platform..."
+        IP=$(task hostkeys:ip -- platform) || exit 1
+        ansible-playbook -i "platform," playbooks/prefect-deploy.yml -e "ansible_host=${IP}"

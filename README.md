@@ -20,11 +20,11 @@ Tasks resolve apps at `/workspaces/<app>/` (parent mount). The editor sidebar is
 
 ```bash
 task secrets:init                          # first-time fork secrets
-task platform:provision:plan -- prod       # Terraform
-task platform:configure:apply -- prod      # Ansible
-task app:versions -- prod <app>
-task app:deploy -- prod <app> <7-char-sha>
-task tunnel:start -- prod                  # OpenObserve / Traefik / Prefect UI
+task platform:provision:plan               # Terraform
+task platform:configure:apply              # Ansible
+task app:versions -- <app>
+task app:deploy -- <app> <7-char-sha>
+task tunnel:start                          # OpenObserve / Traefik / Prefect UI (portal.html)
 ```
 
 Run `task` for the full list.

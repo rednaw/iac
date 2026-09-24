@@ -8,16 +8,10 @@
     that: infrastructure_secrets.base_domain is defined and infrastructure_secrets.base_domain | length > 0
     fail_msg: "'base_domain' is missing from secrets/infra.yml. Set it to your domain (e.g. example.com)."
 
-- name: Set Traefik facts (base_domain, site_domain, app_environment)
+- name: Set Traefik facts (base_domain, site_domain)
   ansible.builtin.set_fact:
-    app_environment: "{{ 'dev' if '-dev' in inventory_hostname else 'prod' }}"
     base_domain: "{{ infrastructure_secrets.base_domain }}"
     site_domain: "{{ infrastructure_secrets.app_domain | default(infrastructure_secrets.base_domain, true) }}"
-
-- name: Set Traefik redirect target and platform ACME hosts
-  ansible.builtin.set_fact:
-    traefik_redirect_target: "{{ app_environment }}.{{ site_domain }}"
-    traefik_app_domains: "{{ [app_environment + '.' + base_domain] }}"
 
 - name: Create Traefik directories
   ansible.builtin.file:
@@ -38,18 +32,11 @@
     mode: '0644'
   notify: Restart Traefik
 
-- name: Deploy Traefik dynamic redirects (www/apex → prod only)
+- name: Deploy Traefik dynamic redirects (www → apex)
   ansible.builtin.template:
     src: traefik-dynamic-redirects.yml.j2
     dest: /etc/traefik/dynamic/redirects.yml
     mode: '0644'
-  when: app_environment == 'prod'
-
-- name: Remove redirect config on dev (www/apex handled by prod)
-  ansible.builtin.file:
-    path: /etc/traefik/dynamic/redirects.yml
-    state: absent
-  when: app_environment != 'prod'
 
 - name: Deploy Traefik HTTP→HTTPS redirect (low priority so ACME works on :80)
   ansible.builtin.template:
@@ -65,11 +52,10 @@
     owner: root
     group: root
 
-- name: Deploy Traefik app-host router (cert for main hostname when app not running)
-  ansible.builtin.template:
-    src: traefik-dynamic-app-host.yml.j2
-    dest: /etc/traefik/dynamic/app-host.yml
-    mode: '0644'
+- name: Remove stale Traefik app-host router
+  ansible.builtin.file:
+    path: /etc/traefik/dynamic/app-host.yml
+    state: absent
 
 - name: Deploy Traefik middlewares (app-headers, app-buffering)
   ansible.builtin.template:

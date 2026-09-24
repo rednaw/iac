@@ -3,9 +3,7 @@ terraform {
 
   backend "remote" {
     workspaces {
-      # Single workspace: vpn-prod (there is no vpn-dev — the box is throwaway,
-      # home smoke runs on this same prod box).
-      prefix = "vpn-"
+      name = "vpn"
     }
   }
 

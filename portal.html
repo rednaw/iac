@@ -17,12 +17,12 @@
 </head>
 <body>
   <h1>IaC portal</h1>
-  <p>Start the SSH tunnel first: <code>task tunnel:start -- dev</code> (or <code>prod</code>). Then use the links below.</p>
+  <p>Start the SSH tunnel first: <code>task tunnel:start</code>. Then use the links below.</p>
   <ul>
     <li><a href="http://localhost:57801/dashboard/">Traefik</a> <span class="port">— reverse proxy, TLS, routing</span></li>
     <li><a href="http://localhost:57800/">OpenObserve</a> <span class="port">— logs, metrics, traces</span></li>
     <li><a href="http://localhost:57802/">Prefect</a> <span class="port">— workflows, scheduled runs</span></li>
   </ul>
-  <p><small>Stop the tunnel: <code>task tunnel:stop -- dev</code></small></p>
+  <p><small>Stop the tunnel: <code>task tunnel:stop</code></small></p>
 </body>
 </html>

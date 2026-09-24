@@ -58,7 +58,7 @@ flowchart LR
 
 - **OneXray** on both devices creates a TUN interface that captures *all* device traffic (IPv4 and IPv6) and routes it: domains in `geosite:cn` go **direct** (Chinese sites over the hotel network — normal, fast, and not a leak), everything else goes through the tunnel and exits in Nuremberg. We do not use `geoip:cn` rules because they require resolving the domain first, and Chinese DNS answers are poisoned.
 - The **eSIMs** are out-of-band management only (they roam via the home carrier, so they exit outside the GFW). OneXray stays **off** on cellular. The eSIM is never the daily internet path.
-- The **VPN box** shares nothing with the platform: its own Terraform root (`terraform/vpn/`, TFC workspace `vpn-prod`), its own firewall (443 + SSH from home only), no Traefik, no apps, no DNS record, `backups = false`. SSH and Ansible always address it by its API IPv4 — it has no hostname anywhere.
+- The **VPN box** shares nothing with the platform: its own Terraform root (`terraform/vpn/`, TFC workspace `vpn`), its own firewall (443 + SSH from home only), no Traefik, no apps, no DNS record, `backups = false`. SSH and Ansible always address it by its API IPv4 — it has no hostname anywhere.
 
 ### The four secrets
 
@@ -77,7 +77,7 @@ Renewing the primary IPv4 (or wiping the box) changes the **address** in the sha
 
 ## 2. Installation (at home, before the trip)
 
-Prerequisites: this MacBook with the iac devcontainer, age key, and Hetzner/TFC/TransIP access working; OneXray ([App Store](https://apps.apple.com/us/app/onexray/id6745748773)) installed on Mac and iPhone; spec Do §0–§6 implemented; TFC workspace `vpn-prod` created.
+Prerequisites: this MacBook with the iac devcontainer, age key, and Hetzner/TFC/TransIP access working; OneXray ([App Store](https://apps.apple.com/us/app/onexray/id6745748773)) installed on Mac and iPhone; spec Do §0–§6 implemented; TFC workspace `vpn` created.
 
 ### 2.1 Generate secrets (once)
 
@@ -140,7 +140,7 @@ With OneXray **on**, at home:
 | WebRTC | [browserleaks.com/webrtc](https://browserleaks.com/webrtc) | No home LAN / home public IP |
 | Probe view | From another network: `curl -sI https://<vps-ip>` with `--resolve <dest>:443:<vps-ip>` | You get the dest site, like any stranger would |
 
-Then rehearse the two drills **at home** while mistakes are cheap: **Burned IP renew** (§6.1, skipping `ssh-allow-me`), and a platform `dev` destroy → apply → `hostkeys:accept` → bootstrap → configure, to prove the shared internals still work for the platform.
+Then rehearse the two drills **at home** while mistakes are cheap: **Burned IP renew** (§6.1, skipping `ssh-allow-me`), and a **VPN wipe** (§6.2: destroy → apply → `hostkeys:accept` → bootstrap → configure → `vpn:config`). Do **not** destroy the platform box — there is no disposable platform-dev.
 
 Finally, work through the trip checklist at the bottom of the [spec](vpn-travel-china.md).
 
@@ -189,7 +189,7 @@ Away from home, SSH needs `task ssh-allow-me` first (see below).
 The standing firewall rules trust **home IPs only** — on both the platform and VPN boxes, permanently. On the road:
 
 ```bash
-task ssh-allow-me    # adds your current public IPv4 /32 to *every* iac firewall (platform dev+prod, VPN)
+task ssh-allow-me    # adds your current public IPv4 /32 to *every* iac firewall (platform, VPN)
 task ssh-revoke-me   # removes only rules carrying the allow-me marker; home rules untouched
 ```
 
@@ -264,7 +264,7 @@ task vpn:provision:destroy    # primary IP + box + firewall
 task ssh-revoke-me            # if any extra rules are left anywhere
 ```
 
-Then delete the `vpn-prod` workspace in Terraform Cloud. The secrets can stay in `secrets/infra.yml` for a next trip — they are worthless without a running box. There is no DNS record to clean up.
+Then delete the `vpn` workspace in Terraform Cloud. The secrets can stay in `secrets/infra.yml` for a next trip — they are worthless without a running box. There is no DNS record to clean up.
 
 ---
 
@@ -288,7 +288,7 @@ Sysadmin staples (DNS, SSH, TCP, TLS, NAT…) are assumed; this covers the censo
 | REALITY | Xray's certificate-less TLS camouflage: authenticates real clients inside the ClientHello, forwards everyone else to the dest (not an acronym, just branded caps) |
 | SNI | Server Name Indication — the plaintext hostname in a TLS ClientHello; what the GFW reads, and what we set to the dest |
 | SOPS | Secrets OPerationS — encrypted-file tool (age keys) holding `secrets/infra.yml` |
-| TFC | Terraform Cloud — remote Terraform state; workspace `vpn-prod` |
+| TFC | Terraform Cloud — remote Terraform state; workspace `vpn` |
 | TUN | Virtual network interface at the IP layer — how OneXray captures *all* device traffic, both address families |
 | uTLS | Go library that forges specific browsers' TLS ClientHello fingerprints (see `fp`) |
 | UUID | Universally Unique Identifier — doubles as the VLESS account credential |

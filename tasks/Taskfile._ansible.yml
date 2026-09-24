@@ -5,14 +5,15 @@
 #
 # Parameters consumers pass:
 #   PURPOSE    Server purpose ("platform", "vpn")
-#   WORKSPACE  Environment (e.g. "dev", "prod"; vpn is always "prod")
 #   PLAYBOOK   Playbook path relative to ansible/ (e.g. "playbooks/server.yml")
 #
-# Tasks run from ansible/. Inventory name: platform "<base_domain_prefix>-<workspace>"
-# (e.g. rednaw-dev, resolved via hostkeys:platform); vpn just "vpn" (own fact cache).
-# ansible_host is always the API IPv4 (hostkeys:ip), never a DNS hostname —
-# ansible.cfg pins StrictHostKeyChecking=yes, so run hostkeys:accept once after
-# a (re)create before bootstrap/run.
+# Inventory name is the purpose ("platform" / "vpn"). ansible_host is always
+# the API IPv4 (hostkeys:ip), never a DNS hostname — ansible.cfg pins
+# StrictHostKeyChecking=yes, so run hostkeys:accept once after a (re)create
+# before bootstrap/run.
+#
+# Callers must pass PURPOSE as a literal (platform / vpn). Do not share that
+# name in include-level Task vars — later includes overwrite earlier ones.
 version: '3'
 
 tasks:
@@ -34,9 +35,8 @@ tasks:
       - task: install
       - |
         echo "NOTE: This step connects as root using your Hetzner SSH key to set up the ubuntu user."
-        IP=$(task hostkeys:ip -- "{{.PURPOSE}}" "{{.WORKSPACE}}") || exit 1
-        if [ "{{.PURPOSE}}" = "vpn" ]; then INVENTORY="vpn"; else INVENTORY="$(task hostkeys:platform)-{{.WORKSPACE}}"; fi
-        ansible-playbook -i "${INVENTORY}," "{{.PLAYBOOK}}" -e "ansible_host=${IP}"
+        IP=$(task hostkeys:ip -- "{{.PURPOSE}}") || exit 1
+        ansible-playbook -i "{{.PURPOSE}}," "{{.PLAYBOOK}}" -e "ansible_host=${IP}"
 
   run:
     desc: "(internal) Run Ansible playbook"
@@ -46,7 +46,6 @@ tasks:
     cmds:
       - task: install
       - |
-        echo "⚙️  Running Ansible playbook for workspace: {{.WORKSPACE}}..."
-        IP=$(task hostkeys:ip -- "{{.PURPOSE}}" "{{.WORKSPACE}}") || exit 1
-        if [ "{{.PURPOSE}}" = "vpn" ]; then INVENTORY="vpn"; else INVENTORY="$(task hostkeys:platform)-{{.WORKSPACE}}"; fi
-        ansible-playbook -i "${INVENTORY}," "{{.PLAYBOOK}}" -e "ansible_host=${IP}"
+        echo "⚙️  Running Ansible playbook on {{.PURPOSE}}..."
+        IP=$(task hostkeys:ip -- "{{.PURPOSE}}") || exit 1
+        ansible-playbook -i "{{.PURPOSE}}," "{{.PLAYBOOK}}" -e "ansible_host=${IP}"
