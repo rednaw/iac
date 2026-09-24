@@ -7,7 +7,7 @@ alwaysApply: true
 
 Single Hetzner VPS. Terraform + Ansible + SOPS + Docker.
 
-Open the **`iac` folder** (not a multi-root of all apps). In the container, apps are `/workspaces/<app>/`; contract is `.iac/` (`iac.yml`, `docker-compose.yml`, SOPS `.env`). Infra secrets: `secrets/infra.yml`.
+Open the **`iac` folder** (not a multi-root of all apps). In the container, apps are `/workspaces/<app>/`; contract is `.iac/` (`iac.yml`, `docker-compose.yml`, SOPS `.env`). Infra secrets: private sibling `../secrets` (`infra.yml`).
 
 **Develop:** discuss until unambiguous; implement only after explicit go. Roadmap lives in `docs/future/` only.
 

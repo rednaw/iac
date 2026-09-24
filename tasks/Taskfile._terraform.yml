@@ -25,12 +25,12 @@ tasks:
     desc: "(internal) Reconfigure Terraform backend for a purpose"
     internal: true
     silent: true
-    deps: [":_check:sops-key"]
+    deps: [":_check:sops-key", ":_check:secrets"]
     cmds:
       - |
-        TFC_ORG=$(SOPS_AGE_KEY_FILE="{{.SOPS_KEY_FILE}}" sops -d secrets/infra.yml | yq -r '.terraform_cloud_organization')
+        TFC_ORG=$(SOPS_AGE_KEY_FILE="{{.SOPS_KEY_FILE}}" sops -d "{{.SECRETS_INFRA}}" | yq -r '.terraform_cloud_organization')
         if [ -z "${TFC_ORG}" ] || [ "${TFC_ORG}" = "null" ]; then
-          echo "❌ terraform_cloud_organization missing from secrets/infra.yml" >&2
+          echo "❌ terraform_cloud_organization missing from {{.SECRETS_INFRA}}" >&2
           exit 1
         fi
         echo "🔁 Reconfiguring Terraform backend for {{.TF_DIR}} (org: ${TFC_ORG})..."
@@ -42,12 +42,12 @@ tasks:
     desc: "(internal) Initialize Terraform backend"
     internal: true
     silent: true
-    deps: [":_check:sops-key"]
+    deps: [":_check:sops-key", ":_check:secrets"]
     cmds:
       - |
-        TFC_ORG=$(SOPS_AGE_KEY_FILE="{{.SOPS_KEY_FILE}}" sops -d secrets/infra.yml | yq -r '.terraform_cloud_organization')
+        TFC_ORG=$(SOPS_AGE_KEY_FILE="{{.SOPS_KEY_FILE}}" sops -d "{{.SECRETS_INFRA}}" | yq -r '.terraform_cloud_organization')
         if [ -z "${TFC_ORG}" ] || [ "${TFC_ORG}" = "null" ]; then
-          echo "❌ terraform_cloud_organization missing from secrets/infra.yml" >&2
+          echo "❌ terraform_cloud_organization missing from {{.SECRETS_INFRA}}" >&2
           exit 1
         fi
         unset TF_WORKSPACE || true
@@ -64,7 +64,7 @@ tasks:
     desc: "(internal) Plan Terraform changes"
     internal: true
     silent: true
-    deps: [":_check:sops-key"]
+    deps: [":_check:sops-key", ":_check:secrets"]
     cmds:
       - task: init
         vars: { TF_DIR: '{{.TF_DIR}}' }
@@ -80,7 +80,7 @@ tasks:
     desc: "(internal) Apply Terraform changes"
     internal: true
     silent: true
-    deps: [":_check:sops-key"]
+    deps: [":_check:sops-key", ":_check:secrets"]
     cmds:
       - task: init
         vars: { TF_DIR: '{{.TF_DIR}}' }
@@ -101,7 +101,7 @@ tasks:
     desc: "(internal) Destroy Terraform resources"
     internal: true
     silent: true
-    deps: [":_check:sops-key"]
+    deps: [":_check:sops-key", ":_check:secrets"]
     cmds:
       - task: init
         vars: { TF_DIR: '{{.TF_DIR}}' }

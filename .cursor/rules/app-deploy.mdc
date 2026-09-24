@@ -9,6 +9,6 @@ alwaysApply: false
 - App basename `<app>` → `/workspaces/<app>/.iac/`.
 - Required: `iac.yml` (plain: `image_name`, `app_domains`), `docker-compose.yml`, SOPS `.env`.
 - Deploy writes `APP_HOST` from the first `app_domains` entry. Compose `Host()` must use `${APP_HOST}` only.
-- No infra keys in `iac.yml` — those belong in `secrets/infra.yml`.
+- No infra keys in `iac.yml` — those belong in the secrets sibling (`../secrets/infra.yml`).
 - Commands: `task app:deploy -- <app> <7-char-sha>`, `task app:versions -- <app>`.
 - Role: `ansible/roles/deploy_app/`.

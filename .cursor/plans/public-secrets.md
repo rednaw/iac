@@ -11,7 +11,7 @@ Public `iac` template without secrets; ciphertext in a **private sibling**; **fu
 | | |
 |--|--|
 | Prior model | SOPS ciphertext in public git was **intentional**; secrets also lived under other paths earlier. |
-| Custody | **Public `rednaw/iac`**, no secrets in that tree. Encrypted secrets in a **private sibling repo**. |
+| Custody | **Public `rednaw/iac`**, no secrets in that tree. Encrypted secrets in a **private sibling** (`../secrets` from the iac root; override with `SECRETS_DIR`). |
 | Rotate | **Full rotate** of values that lived in public blobs; new ciphertext only in the sibling; revoke old tokens. |
 | History | **Orphan / replace public history** (single new root = tree without secrets; force-push `main`; delete or reset stale remote branches/tags). **Last step — only after rotate is done.** |
 | Why last | Dropping history does not unsay old clones; rotate first so surviving archives hold obsolete values. Then public `main` has no secret parents. |
@@ -27,21 +27,25 @@ Checkboxes track status only. The agent may change only **Agent** boxes; only th
 
 ### 0. Private sibling
 
-- [ ] Agent: implemented
-- [ ] Human: reviewed
+- [x] Agent: implemented
+- [x] Human: reviewed
 
 **Agent will implement** — after the human supplies the chosen sibling path: update `task secrets:*`, the devcontainer and every runtime reference so `iac` reads encrypted secrets from the private sibling; add checks that fail clearly when it is missing.
 
 **Human must:** Create a private GitHub repository for the secrets, clone it beside `iac`, copy the current `secrets/` tree into it without decrypting files, and tell the agent its repository name and local path. Keep it private; do not commit or push the public-tree removal yet.
 
+**Done as:** sibling `rednaw/secrets` (`../secrets`). Runtime resolves `SECRETS_DIR=$(realpath -m <iac>/../secrets)` (override with env). Public `iac/secrets/` still present until Do 1. Copied missing `.sops.yaml` (dotfiles not matched by `cp secrets/*`).
+
 ### 1. Clean public tip
 
-- [ ] Agent: implemented
+- [x] Agent: implemented
 - [ ] Human: reviewed
 
 **Agent will implement** — after 0: ignore secret paths in public `iac`, remove tracked secret files from its working tree, update templates/setup for the sibling, and verify platform/VPN commands resolve the sibling. Do **not** rewrite history.
 
 **Human must:** Review the deletion and path changes, confirm the private sibling decrypts first, then commit and push the clean public tip normally. Do not orphan or force-push yet.
+
+**Done as:** `git rm` of tracked `secrets/*`; `.gitignore` keeps ignoring `secrets/` as a safety net (sibling is `../secrets`). Platform TF secrets script decrypts sibling. No history rewrite.
 
 ### 2. Full rotate
 

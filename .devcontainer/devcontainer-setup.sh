@@ -2,11 +2,13 @@
 # DevContainer setup script.
 # Runs as postCreateCommand.
 #
-# Bootstrap mode: secrets/infra.yml absent → tools available, secrets skipped.
-# Operational mode: secrets/infra.yml present → full setup, hard failure on any error.
+# Bootstrap mode: sibling ../secrets/infra.yml absent → tools available, secrets skipped.
+# Operational mode: secrets sibling present → full setup, hard failure on any error.
 set -euo pipefail
 
-INFRA_FILE="secrets/infra.yml"
+IAC_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SECRETS_DIR="${SECRETS_DIR:-$(realpath -m "${IAC_ROOT}/../secrets")}"
+INFRA_FILE="${SECRETS_DIR}/infra.yml"
 SOPS_KEY_FILE="${HOME}/.config/sops/age/keys.txt"
 DOCKER_CONFIG="${HOME}/.docker/config.json"
 HCLOUD_CONFIG_DIR="${HOME}/.config/hcloud"
@@ -45,8 +47,9 @@ _sync_mise_tools
 
 if [ ! -f "$INFRA_FILE" ]; then
   echo ""
-  echo "Infrastructure not initialised — secrets/infra.yml missing."
-  echo "  • New fork:                              run 'task secrets:init'"
+  echo "Infrastructure not initialised — ${INFRA_FILE} missing."
+  echo "  • Clone private rednaw/secrets beside iac (../secrets)"
+  echo "  • Or first-time:                              run 'task secrets:init'"
   echo ""
   sudo chown -R vscode:vscode /home/vscode/.cursor 2>/dev/null || true
   exit 0

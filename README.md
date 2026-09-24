@@ -40,7 +40,7 @@ Run `task` for the full list.
 | Scheduled flows | `prefect/` |
 | Automation | `Taskfile.yml`, `tasks/` |
 | Dev environment | `.devcontainer/` |
-| Infra secrets (SOPS encrypted) | `secrets/infra.yml` |
+| Infra secrets (SOPS encrypted) | private sibling `../secrets` |
 | App contract | `/workspaces/<app>/.iac/` (`iac.yml`, `docker-compose.yml`, `.env`) |
 
 ## Roadmap
