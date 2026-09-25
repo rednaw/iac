@@ -66,10 +66,10 @@ Checkboxes track status only. The agent may change only **Agent** boxes; only th
 | Hetzner Cloud | [completed/rotate/hetzner.md](../completed/rotate/hetzner.md) | done |
 | Terraform Cloud | [completed/rotate/terraform-cloud.md](../completed/rotate/terraform-cloud.md) | done |
 | TransIP | [rotate/transip.md](rotate/transip.md) | open |
-| Platform registry | [rotate/registry.md](rotate/registry.md) | open |
-| OpenObserve | [rotate/openobserve.md](rotate/openobserve.md) | open |
+| Platform registry | [completed/rotate/registry.md](../completed/rotate/registry.md) | done |
+| OpenObserve | [completed/rotate/openobserve.md](../completed/rotate/openobserve.md) | done |
 | AbuseIPDB | [completed/rotate/abuseipdb.md](../completed/rotate/abuseipdb.md) | done |
-| GitHub OAuth | [rotate/github-oauth.md](rotate/github-oauth.md) | open |
+| GitHub OAuth | [completed/rotate/github-oauth.md](../completed/rotate/github-oauth.md) | done |
 | VPN | [rotate/vpn.md](rotate/vpn.md) | open |
 
 ### 3. Replace public history (last)
