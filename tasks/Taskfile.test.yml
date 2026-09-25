@@ -3,7 +3,7 @@ version: '3'
 
 tasks:
   run:
-    desc: Run all tests (validate, security scan, Ansible lint & syntax, taskfiles)
+    desc: Run all tests (validate, security scan, Ansible lint & syntax, taskfiles, fail2ban regex)
     silent: true
     cmds:
       - |
@@ -14,11 +14,13 @@ tasks:
         ANSIBLE_LINT_RESULT=0
         ANSIBLE_SYNTAX_RESULT=0
         TASKFILE_RESULT=0
+        FAIL2BAN_REGEX_RESULT=0
         task test:terraform:validate || VALIDATE_RESULT=$?
         task test:terraform:security || SECURITY_RESULT=$?
         task test:ansible:lint || ANSIBLE_LINT_RESULT=$?
         task test:ansible:syntax || ANSIBLE_SYNTAX_RESULT=$?
         task test:taskfiles || TASKFILE_RESULT=$?
+        task test:fail2ban-host-regex || FAIL2BAN_REGEX_RESULT=$?
         echo ""
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
         echo "Test Results:"
@@ -47,8 +49,13 @@ tasks:
         else
           echo "  ❌ Taskfiles:            FAILED"
         fi
+        if [ $FAIL2BAN_REGEX_RESULT -eq 0 ]; then
+          echo "  ✅ Fail2ban <HOST> regex: PASSED"
+        else
+          echo "  ❌ Fail2ban <HOST> regex: FAILED"
+        fi
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-        if [ $VALIDATE_RESULT -eq 0 ] && [ $SECURITY_RESULT -eq 0 ] && [ $ANSIBLE_LINT_RESULT -eq 0 ] && [ $ANSIBLE_SYNTAX_RESULT -eq 0 ] && [ $TASKFILE_RESULT -eq 0 ]; then
+        if [ $VALIDATE_RESULT -eq 0 ] && [ $SECURITY_RESULT -eq 0 ] && [ $ANSIBLE_LINT_RESULT -eq 0 ] && [ $ANSIBLE_SYNTAX_RESULT -eq 0 ] && [ $TASKFILE_RESULT -eq 0 ] && [ $FAIL2BAN_REGEX_RESULT -eq 0 ]; then
           echo ""
           echo "🎉 All tests passed!"
           exit 0
@@ -124,6 +131,15 @@ tasks:
     silent: true
     cmds:
       - python3 scripts/validate-taskfiles.py
+
+  fail2ban-host-regex:
+    desc: Fail if fail2ban filter/jail patterns put two <HOST> tokens in one regex
+    silent: true
+    cmds:
+      - |
+        echo ""
+        echo "🔍 Checking fail2ban <HOST> patterns..."
+        python3 scripts/check-fail2ban-host-regex.py
 
   trivy:image:
     desc: Run Trivy vulnerability scan on the dev/CI image (MEDIUM+ fail).

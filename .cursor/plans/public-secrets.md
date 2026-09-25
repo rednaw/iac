@@ -68,7 +68,7 @@ Checkboxes track status only. The agent may change only **Agent** boxes; only th
 | TransIP | [rotate/transip.md](rotate/transip.md) | open |
 | Platform registry | [rotate/registry.md](rotate/registry.md) | open |
 | OpenObserve | [rotate/openobserve.md](rotate/openobserve.md) | open |
-| AbuseIPDB | [rotate/abuseipdb.md](rotate/abuseipdb.md) | open (key minted; fail2ban blocked) |
+| AbuseIPDB | [completed/rotate/abuseipdb.md](../completed/rotate/abuseipdb.md) | done |
 | GitHub OAuth | [rotate/github-oauth.md](rotate/github-oauth.md) | open |
 | VPN | [rotate/vpn.md](rotate/vpn.md) | open |
 
