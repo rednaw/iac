@@ -53,24 +53,24 @@ Checkboxes track status only. The agent may change only **Agent** boxes; only th
 ### 2. Full rotate (per-provider plans)
 
 - [x] Agent: implemented
-- [ ] Human: reviewed
+- [x] Human: reviewed
 
 **Agent will implement** — inventory + one three-list per provider; sibling wiring already refreshes hcloud + `TF_TOKEN` from `../secrets`.
 
 **Human must:** Drive each open rotate plan to both boxes checked (or explicit out-of-scope). Never paste plaintext into chat or the public repo.
 
-**Done as (Agent):** Index below. Wiring + inventory split out of the checklist.
+**Done as (Agent):** Index below. All rotate rows done or out of scope; **Do 3** (orphan history) is unblocked.
 
 | Provider | Plan | Status |
 |--|--|--|
 | Hetzner Cloud | [completed/rotate/hetzner.md](../completed/rotate/hetzner.md) | done |
 | Terraform Cloud | [completed/rotate/terraform-cloud.md](../completed/rotate/terraform-cloud.md) | done |
-| TransIP | [rotate/transip.md](rotate/transip.md) | open |
+| TransIP | [completed/rotate/transip.md](../completed/rotate/transip.md) | done |
 | Platform registry | [completed/rotate/registry.md](../completed/rotate/registry.md) | done |
 | OpenObserve | [completed/rotate/openobserve.md](../completed/rotate/openobserve.md) | done |
-| AbuseIPDB | [completed/rotate/abuseipdb.md](../completed/rotate/abuseipdb.md) | done |
+| AbuseIPDB | [completed/abuseipdb.md](../completed/abuseipdb.md) | done (outage fix; not a rotate-first plan) |
 | GitHub OAuth | [completed/rotate/github-oauth.md](../completed/rotate/github-oauth.md) | done |
-| VPN | [rotate/vpn.md](rotate/vpn.md) | open |
+| VPN | — | out of scope (VPN not provisioned yet; no rotate) |
 
 ### 3. Replace public history (last)
 

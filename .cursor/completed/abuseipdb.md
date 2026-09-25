@@ -1,14 +1,14 @@
-# Rotate AbuseIPDB API key (+ restore fail2ban)
+# Restore fail2ban AbuseIPDB reporting
 
-Part of [public-secrets](../../plans/public-secrets.md) full rotate. Key minted in sibling; fail2ban restored after Traefik `ignoreregex` fix; API report path verified.
+Unnoticed outage: from ~18 Mar 2026 fail2ban could not load the Traefik auth jail (`ignoreregex` with two `<HOST>` tokens OR’d on one line — invalid after expansion, `#148`). AbuseIPDB actions were dead until the filter was split and re-applied. Sibling already held a post-Sep-24 key; no second mint. Touches [public-secrets](../plans/public-secrets.md) inventory only as hygiene, not as a rotate-first plan.
 
 ## Decided
 
 | | |
 |--|--|
-| Key | `abuseipdb_api_key` in `../secrets/infra.yml` |
-| Mint | Done — new key in sibling |
-| Root cause | `ignoreregex = …<HOST>…\|…<HOST>…` — invalid after `<HOST>` expansion (18 Mar 2026 `#148`) |
+| Key | `abuseipdb_api_key` in `../secrets/infra.yml` (already current; no second mint) |
+| Outage | fail2ban Traefik auth jail broken ~18 Mar 2026 → no AbuseIPDB reports |
+| Root cause | `ignoreregex = …<HOST>…\|…<HOST>…` — invalid after `<HOST>` expansion |
 | Ignore shape | **C** — `filter.d/traefik-auth.conf` with separate `ignoreregex` lines; jail uses filter by name |
 | Second rotate | **B** — skip; sibling key post-dates Sep 24 log dump |
 | Live | `fail2ban` active; `abuseipdb` on jails; check+report API smoke HTTP 200 |
@@ -61,4 +61,4 @@ None.
 
 **Human must:** Confirm Sep 24 dump was revoked predecessor; optional log truncate.
 
-**Done as:** Human closed rotate (no second mint).
+**Done as:** No second mint; outage closed.
