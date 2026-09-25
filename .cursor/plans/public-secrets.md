@@ -2,7 +2,7 @@
 
 # Public repo vs secrets
 
-Public `iac` template without secrets; ciphertext in a **private sibling**; **full rotate**; then **replace public git history** (orphan root) as the **last** step.
+Public `iac` template without secrets; ciphertext in a **private sibling**; **full rotate** (one three-list per provider); then **replace public git history** (orphan root) as the **last** step.
 
 ---
 
@@ -12,10 +12,13 @@ Public `iac` template without secrets; ciphertext in a **private sibling**; **fu
 |--|--|
 | Prior model | SOPS ciphertext in public git was **intentional**; secrets also lived under other paths earlier. |
 | Custody | **Public `rednaw/iac`**, no secrets in that tree. Encrypted secrets in a **private sibling** (`../secrets` from the iac root; override with `SECRETS_DIR`). |
-| Rotate | **Full rotate** of values that lived in public blobs; new ciphertext only in the sibling; revoke old tokens. |
-| History | **Orphan / replace public history** (single new root = tree without secrets; force-push `main`; delete or reset stale remote branches/tags). **Last step — only after rotate is done.** |
+| Rotate | **Full rotate** of values that lived in public blobs; new ciphertext only in the sibling; revoke old tokens. **Each provider is its own three-list** under `plans/rotate/` or `completed/rotate/`. |
+| History | **Orphan / replace public history** (single new root = tree without secrets; force-push `main`; delete or reset stale remote branches/tags). **Last step — only after every rotate plan is done (or explicitly out of scope).** |
 | Why last | Dropping history does not unsay old clones; rotate first so surviving archives hold obsolete values. Then public `main` has no secret parents. |
 | Repo facts | ~389 commits, ~90 branch refs, tag `v1.0.0`, `.git` ~22M — small enough for orphan replace. |
+| Operator sequence (per rotate) | Edit sibling → push **secrets** → reload setup if hcloud/TFC/docker auth → smoke (`provision:plan` and/or `configure:apply` as that plan says) → revoke old. |
+| Usually keep | `base_domain`, `app_domain`, `terraform_cloud_organization`, `ssh_keys`, `allowed_ssh_ips`, `cms_oauth_allowed_domains`, `server_type`, `github_oauth_hostname`, `vpn_dest`, `vpn_allowed_ssh_ips` (optional hygiene only). |
+| App `.iac/.env` | Never in public `iac` history for this migration — rotate only if published elsewhere. |
 
 ## Decide
 
@@ -23,7 +26,7 @@ None.
 
 ## Do
 
-Checkboxes track status only. The agent may change only **Agent** boxes; only the human may change **Human** boxes. Task bodies assign the work.
+Checkboxes track status only. The agent may change only **Agent** boxes; only the human may change **Human** boxes.
 
 ### 0. Private sibling
 
@@ -47,28 +50,41 @@ Checkboxes track status only. The agent may change only **Agent** boxes; only th
 
 **Done as:** `git rm` of tracked `secrets/*`; `.gitignore` keeps ignoring `secrets/` as a safety net (sibling is `../secrets`). Platform TF secrets script decrypts sibling. No history rewrite.
 
-### 2. Full rotate
+### 2. Full rotate (per-provider plans)
 
-- [ ] Agent: implemented
+- [x] Agent: implemented
 - [ ] Human: reviewed
 
-**Agent will implement** — after 0: inventory every secret key consumed by Terraform, Ansible, tasks, apps and VPN; produce a provider-by-provider rotation checklist; update non-secret wiring and validate that setup refreshes `TF_TOKEN` and hcloud credentials from the sibling.
+**Agent will implement** — inventory + one three-list per provider; sibling wiring already refreshes hcloud + `TF_TOKEN` from `../secrets`.
 
-**Human must:** In each provider console, mint replacements for every exposed value (Hetzner, TFC, TransIP, registry, GitHub OAuth and VPN UUID/REALITY/short ID when present), store only the replacements in the encrypted sibling, test them, then revoke the old values. Never paste plaintext values into chat or the public repo.
+**Human must:** Drive each open rotate plan to both boxes checked (or explicit out-of-scope). Never paste plaintext into chat or the public repo.
+
+**Done as (Agent):** Index below. Wiring + inventory split out of the checklist.
+
+| Provider | Plan | Status |
+|--|--|--|
+| Hetzner Cloud | [completed/rotate/hetzner.md](../completed/rotate/hetzner.md) | done |
+| Terraform Cloud | [completed/rotate/terraform-cloud.md](../completed/rotate/terraform-cloud.md) | done |
+| TransIP | [rotate/transip.md](rotate/transip.md) | open |
+| Platform registry | [rotate/registry.md](rotate/registry.md) | open |
+| OpenObserve | [rotate/openobserve.md](rotate/openobserve.md) | open |
+| AbuseIPDB | [rotate/abuseipdb.md](rotate/abuseipdb.md) | open (key minted; fail2ban blocked) |
+| GitHub OAuth | [rotate/github-oauth.md](rotate/github-oauth.md) | open |
+| VPN | [rotate/vpn.md](rotate/vpn.md) | open |
 
 ### 3. Replace public history (last)
 
 - [ ] Agent: implemented
 - [ ] Human: reviewed
 
-**Agent will implement** — after 2: inspect all local and remote refs, prepare the exact orphan-root/ref-cleanup commands, and verify the candidate root contains no secret paths. The agent will not commit, force-push or delete remote refs.
+**Agent will implement** — after every rotate plan is done or out of scope: inspect refs, prepare orphan-root/ref-cleanup commands, verify candidate root has no secret paths. Agent will not commit, force-push, or delete remote refs.
 
-**Human must:** Only after every old credential is revoked, create the orphan root and force-push `main`; delete or recreate every stale remote branch/tag that reaches the old graph, including `v1.0.0`. Optionally preserve the old history in a private `iac-legacy` archive; assume third-party clones remain forever.
+**Human must:** Only after every old credential is revoked (or N/A), create the orphan root and force-push `main`; delete or recreate every stale remote branch/tag that reaches the old graph, including `v1.0.0`. Optionally preserve old history in a private `iac-legacy` archive; assume third-party clones remain forever.
 
 ### 4. Docs
 
 - [x] Agent: implemented
-- [ ] Human: reviewed
+- [x] Human: reviewed
 
 **Agent will implement** — can start now: update existing operator documentation and setup text to describe public `iac` plus a private secrets sibling; remove fork, `git add -f` and “ciphertext in public git” as the default workflow.
 
@@ -81,6 +97,6 @@ Checkboxes track status only. The agent may change only **Agent** boxes; only th
 - [ ] Agent: implemented
 - [ ] Human: reviewed
 
-**Agent will implement** — after 3: perform read-only local/remote history and path scans; verify public `main` is a single clean root (or intended shallow history), no remaining origin ref reaches the old graph, the sibling decrypts, and platform/VPN commands resolve it.
+**Agent will implement** — after 3: read-only local/remote history and path scans; verify public `main` is a single clean root, no origin ref reaches the old graph, sibling decrypts, platform/VPN commands resolve it.
 
-**Human must:** Inspect GitHub while signed out to confirm no secret files or old refs are public, run the platform and VPN smoke commands with the new credentials, and accept the migration.
+**Human must:** Inspect GitHub signed out; run platform and VPN smokes with new credentials; accept the migration.
