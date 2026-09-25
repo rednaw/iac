@@ -13,16 +13,38 @@ Public `iac` template without secrets; ciphertext in a **private sibling**; **fu
 | Prior model | SOPS ciphertext in public git was **intentional**; secrets also lived under other paths earlier. |
 | Custody | **Public `rednaw/iac`**, no secrets in that tree. Encrypted secrets in a **private sibling** (`../secrets` from the iac root; override with `SECRETS_DIR`). |
 | Rotate | **Full rotate** of values that lived in public blobs; new ciphertext only in the sibling; revoke old tokens. **Each provider is its own three-list** under `plans/rotate/` or `completed/rotate/`. |
-| History | **Orphan / replace public history** (single new root = tree without secrets; force-push `main`; delete or reset stale remote branches/tags). **Last step — only after every rotate plan is done (or explicitly out of scope).** |
-| Why last | Dropping history does not unsay old clones; rotate first so surviving archives hold obsolete values. Then public `main` has no secret parents. |
-| Repo facts | ~389 commits, ~90 branch refs, tag `v1.0.0`, `.git` ~22M — small enough for orphan replace. |
+| History timing | Rewrite public history **last**, after every rotate is done or out of scope. Rotates are done. |
+| Why last | Dropping history does not unsay old clones; rotate first so surviving archives hold obsolete values. |
+| Secret paths in history | SOPS ciphertext only in `secrets/infrastructure-secrets.yml.enc` → `secrets/infrastructure-secrets.yml` → `secrets/infra.yml`. Also under `secrets/`: `.sops.yaml` and `sops-key-*.pub` (public, not secret). No plaintext private keys in any blob. `app/secrets.yml` was always empty |
+| Renames | A path-based purge handles renames, because it filters every commit's tree by path. It only needs the complete list of historical paths: the whole `secrets/` directory |
+| GitHub PR refs | 374 `refs/pull/*` on origin keep old commits reachable. They are read-only: a force-push does not remove them. Only deleting and recreating the repo, or GitHub Support, clears them (and cached commit views) |
+| Repo facts | 531 commits, 37 remote branches, tag `v1.0.0`, pack ~241 KiB |
 | Operator sequence (per rotate) | Edit sibling → push **secrets** → reload setup if hcloud/TFC/docker auth → smoke (`provision:plan` and/or `configure:apply` as that plan says) → revoke old. |
 | Usually keep | `base_domain`, `app_domain`, `terraform_cloud_organization`, `ssh_keys`, `allowed_ssh_ips`, `cms_oauth_allowed_domains`, `server_type`, `github_oauth_hostname`, `vpn_dest`, `vpn_allowed_ssh_ips` (optional hygiene only). |
 | App `.iac/.env` | Never in public `iac` history for this migration — rotate only if published elsewhere. |
 
 ## Decide
 
-None.
+### How to rewrite history?
+
+Both rewrites give every commit a new SHA, so any old clone diverges.
+
+| | Option |
+|--|--------|
+| **A** | **Orphan root.** One new commit holding today's tree. All history is gone; nothing to get wrong. |
+| **B** | **Path purge** (`git filter-repo --invert-paths --path secrets/`). Keeps all 531 commits minus the `secrets/` files. Blame and log stay useful. PR numbers in commit messages point at stale PRs |
+
+Choice: _unpicked_
+
+### What happens to GitHub's copies (PR refs, cached commits)?
+
+| | Option |
+|--|--------|
+| **A** | **Delete and recreate** `rednaw/iac`, then push the rewritten history. Clears PR refs and caches. Loses PRs, issues, stars, Actions history, and repo settings. Redo: `RENOVATE_TOKEN` secret, branch protection, GHCR package links (`iac-dev` etc.). `tientje-ketama` calls `_build-and-push.yml@main` by name, so it keeps working |
+| **B** | **Keep the repo**, force-push, then ask GitHub Support to purge cached views and PR refs. Keeps PRs and issues, but they are unreliable until Support acts |
+| **C** | **Keep the repo**, force-push only. Old commits stay reachable via `refs/pull/*` for anyone who knows how to look |
+
+Choice: _unpicked_
 
 ## Do
 
@@ -77,9 +99,9 @@ Checkboxes track status only. The agent may change only **Agent** boxes; only th
 - [ ] Agent: implemented
 - [ ] Human: reviewed
 
-**Agent will implement** — after every rotate plan is done or out of scope: inspect refs, prepare orphan-root/ref-cleanup commands, verify candidate root has no secret paths. Agent will not commit, force-push, or delete remote refs.
+**Agent will implement** — after both Decide items: in a fresh `--mirror` clone under `/tmp` (never the working repo), build the rewritten history (orphan or `filter-repo`), then re-run the blob scan to show zero SOPS blobs across all refs. Prepare the exact push/ref-delete commands. Agent will not push, delete remote refs, or touch GitHub settings.
 
-**Human must:** Only after every old credential is revoked (or N/A), create the orphan root and force-push `main`; delete or recreate every stale remote branch/tag that reaches the old graph, including `v1.0.0`. Optionally preserve old history in a private `iac-legacy` archive; assume third-party clones remain forever.
+**Human must:** Optionally push the untouched mirror to a private `iac-legacy` first. Then run the prepared push (and repo recreate or Support request, per the pick). Re-clone `iac` locally afterwards; old clones must not be pushed back. Assume third-party clones remain forever.
 
 ### 4. Docs
 
