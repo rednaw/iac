@@ -51,4 +51,4 @@ Run `task` for the full list.
 
 ## Roadmap
 
-Planned work (VPN, honeypot, …): [`docs/future/`](docs/future/).
+Pending work: [`.cursor/plans/`](.cursor/plans/). Finished: [`.cursor/completed/`](.cursor/completed/).
