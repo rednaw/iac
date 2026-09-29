@@ -139,7 +139,7 @@
           "query": "histogram_quantile(0.50, sum(rate(traefik_entrypoint_request_duration_seconds_bucket[5m])) by (le, entrypoint))",
           "customQuery": true,
           "fields": {
-            "stream": "traefik_entrypoint_request_duration_seconds",
+            "stream": "traefik_entrypoint_request_duration_seconds_bucket",
             "stream_type": "metrics",
             "x": [],
             "y": [],
@@ -156,7 +156,7 @@
           "query": "histogram_quantile(0.95, sum(rate(traefik_entrypoint_request_duration_seconds_bucket[5m])) by (le, entrypoint))",
           "customQuery": true,
           "fields": {
-            "stream": "traefik_entrypoint_request_duration_seconds",
+            "stream": "traefik_entrypoint_request_duration_seconds_bucket",
             "stream_type": "metrics",
             "x": [],
             "y": [],
@@ -173,7 +173,7 @@
           "query": "histogram_quantile(0.99, sum(rate(traefik_entrypoint_request_duration_seconds_bucket[5m])) by (le, entrypoint))",
           "customQuery": true,
           "fields": {
-            "stream": "traefik_entrypoint_request_duration_seconds",
+            "stream": "traefik_entrypoint_request_duration_seconds_bucket",
             "stream_type": "metrics",
             "x": [],
             "y": [],
@@ -327,7 +327,7 @@
           "query": "topk(10, histogram_quantile(0.95, sum(rate(traefik_service_request_duration_seconds_bucket[5m])) by (le, service)))",
           "customQuery": true,
           "fields": {
-            "stream": "traefik_service_request_duration_seconds",
+            "stream": "traefik_service_request_duration_seconds_bucket",
             "stream_type": "metrics",
             "x": [],
             "y": [],

@@ -31,22 +31,26 @@ App snippet cutovers are sibling-repo edits — state paths and wait for go per 
 | CSP | Sites with a CSP add `https://analytics.rednaw.nl` to `script-src` and `connect-src` next to the SA origins |
 | History | No SA import — metrics start at each site’s cutover |
 | Audience | Wander (admin). Extra non-admin users scoped to their own site(s) are a Umami UI action, no infra change. |
-| Collection snippet | `<script defer src="https://analytics.rednaw.nl/script.js" data-website-id="…"></script>` |
+| Umami “Domain” field | **Hostname only** — no `http(s)://`, no path. Umami rejects e.g. `rednaw.github.io/unicorn` (“Invalid domain”). Name = human label; Domain = `window.location.hostname`. Separate website row + `data-website-id` per site even when several share one host |
+| Collection snippet | `<script defer src="https://analytics.rednaw.nl/script.js" data-website-id="…" data-exclude-search="true"></script>` |
+| Privacy / collect defaults | **`data-exclude-search="true"`** on every snippet (no URL query). Privacy copy **states geo**: country/region/city from IP via GeoLite2; **IP not stored**. **No** `data-performance` (no Web Vitals). **No** custom `umami.track` payloads with PII. **No** `data-do-not-track` (DNT is dead on the real web; do not claim it). Hash exclusion not required. Dual-run: until SA is removed, privacy must name **both** SA and Umami |
 | Docs after live | `rednaw/.cursor/ideas/portfolio/{private-data,sovereign-exit,portfolio-levers}.md`; `rednaw-map` if platform table should list Umami |
 
 ### Site inventory (after platform)
 
 All six below load SA today → dual-run. Order picked per site.
 
-| Site | Repo | SA today | Umami notes |
-|--|--|--|--|
-| baglio | `anticobagliosiciliano` | `src/app.html`; CSP + SA regex in `vite.config.ts` | Build/prerender tests assert SA (`tests/assert-build.mjs`, `tests/prerender-guards.test.ts`) → extend for Umami; privacy page names only SA |
-| unicorn | `unicorn` | `src/app.html`; CSP in `svelte.config.js`; SA regex in `vite.config.ts` | CSP add |
-| compleanno | `compleanno` | `src/app.html` (`data-collect-dnt="true"`) | No CSP seen |
-| tientje-ketama | `tientje-ketama` | `src/app.html` (nonce); CSP in `svelte.config.js` | Snippet needs `nonce="%sveltekit.nonce%"`; CSP add; ships via iac `app:deploy` |
-| marialoni | `marialoni.org` | `_layouts/default.html`, `_layouts/indefinites.html` | **Snippet added** (id `4a503d4f-…`) to both + `nomenu.html` (SA added there too); no CSP |
-| simonacella | `simonacella.github.io` | `_layouts/default.html` | **Live** (id `53346294-…`), all layouts inherit `default`; no CSP |
-| newton | `newton` | none | Not in scope unless Human adds it |
+When adding a website in Umami: **Domain** = hostname in the table (not the path). GH Pages **project** sites share `rednaw.github.io`; each still gets its own website + snippet id. Page paths (`/unicorn/…`) still appear in that site’s URL stats.
+
+| Site | Repo | Umami Domain | SA today | Umami notes |
+|--|--|--|--|--|
+| baglio | `anticobagliosiciliano` | `rednaw.github.io` | `src/app.html`; CSP + SA/Umami strip in `vite.config.ts` | **Snippet + CSP + privacy dual-run** (id `fce8ee03-…`); SA left in place |
+| unicorn | `unicorn` | `rednaw.github.io` | `src/app.html`; CSP in `svelte.config.js`; SA+Umami stripped in `vite.config.ts` (dev) | **Snippet + CSP** (id `75720b76-…`); SA left in place |
+| compleanno | `compleanno` | `rednaw.github.io` | `src/app.html` (`data-collect-dnt="true"`) | No CSP seen |
+| tientje-ketama | `tientje-ketama` | `tientjeketama.nl` (confirm live host) | `src/app.html` (nonce); CSP in `svelte.config.js` | Snippet needs `nonce="%sveltekit.nonce%"`; CSP add; ships via iac `app:deploy` |
+| marialoni | `marialoni.org` | `marialoni.org` / `www.marialoni.org` as used | `_layouts/default.html`, `_layouts/indefinites.html`, `nomenu.html` | **Live** (id `4a503d4f-…`) + `data-exclude-search`; SA on nomenu too; no CSP |
+| simonacella | `simonacella.github.io` | `simonacella.github.io` | `_layouts/default.html` | **Live** (id `53346294-…`) + `data-exclude-search`; all layouts inherit `default`; no CSP |
+| newton | `newton` | `rednaw.github.io` if added | none | Not in scope unless Human adds it |
 
 ## Decide
 
@@ -78,7 +82,7 @@ Checkboxes track status only. The agent may change only **Agent** boxes; only th
 
 **Agent will implement** — Per site, after Human names it and says go: state repo + paths; add Umami snippet **alongside** SA per inventory row (CSP, nonce, tests as noted). Do not remove SA.
 
-**Human must:** Pick the next site; add it in Umami and give agent its `data-website-id`; deploy/merge; confirm hits in both SA and Umami. SA removal later, per site, on your call.
+**Human must:** Pick the next site; add it in Umami using the inventory **Umami Domain** (hostname only — never a `/path`); give agent its `data-website-id`; deploy/merge; confirm hits in both SA and Umami. SA removal later, per site, on your call.
 
 ### 2. Idea / map doc sync
 
@@ -92,7 +96,7 @@ Checkboxes track status only. The agent may change only **Agent** boxes; only th
 ### 3. GeoIP check
 
 - [x] Agent: implemented
-- [ ] Human: reviewed
+- [x] Human: reviewed
 
 **Agent will implement** — Nothing to build (bundled DB). Verified the `3.4.0` image contains `/app/geo/GeoLite2-City.mmdb` (64 MB). Live: sessions carry countries (SG, US, NL, IT; empty ones are IPv6 visitors seen as `172.19.0.1` — fix in `.cursor/plans/ipv6-client-ip.md`). Renovate Dependency Dashboard lists the Umami image.
 
@@ -103,7 +107,7 @@ Checkboxes track status only. The agent may change only **Agent** boxes; only th
 ### 4. Postgres data to a named volume
 
 - [x] Agent: implemented
-- [ ] Human: reviewed
+- [x] Human: reviewed
 
 **Agent will implement** — `umami.yml`: drop the `/var/lib/umami` directory task; `umami-db` mounts `umami-db-data:/var/lib/postgresql/data`. The postgres entrypoint re-chowns PGDATA on every start, so copied files need no fixed uid. Verified: ansible-lint.
 
@@ -117,6 +121,6 @@ Checkboxes track status only. The agent may change only **Agent** boxes; only th
 
 ## Operator checklist (Human)
 
-- [ ] DNS `analytics.rednaw.nl` live
-- [ ] Admin password rotated **before** any site snippet
-- [ ] Each site shows hits in Umami while SA keeps running
+- [x] DNS `analytics.rednaw.nl` live
+- [x] Admin password rotated **before** any site snippet
+- [x] Each site shows hits in Umami while SA keeps running

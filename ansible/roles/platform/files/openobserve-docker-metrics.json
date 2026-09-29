@@ -21,10 +21,10 @@
       "queryType": "promql",
       "queries": [
         {
-          "query": "container_cpu_utilization{}",
+          "query": "container_cpu_utilization_ratio{}",
           "customQuery": true,
           "fields": {
-            "stream": "container_cpu_usage_total",
+            "stream": "container_cpu_utilization_ratio",
             "stream_type": "metrics",
             "x": [],
             "y": [],
@@ -60,10 +60,10 @@
       "queryType": "promql",
       "queries": [
         {
-          "query": "container_memory_percent{}",
+          "query": "container_memory_percent_ratio{}",
           "customQuery": true,
           "fields": {
-            "stream": "container_memory_usage_total",
+            "stream": "container_memory_percent_ratio",
             "stream_type": "metrics",
             "x": [],
             "y": [],
@@ -99,10 +99,10 @@
       "queryType": "promql",
       "queries": [
         {
-          "query": "irate(container_cpu_usage_total{}[5m])",
+          "query": "irate(container_cpu_usage_nanoseconds_total{}[5m])",
           "customQuery": true,
           "fields": {
-            "stream": "container_cpu_usage_total",
+            "stream": "container_cpu_usage_nanoseconds_total",
             "stream_type": "metrics",
             "x": [],
             "y": [],
@@ -138,10 +138,10 @@
       "queryType": "promql",
       "queries": [
         {
-          "query": "container_memory_usage_total{}",
+          "query": "container_memory_usage_total_bytes{}",
           "customQuery": true,
           "fields": {
-            "stream": "container_memory_usage_total",
+            "stream": "container_memory_usage_total_bytes",
             "stream_type": "metrics",
             "x": [],
             "y": [],
@@ -177,10 +177,10 @@
       "queryType": "promql",
       "queries": [
         {
-          "query": "irate(container_network_io_usage_rx_bytes{}[5m])",
+          "query": "irate(container_network_io_usage_rx_bytes_total{}[5m])",
           "customQuery": true,
           "fields": {
-            "stream": "container_network_io_usage_rx_bytes",
+            "stream": "container_network_io_usage_rx_bytes_total",
             "stream_type": "metrics",
             "x": [],
             "y": [],
@@ -216,10 +216,10 @@
       "queryType": "promql",
       "queries": [
         {
-          "query": "irate(container_network_io_usage_tx_bytes{}[5m])",
+          "query": "irate(container_network_io_usage_tx_bytes_total{}[5m])",
           "customQuery": true,
           "fields": {
-            "stream": "container_network_io_usage_tx_bytes",
+            "stream": "container_network_io_usage_tx_bytes_total",
             "stream_type": "metrics",
             "x": [],
             "y": [],
