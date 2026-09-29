@@ -1,0 +1,128 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/ansible/ansible-lint/main/src/ansiblelint/schemas/ansible.json#/$defs/tasks
+# Umami web analytics at analytics.<base_domain>, with a dedicated Postgres.
+# Tracker (/script.js) and collect (/api/send) must stay world-reachable; dashboard is Umami login.
+# Skips when umami_db_password / umami_app_secret are unset (add them in the secrets sibling).
+# No backup: /var/lib/umami is not in the Prefect restic set.
+
+- name: Decide whether Umami is configured
+  ansible.builtin.set_fact:
+    umami_enabled: >-
+      {{
+        (infrastructure_secrets.umami_db_password | default('') | length > 0)
+        and (infrastructure_secrets.umami_app_secret | default('') | length > 0)
+      }}
+
+- name: Stop Umami when secrets are not configured
+  when: not (umami_enabled | bool)
+  community.docker.docker_container:
+    name: "{{ item }}"
+    state: absent
+  loop:
+    - umami
+    - umami-db
+
+- name: Configure Umami
+  when: umami_enabled | bool
+  block:
+    - name: Create Umami Postgres data directory
+      ansible.builtin.file:
+        path: /var/lib/umami
+        state: directory
+        owner: root
+        group: root
+        mode: '0700'
+
+    - name: Ensure Umami network exists
+      community.docker.docker_network:
+        name: umami-network
+        driver: bridge
+        internal: true
+        state: present
+
+    - name: Ensure Umami Postgres container is running
+      community.docker.docker_container:
+        name: umami-db
+        image: postgres:16-alpine
+        state: started
+        restart_policy: unless-stopped
+        memory: "256m"
+        memory_swap: "256m"
+        log_driver: json-file
+        log_options:
+          max-size: "5m"
+          max-file: "2"
+        env:
+          POSTGRES_USER: umami
+          POSTGRES_PASSWORD: "{{ infrastructure_secrets.umami_db_password }}"
+          POSTGRES_DB: umami
+        volumes:
+          - /var/lib/umami:/var/lib/postgresql/data
+        networks:
+          - name: umami-network
+        healthcheck:
+          test: ["CMD-SHELL", "pg_isready -U umami -d umami"]
+          interval: 10s
+          timeout: 5s
+          retries: 5
+          start_period: 10s
+      no_log: true
+
+    - name: Wait for Umami DB (pg_isready)
+      ansible.builtin.command:
+        cmd: docker exec umami-db pg_isready -U umami -d umami
+      register: _umami_db_ready
+      until: _umami_db_ready.rc == 0
+      retries: 12
+      delay: 5
+      changed_when: false
+
+    - name: Run Umami behind Traefik
+      community.docker.docker_container:
+        name: umami
+        image: ghcr.io/umami-software/umami:3.4.0
+        state: started
+        restart_policy: unless-stopped
+        memory: "512m"
+        memory_swap: "512m"
+        log_driver: json-file
+        log_options:
+          max-size: "10m"
+          max-file: "3"
+        env:
+          # Password may contain URL-reserved characters.
+          DATABASE_URL: "postgresql://umami:{{ infrastructure_secrets.umami_db_password | urlencode | replace('/', '%2F') }}@umami-db:5432/umami"
+          APP_SECRET: "{{ infrastructure_secrets.umami_app_secret }}"
+          # Traefik overwrites X-Real-Ip with the peer address (no trusted forwarders configured).
+          CLIENT_IP_HEADER: "x-real-ip"
+          DISABLE_TELEMETRY: "1"
+          DISABLE_UPDATES: "1"
+          HOSTNAME: "0.0.0.0"
+          PORT: "3000"
+        networks:
+          - name: traefik
+          - name: umami-network
+        labels:
+          traefik.enable: "true"
+          traefik.http.routers.umami.rule: "Host(`analytics.{{ base_domain }}`)"
+          traefik.http.routers.umami.entrypoints: "websecure"
+          traefik.http.routers.umami.tls.certresolver: "letsencrypt"
+          traefik.http.routers.umami.middlewares: "umami-headers"
+          traefik.http.middlewares.umami-headers.headers.customResponseHeaders.X-Frame-Options: "DENY"
+          traefik.http.middlewares.umami-headers.headers.customResponseHeaders.Referrer-Policy: "strict-origin-when-cross-origin"
+          traefik.http.middlewares.umami-headers.headers.customResponseHeaders.Strict-Transport-Security: "max-age=31536000; includeSubDomains"
+          traefik.http.middlewares.umami-headers.headers.customResponseHeaders.X-Content-Type-Options: "nosniff"
+          traefik.http.services.umami.loadbalancer.server.port: "3000"
+        healthcheck:
+          test:
+            [
+              "CMD",
+              "node",
+              "-e",
+              "fetch('http://127.0.0.1:3000/api/heartbeat').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+            ]
+          interval: 30s
+          timeout: 5s
+          retries: 3
+          start_period: 60s
+      no_log: true

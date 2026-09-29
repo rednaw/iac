@@ -11,6 +11,7 @@ Public repo **`rednaw/iac`** has no infra secrets. Encrypted infra lives in the 
 - Traefik (HTTPS / Let’s Encrypt) + private Docker registry
 - OpenObserve (logs/metrics) + Prefect (scheduled jobs) + Restic backups
 - Optional CMS OAuth proxy at `auth.<base_domain>` (Sveltia / GitHub Pages)
+- Optional Umami web analytics at `analytics.<base_domain>`
 - Devcontainer with Task, Ansible, Terraform, SOPS, Docker CLI
 
 ## Work here

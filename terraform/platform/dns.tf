@@ -66,6 +66,22 @@ resource "transip_dns_record" "auth_aaaa" {
   content = [local.server_ipv6]
 }
 
+resource "transip_dns_record" "analytics_a" {
+  domain  = var.base_domain
+  name    = "analytics"
+  type    = "A"
+  expire  = 60
+  content = [local.server_ipv4]
+}
+
+resource "transip_dns_record" "analytics_aaaa" {
+  domain  = var.base_domain
+  name    = "analytics"
+  type    = "AAAA"
+  expire  = 60
+  content = [local.server_ipv6]
+}
+
 resource "transip_dns_record" "www" {
   domain  = local.site_domain
   name    = "www"
