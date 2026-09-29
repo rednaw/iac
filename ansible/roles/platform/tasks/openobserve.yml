@@ -43,7 +43,20 @@
     mode: '0644'
     owner: root
     group: root
-  notify: Restart OTEL Collector
+  # No notify: a handler restart was missed once (config updated 2026-09-25, collector
+  # kept running with a stale in-memory Basic auth until 2026-09-29). Recreate via
+  # config checksum label on the container task instead.
+
+- name: Checksum OTEL Collector config (drives container recreate)
+  ansible.builtin.slurp:
+    src: /etc/otel-collector/config.yaml
+  register: _otel_config_slurp
+  no_log: true
+
+- name: Set OTEL config checksum fact
+  ansible.builtin.set_fact:
+    otel_config_checksum: "{{ _otel_config_slurp.content | b64decode | hash('sha256') }}"
+  no_log: true
 
 - name: Ensure OpenObserve network exists
   community.docker.docker_network:
@@ -96,6 +109,11 @@
       max-file: "3"
     user: "0"
     command: ["--config=/etc/otelcol/config.yaml"]
+    # Recreate when the mounted config changes (password, endpoints, pipelines).
+    # community.docker compares labels; a new checksum replaces the container so
+    # it cannot keep serving a stale in-memory Authorization header.
+    labels:
+      iac.otel_config_sha256: "{{ otel_config_checksum }}"
     volumes:
       - /etc/otel-collector/config.yaml:/etc/otelcol/config.yaml:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro

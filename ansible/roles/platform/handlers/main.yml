@@ -6,7 +6,3 @@
 - name: Restart Traefik
   ansible.builtin.command: docker restart traefik
   changed_when: true
-
-- name: Restart OTEL Collector
-  ansible.builtin.command: docker restart otel-collector
-  changed_when: true
