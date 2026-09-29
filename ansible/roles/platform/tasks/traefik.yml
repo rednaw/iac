@@ -63,10 +63,51 @@
     dest: /etc/traefik/dynamic/middlewares.yml
     mode: '0644'
 
-- name: Ensure Traefik Docker network exists
+# IPv6 clients keep their source address only when the network Traefik publishes on is dual-stack.
+# Otherwise docker-proxy relays them and every IPv6 visitor appears as the bridge gateway.
+- name: Read Docker server version
+  ansible.builtin.command:
+    cmd: docker version --format {% raw %}'{{.Server.Version}}'{% endraw %}
+  register: _docker_server_version
+  changed_when: false
+
+- name: Assert Docker supports per-network IPv6 port publishing
+  ansible.builtin.assert:
+    that: _docker_server_version.stdout is version('28.0', '>=')
+    fail_msg: "Docker {{ _docker_server_version.stdout }} < 28: ip6tables / IPv6 gateway selection not guaranteed."
+    quiet: true
+
+# Docker enables IPv6 forwarding for dual-stack bridges; with forwarding on, the kernel ignores router adverts.
+- name: Read host IPv6 default route
+  ansible.builtin.command:
+    cmd: ip -6 route show default
+  register: _ipv6_default_route
+  changed_when: false
+
+- name: Assert host IPv6 default route is not learned from router adverts
+  ansible.builtin.assert:
+    that: "'proto ra' not in _ipv6_default_route.stdout"
+    fail_msg: "IPv6 default route is RA-learned ({{ _ipv6_default_route.stdout }}); make it static before enabling Docker IPv6."
+    quiet: true
+
+- name: Read containers attached to the Traefik network
+  community.docker.docker_network_info:
+    name: traefik
+  register: _traefik_network_info
+
+# Enabling IPv6 recreates the network (the module disconnects everything first); reattach what was there,
+# notably Compose app containers that nothing else in this play reconnects.
+- name: Ensure Traefik Docker network exists (dual-stack)
   community.docker.docker_network:
     name: traefik
     state: present
+    enable_ipv6: true
+    ipam_config:
+      - subnet: "fd4e:6b2a:9c1d:1::/64"
+    connected: >-
+      {{ (_traefik_network_info.network.Containers | default({}, true)).values() | map(attribute='Name') | list
+         if _traefik_network_info.exists else [] }}
+    appends: true
 
 - name: Ensure OpenObserve network exists (for Traefik metrics scraping)
   community.docker.docker_network:

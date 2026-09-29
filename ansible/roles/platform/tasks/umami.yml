@@ -3,7 +3,7 @@
 # Umami web analytics at analytics.<base_domain>, with a dedicated Postgres.
 # Tracker (/script.js) and collect (/api/send) must stay world-reachable; dashboard is Umami login.
 # Skips when umami_db_password / umami_app_secret are unset (add them in the secrets sibling).
-# No backup: /var/lib/umami is not in the Prefect restic set.
+# No backup: the umami-db-data volume is not in the Prefect restic set.
 
 - name: Decide whether Umami is configured
   ansible.builtin.set_fact:
@@ -25,14 +25,6 @@
 - name: Configure Umami
   when: umami_enabled | bool
   block:
-    - name: Create Umami Postgres data directory
-      ansible.builtin.file:
-        path: /var/lib/umami
-        state: directory
-        owner: root
-        group: root
-        mode: '0700'
-
     - name: Ensure Umami network exists
       community.docker.docker_network:
         name: umami-network
@@ -57,7 +49,7 @@
           POSTGRES_PASSWORD: "{{ infrastructure_secrets.umami_db_password }}"
           POSTGRES_DB: umami
         volumes:
-          - /var/lib/umami:/var/lib/postgresql/data
+          - umami-db-data:/var/lib/postgresql/data
         networks:
           - name: umami-network
         healthcheck:
@@ -95,6 +87,8 @@
           APP_SECRET: "{{ infrastructure_secrets.umami_app_secret }}"
           # Traefik overwrites X-Real-Ip with the peer address (no trusted forwarders configured).
           CLIENT_IP_HEADER: "x-real-ip"
+          # No CDN in front: client-sent cf-ipcountry etc. would otherwise override GeoIP.
+          SKIP_LOCATION_HEADERS: "1"
           DISABLE_TELEMETRY: "1"
           DISABLE_UPDATES: "1"
           HOSTNAME: "0.0.0.0"
