@@ -149,8 +149,10 @@
       - { title: 'Docker Container Metrics', file: 'openobserve-docker-metrics.json' }
       - { title: 'Traefik Metrics', file: 'openobserve-traefik-metrics.json' }
 
-# List returns { "dashboards": [ { "dashboard_id", "title", ... } ] }. Match by title and use dashboard_id for PUT.
-# OpenObserve dashboard PUT (update) can return 500 (hash validation issues); we accept it so the playbook does not fail.
+# List returns { dashboards: [ { dashboard_id, title, hash, ... } ] }.
+# PUT requires ?hash=<current> (optimistic lock); body-only PUT returns 500 and used to be
+# swallowed (status_code included 500 + failed_when: false), so playbooks reported ok/0 changes
+# while dashboards never updated.
 - name: Get existing OpenObserve dashboards list
   ansible.builtin.uri:
     url: "http://127.0.0.1:57800/api/default/dashboards"
@@ -161,13 +163,15 @@
   register: openobserve_dashboards_list
   when: openobserve_health.status in [200, 401]
 
-- name: Build dashboard id map by title
+- name: Build dashboard id and hash maps by title
   ansible.builtin.set_fact:
     openobserve_dashboard_ids: "{{ openobserve_dashboard_ids | default({}) | combine({_title: _id}) }}"
+    openobserve_dashboard_hashes: "{{ openobserve_dashboard_hashes | default({}) | combine({_title: _hash}) }}"
   loop: "{{ openobserve_dashboards_list.json.dashboards | default([]) }}"
   vars:
     _title: "{{ item.title | default((item.v8 | default({})).title) | default('') }}"
     _id: "{{ item.dashboard_id | default(item.id) | default((item.v8 | default({})).dashboardId) | default('') }}"
+    _hash: "{{ item.hash | default('') }}"
   when:
     - openobserve_health.status in [200, 401]
     - openobserve_dashboards_list.json is defined
@@ -188,25 +192,24 @@
   when:
     - openobserve_health.status in [200, 401]
     - (openobserve_dashboard_ids[item.title] | default('')) == ''
-  failed_when: false
   loop: "{{ openobserve_dashboards }}"
   loop_control:
     label: "{{ item.title }}"
 
 - name: Update OpenObserve dashboard in place
   ansible.builtin.uri:
-    url: "http://127.0.0.1:57800/api/default/dashboards/{{ openobserve_dashboard_ids[item.title] }}"
+    url: "http://127.0.0.1:57800/api/default/dashboards/{{ openobserve_dashboard_ids[item.title] }}?hash={{ openobserve_dashboard_hashes[item.title] | urlencode }}"
     method: PUT
     headers:
       Authorization: "Basic {{ openobserve_ingest_auth }}"
       Content-Type: "application/json"
     body_format: json
     body: "{{ lookup('file', role_path + '/files/' + item.file) | from_json }}"
-    status_code: [200, 201, 500]
+    status_code: [200, 201]
   when:
     - openobserve_health.status in [200, 401]
     - (openobserve_dashboard_ids[item.title] | default('')) != ''
-  failed_when: false
+    - (openobserve_dashboard_hashes[item.title] | default('')) != ''
   loop: "{{ openobserve_dashboards }}"
   loop_control:
     label: "{{ item.title }}"
