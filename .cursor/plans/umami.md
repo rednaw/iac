@@ -18,14 +18,14 @@ App snippet cutovers are sibling-repo edits — state paths and wait for go per 
 | Public vs private | Tracker + `/api/send` **world-reachable** (GH Pages must POST). Dashboard is Umami-auth. Do not gate the whole host. |
 | Network | `umami` on `traefik` + internal `umami-network`; `umami-db` on `umami-network` only |
 | fail2ban | `traefik-auth` ignores 401/403 on router `umami@docker` (expired-session API polls); `/api/auth/login` still covered by `traefik-login-attempts` |
-| Data | `/var/lib/umami/` (Postgres); **no backup in v1** (analytics history disposable; Prefect only covers `/opt/iac/deploy/*/backup.yml`) |
+| Data | Docker named volume `umami-db-data` (same idiom as `prefect-db-data`; Postgres owns it, Ansible manages no host dir). Old bind dir `/var/lib/umami` is migrated once, then removed by Human; **no backup in v1** (analytics history disposable; Prefect only covers `/opt/iac/deploy/*/backup.yml`) |
 | Secrets | `umami_db_password`, `umami_app_secret` (`APP_SECRET`) via SOPS / `infrastructure_secrets.*`; both unset → Umami containers absent (cms-oauth idiom); optional `umami_two_factor_encryption_key` later |
-| Env | `DATABASE_URL`, `APP_SECRET`, `DISABLE_TELEMETRY=1`, `DISABLE_UPDATES=1`, `CLIENT_IP_HEADER=x-real-ip` (Traefik has no trusted forwarders, so it overwrites `X-Real-Ip` with the peer) |
+| Env | `DATABASE_URL`, `APP_SECRET`, `DISABLE_TELEMETRY=1`, `DISABLE_UPDATES=1`, `CLIENT_IP_HEADER=x-real-ip` (Traefik has no trusted forwarders, so it overwrites `X-Real-Ip` with the peer), `SKIP_LOCATION_HEADERS=1` (no CDN, so client-sent `cf-ipcountry` etc. must not override GeoIP) |
 | DNS | Terraform `terraform/platform/` record for `analytics` → VPS |
 | Memory | App 512m, Postgres 256m; raise if OOM |
 | Default login | First boot `admin` / `umami` — **Human changes immediately** |
 | Cloaking | None — honest hostname + default `script.js` / `/api/send`; accept blocker undercount |
-| GeoIP v1 | No explicit MaxMind/`GEO_DATABASE_URL`; country may be empty |
+| GeoIP | Bundled DB only: image bundles `/app/geo/GeoLite2-City.mmdb` (MaxMind GeoLite2 via GitSquared redist, fetched at image build). Lookup on the `x-real-ip` peer. Freshness = Umami tag bumps (Renovate `ansible` manager on `image:` in `umami.yml`). No own download, no `GEOLITE_DB_PATH` |
 | Not doing | SA API proxy/export archive, Plausible/ClickHouse, tracker/hostname cloaking, Authelia/cms-oauth SSO for Umami, restic/Prefect backup for Umami |
 | Rollout | Platform live. Sites next, order picked per site. **Dual-run:** every site on SA gets Umami **alongside** SA; SA removal is a later, separate per-site call |
 | CSP | Sites with a CSP add `https://analytics.rednaw.nl` to `script-src` and `connect-src` next to the SA origins |
@@ -88,6 +88,32 @@ Checkboxes track status only. The agent may change only **Agent** boxes; only th
 **Agent will implement** — After the first site is live on Umami: update analytics rows in rednaw ideas + map if needed (sibling edit, go first).
 
 **Human must:** Review those edits.
+
+### 3. GeoIP check
+
+- [x] Agent: implemented
+- [ ] Human: reviewed
+
+**Agent will implement** — Nothing to build (bundled DB). Verified the `3.4.0` image contains `/app/geo/GeoLite2-City.mmdb` (64 MB). Live: sessions carry countries (SG, US, NL, IT; empty ones are IPv6 visitors seen as `172.19.0.1` — fix in `.cursor/plans/ipv6-client-ip.md`). Renovate Dependency Dashboard lists the Umami image.
+
+**Human must:**
+1. On the VPS: `docker exec umami-db psql -U umami -d umami -c "select country, count(*) from session group by 1 order by 2 desc limit 10;"` → expect ISO codes (e.g. `IT`, `NL`), not all empty.
+2. Renovate Dependency Dashboard issue on `rednaw/iac` → confirm `ghcr.io/umami-software/umami` is listed under **ansible**. If not, tell the agent (needs a Renovate rule).
+
+### 4. Postgres data to a named volume
+
+- [x] Agent: implemented
+- [ ] Human: reviewed
+
+**Agent will implement** — `umami.yml`: drop the `/var/lib/umami` directory task; `umami-db` mounts `umami-db-data:/var/lib/postgresql/data`. The postgres entrypoint re-chowns PGDATA on every start, so copied files need no fixed uid. Verified: ansible-lint.
+
+**Human must** (on the VPS, then from iac):
+1. ~~`docker stop umami umami-db`~~ done
+2. ~~`docker volume create umami-db-data`~~ Ansible already created empty volume
+3. ~~Copy `/var/lib/umami` → `umami-db-data`~~ done (agent, 2026-09-29): 2 websites, 12 sessions restored; both containers healthy; heartbeat 200
+4. ~~`task platform:configure:apply`~~ already applied earlier
+5. Check: dashboard shows existing visits
+6. After a few days OK: `sudo rm -rf /var/lib/umami` (still present as leftover)
 
 ## Operator checklist (Human)
 
