@@ -1,0 +1,4 @@
+---
+# When true, skip installing and configuring fail2ban (VPN: SSH is already
+# gated by the Hetzner firewall allowlist; jail would only risk banning travel IPs).
+base_fail2ban_enabled: true

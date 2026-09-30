@@ -16,6 +16,7 @@
 
 - name: Configure fail2ban (base jail)
   ansible.builtin.import_tasks: fail2ban.yml
+  when: base_fail2ban_enabled | bool
 
 - name: Install Docker
   ansible.builtin.import_tasks: docker.yml

@@ -1,11 +1,13 @@
 ---
 # VPN server playbook: hardened base + Xray REALITY container.
-# Design: docs/future/vpn-travel-china.md — manual: vpn-travel-china-manual.md
+# Spec/manual: .cursor/ideas/vpn-travel-china.md (+ -manual.md).
 # Inventory name is "vpn" (own fact cache); ansible_host is always the API IPv4.
 
 - name: Configure VPN Server
   hosts: all
   become: true
+  vars:
+    base_fail2ban_enabled: false
 
   pre_tasks:
     - name: Decrypt and load infrastructure secrets
