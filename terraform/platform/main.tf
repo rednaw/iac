@@ -1,7 +1,7 @@
 module "server" {
   source = "../modules/server"
 
-  name          = local.server_name
+  name          = "platform"
   firewall_name = local.firewall_name
   server_type   = var.server_type
   location      = var.server_location

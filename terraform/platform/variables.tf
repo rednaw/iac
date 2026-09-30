@@ -44,12 +44,6 @@ variable "server_user" {
   default     = "ubuntu"
 }
 
-variable "server_name" {
-  description = "Name of the VPS server (defaults to platform)"
-  type        = string
-  default     = null
-}
-
 variable "server_type" {
   description = "Hetzner server type."
   type        = string
