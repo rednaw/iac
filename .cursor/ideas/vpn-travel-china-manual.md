@@ -19,19 +19,19 @@ The GFW (Great Firewall) kills VPNs four ways, and a countermeasure has to survi
 
 ### REALITY in one page
 
-REALITY (an [Xray-core](https://github.com/XTLS/Xray-core) feature) defeats 1–3 by making your server a **perfect impostor of somebody else's real website** — the **dest** (currently `seapalace.nl`; it's a roster, see the spec).
+REALITY (an [Xray-core](https://github.com/XTLS/Xray-core) feature) defeats 1–3 by making your server a **perfect impostor of somebody else's real website** — the **dest** (roster #1 `amateurkunstamstelveen.nl`; see the spec).
 
 - Our server on port 443 holds **no certificate at all**. There is no Let's Encrypt issuance, no certificate-transparency log entry, nothing tying the IP to us.
-- Your client opens what looks exactly like a Chrome TLS 1.3 connection to `seapalace.nl`: SNI = dest, Chrome's ClientHello fingerprint (that is the `fp=chrome` parameter, via uTLS). Hidden inside the ClientHello's key-share randomness is an authentication blob derived from the **REALITY keypair** (X25519), the **short_id**, and the **current time**.
+- Your client opens what looks exactly like a Chrome TLS 1.3 connection to `amateurkunstamstelveen.nl`: SNI = dest, Chrome's ClientHello fingerprint (that is the `fp=chrome` parameter, via uTLS). Hidden inside the ClientHello's key-share randomness is an authentication blob derived from the **REALITY keypair** (X25519), the **short_id**, and the **current time**.
 - **Authenticated client** → the server takes over the handshake and issues a temporary certificate signed with the REALITY private key. Your client verifies it against the public key from the share link — no CA involved. Inside the tunnel runs **VLESS** (a minimal proxy protocol; the **UUID** is your account) with **`xtls-rprx-vision`** flow control, which pads and reshapes the inner traffic so that "TLS inside TLS" — the classic proxy tell — isn't visible.
-- **Anyone else** (GFW prober, internet scanner, a curious browser) → the server transparently relays the whole TCP stream to the real `seapalace.nl`. The prober completes a genuine handshake with the genuine certificate and sees the genuine site. There is nothing to find: to the entire internet, our IP appears to host that website.
+- **Anyone else** (GFW prober, internet scanner, a curious browser) → the server transparently relays the whole TCP stream to the real `amateurkunstamstelveen.nl`. The prober completes a genuine handshake with the genuine certificate and sees the genuine site. There is nothing to find: to the entire internet, our IP appears to host that website.
 
 This is why the dest has constraints (TLS 1.3, HTTP/2, **X25519** key exchange, looks like the real site from Hetzner `nbg1`): the impostor handshake borrows the dest's characteristics, so the dest must actually have them.
 
 Two things REALITY does **not** fix:
 
 - **The clock.** The auth blob embeds a timestamp. A device (or server) clock that is minutes off produces handshakes that fail. Both ends must have correct time.
-- **IP reputation (way 4).** The GFW can still notice "one Chinese user moves a lot of traffic to a rare Dutch SNI" and block the IP without proof. That is expected and survivable: renew the **primary IPv4** (keep the disk) or wipe the box if wedged — same SOPS keys. That is the *Burned IP* runbook (§6.1). The GFW blocks the IP, not you.
+- **IP reputation (way 4).** The GFW can still notice "one Chinese user moves a lot of traffic to a rare Dutch SNI" and block the IP without proof. That is expected and survivable: renew the **primary IPv4** (keep the disk) or wipe the box if wedged — same SOPS keys. That is the *Burned IP* runbook (§6.1). The GFW blocks **our** address, not the dest’s real host and not you.
 
 ### What runs where
 
@@ -49,7 +49,7 @@ flowchart LR
     vpn["VPN box (throwaway)<br/>Xray container, :443"]
     platform["Platform box (rednaw.nl)<br/>untouched"]
   end
-  dest[dest site<br/>e.g. seapalace.nl]
+  dest[dest site<br/>e.g. amateurkunstamstelveen.nl]
   net[Internet]
   mac & ip -->|VLESS/REALITY tcp 443| hotel --> vpn --> net
   vpn -.->|probes forwarded| dest
@@ -110,10 +110,10 @@ The dest must look right *from the VPS's network*, not from your ISP. SSH in and
 
 ```bash
 # TLS 1.3 + X25519 + h2 in one shot:
-echo | openssl s_client -connect seapalace.nl:443 -servername seapalace.nl \
+echo | openssl s_client -connect amateurkunstamstelveen.nl:443 -servername amateurkunstamstelveen.nl \
   -tls1_3 -groups x25519 -alpn h2 2>/dev/null | grep -E 'TLSv1.3|ALPN|Verification'
 # Looks like the real site (200, not a CDN 403 / redirect-to-www):
-curl -s -o /dev/null -w '%{http_code} %{redirect_url}\n' https://seapalace.nl
+curl -s -o /dev/null -w '%{http_code} %{redirect_url}\n' https://amateurkunstamstelveen.nl
 ```
 
 First host that passes both is the dest. Set `vpn_dest` in secrets, then `task vpn:configure:apply`.
@@ -199,6 +199,8 @@ Facts to remember: it detects and connects over IPv4 only; it refuses to add an 
 
 Only at home, or together with a Burned IP **renew** (new IPv4): edit `vpn_dest` in secrets → `task vpn:configure:apply` if Xray must pick up the new dest on disk → `task vpn:config` → re-import on **both** devices.
 
+Roster roles (spec): **#2** = cheap SNI swap (same TransIP machine as #1 — not self-defeating; the GFW blocked *our* IP, not theirs). **#3** = neighbourhood swap (different hoster). Keeping #1 after a renew is fine when you only needed a new address.
+
 ### Rotating UUID / keys (only after a leak)
 
 Regenerate UUID, keypair, and short_id (§2.1) in secrets → `task vpn:configure:apply` → `task vpn:config` → re-import on both devices. The IP stays; the old link is dead.
@@ -230,7 +232,7 @@ Diagnosis discipline: distinguishing "burned IP" from "broken box" is the whole 
 
 ### 6.1 Burned IP (the expected disaster)
 
-The GFW blocked the IPv4. Disk, Docker, Xray, and SOPS keys stay; you are swapping the **managed primary IPv4** only. Fail if the new address equals the old (Hetzner pool recycle) — retry until it differs. OneXray **off** on both devices, MacBook on eSIM:
+The GFW blocked **our** Hetzner IPv4 — not the dest’s real host. Disk, Docker, Xray, and SOPS keys stay; you are swapping the **managed primary IPv4** only. That new address is the fix. Stepping dest is optional camouflage for the next chapter (#2 = new SNI same hoster, #3 = different neighbourhood; or keep #1). Fail if the new address equals the old (Hetzner pool recycle) — retry until it differs. OneXray **off** on both devices, MacBook on eSIM:
 
 ```bash
 task vpn:provision:renew-ip   # replace hcloud_primary_ip; assert new ≠ old; platform untouched

@@ -34,31 +34,34 @@ Dedicated Hetzner VPS for a personal trip (MacBook + iPhone). Same account as pl
 | SSH | **Never `0.0.0.0/0` / `::/0`.** Standing lists: platform `allowed_ssh_ips` and VPN `vpn_allowed_ssh_ips` = **home only**. Do not put the VPN IP on platform’s list. Do not put platform IPs on the VPN list. No jump `platform → VPN`. |
 | Travel SSH | Root tasks `ssh-allow-me` / `ssh-revoke-me` — **all** iac-managed Hetzner firewalls in one go (platform, VPN, later honeypot). **Skip at home.** Extra rule: current public IPv4 `/32` only. Detect `-4`; SSH `-4`. Fail loud if no public v4. Refuse if that IP is any iac server. Extra rules are not Terraform, not SOPS, not git. Next `<purpose>:provision:apply` **drops** that box’s extra rule — expected. No per-purpose allow-me. |
 | Travel admin | **This MacBook** — only machine with the age key, clone, and Docker. It travels. Repair is eSIM + this laptop (devcontainer). Do not Console-delete the VM (TFC desync). Wedged box → Console and/or `ssh-allow-me`, then wipe path if needed. |
-| Burned IP | **Default: renew IPv4, keep disk.** OneXray off → replace `hcloud_primary_ip` only → **fail loud if new address equals old** (retry) → `ssh-allow-me` (**skip at home**) → `hostkeys:accept -- vpn` → optional next `vpn_dest` → `vpn:config` (both devices) → OneXray on. No bootstrap/configure. Same SOPS keys. Disk survives because `public_net` is **not** ForceNew (provider updates the server in place); the box hard power-cycles **twice per attempt** and is briefly IPv4-less. |
+| Burned IP | **Default: renew IPv4, keep disk.** That new address is the fix (GFW blocked ours, not the dest host). OneXray off → replace `hcloud_primary_ip` only → **fail loud if new address equals old** (retry) → `ssh-allow-me` (**skip at home**) → `hostkeys:accept -- vpn` → **optional** next `vpn_dest` (#2 = SNI swap same hoster, #3 = neighbourhood swap; keep #1 if you only need a new IP) → `vpn:config` (both devices) → OneXray on. No bootstrap/configure. Same SOPS keys. Disk survives because `public_net` is **not** ForceNew (provider updates the server in place); the box hard power-cycles **twice per attempt** and is briefly IPv4-less. |
 | Wedged / wipe | Disk bad, Docker/Xray wedged, or compromise → destroy/recreate **server** (and IP as needed) → `hostkeys:accept` → bootstrap → configure → `vpn:config`. Full circle. |
 | Hostkey | Provision never SSH. VPN has no FQDN — `hostkeys:prepare` does not invent one. After IP renew or wipe (+ `ssh-allow-me` when away), `hostkeys:accept -- vpn` to the API IPv4 (`-4`, `accept-new`, own-IP wipe first) must succeed before Ansible with `StrictHostKeyChecking=yes`. |
 | Post-trip | Destroy VPN primary IP + server + firewall and TFC `vpn`. No DNS record to delete. |
 | Competition (ops) | **Home-routed roaming eSIM** can carry Western apps on **phone cellular** with no tunnel (hotel Wi-Fi and laptop still need something else). **Commercial apps** (Astrill etc.) are flaky in 2026; Astrill’s strong mode is weak on **iOS** — OneXray+REALITY stays the right primary for this Mac+iPhone pair. **iCal/shared-pool “airports”** are not our path. Treat any single tunnel as **disposable** (already Burned IP). Prefer a **heterogeneous** fallback when the VPS is dead — not two copies of the same REALITY box unless we explicitly add standby. |
 | fail2ban on VPN | **Off.** No package, no sshd jail, no AbuseIPDB. Safe because Hetzner already gates TCP/22 to `vpn_allowed_ssh_ips` (home) + travel `/32` via `ssh-allow-me` — the jail cannot see attackers the firewall rejects, and on a first hotel SSH it can only ban the operator (`ignoreip` is platform `allowed_ssh_ips`, never the travel IP). Platform keeps base jail + Traefik as today. |
+| Platform Hetzner name | Literal `"platform"` (matches `hostkeys:ip`). No `var.server_name` override. |
 
-REALITY: VPS forwards keyless probes to dest. Our name is not in the handshake. If REALITY fails: phone keeps working on eSIM cellular; use eSIM to **repair** (Burned IP renew, or wipe if wedged), then OneXray again on Wi-Fi/Mac. No dest change on a **live** (burned) IP. A successful renew may take the next roster name (`vpn:config` both devices).
+REALITY: VPS forwards keyless probes to dest. Our name is not in the handshake. If REALITY fails: phone keeps working on eSIM cellular; use eSIM to **repair** (Burned IP renew, or wipe if wedged), then OneXray again on Wi-Fi/Mac. No dest change on a **live** (burned) IP. A successful renew may keep the same dest or take the next roster name (`vpn:config` both devices).
 
 Dropped: Tailscale / Headscale / wstunnel / public 22 / jump `platform → VPN`. Renewing the primary IPv4 is the GFW-IP lever; wipe only when the disk is the problem; platform stays put.
 
-**Dest** (one live at a time; pick at home smoke from the CX23; Burned IP may step). Must: TLS 1.3 + h2 + **X25519**, HTTP 200 on the SNI hostname (no 301-to-`www`, no other bounce), looks like the real site from `nbg1` (not CDN 403), cert/handshake record under 8192. Local pre-filter is not enough — re-check from the box (manual §2.3).
+**Dest** (one live at a time; pick at home smoke from the CX23; optional step only with a new IPv4). Must: TLS 1.3 + h2 + **X25519**, HTTP 200 on the SNI hostname (no 301-to-`www`, no other bounce), looks like the real site from `nbg1` (not CDN 403), cert/handshake record under 8192. Local pre-filter is not enough — re-check from the box (manual §2.3).
+
+After a burned IP, the GFW blocked **our** Hetzner address, not the dest’s real host. Renewing the primary IPv4 is the fix. Stepping `vpn_dest` is optional camouflage for the next chapter (never on the burned address). Same shared-host machine for #1 and #2 is **not** self-defeating: clients always hit our IP; those two names just happen to live together on TransIP, which is normal for small NL sites.
 
 Try order:
 
-| Rank | Host | Why |
+| Rank | Host | Role |
 |--|--|--|
-| 1 | `seapalace.nl` | TransIP `77.72.150.234` (Signet NL). Apex canonical. Rare SNI. |
-| 2 | `jamstudios.nl` | Denit `80.247.175.21`. Apex canonical. Rare SNI. |
-| 3 | `decorrespondent.nl` | One EC2 `eu-central-1`, nginx. Apex canonical. |
+| 1 | `amateurkunstamstelveen.nl` | Start here. Quiet local WordPress on TransIP `77.72.150.234`. Verified 2026-09-30 from platform CX23 `nbg1-dc3` (VPN box not up yet — same Nürnberg egress). |
+| 2 | `seapalace.nl` | Easy SNI swap after a renew. Same TransIP machine as #1 — new claimed name, same dest neighbourhood. |
+| 3 | `jamstudios.nl` | Neighbourhood swap after a renew. Denit `80.247.175.21` — new name and different real host/AS. Mild extra diversification; not required for every burn. |
 
-Spares (same IPs as #1/#2 — reverse-IP neighbours that passed local pre-filter). Prefer a different SNI after a burn; still verify from the CX23 before setting `vpn_dest`.
+Spares (more names on the same two hosters; for finding alternatives, not a REALITY bonus by itself). Verify from the CX23 before setting `vpn_dest`. After a renew: prefer #2 for a cheap SNI change, #3 (or a Denit spare) only when you also want a different dest neighbourhood.
 
-- TransIP / seapalace IP: `amateurkunstamstelveen.nl` `arcadic.nl` `catercompany.eu` `damiro-ontruiming.nl` `fueldesign.nl` `getsalesdone.eu` `jbscleaningservice.nl` `jbsgroep.nl` `lindeman-schuttingen.nl` `lobatto.eu` `nickfalkenberg.com` `puuragenturen.com` `radicalcup.nl` `shirtshop-amsterdam.com` `shirtshop-amsterdam.nl` `svrap.nl` `time2choco.nl` `toffeebreak.com` `toffeebreak.eu` `toffeebreak.net` `xbrands.nl`
-- Denit / jamstudios IP: `advocatenkantoor.nl` `autom8-it.nl` `auvimedia.nl` `beertema.nl` `dependans.nl` `elsburgeronland.nl` `haagspreventienetwerk.nl` `idmaker.nl` `inclusiefmedia.nl` `joytofilms.com` `kerkdebron.org` `kippenburg.nl` `lindhout-es.nl` `maartenwoud.nl` `mijderwijk.nl` `mijndenhaag.org` `mirjam-ouwerkerk.nl` `paian.nl` `radiobeurslisse.nl` `robvankan.nl` `sinister.nl` `slampampers.nl` `smartlappenkoor.com` `teletrailer-huren.nl` `thatsmagic.nl` `tradeservice.nl` `trouwautoverhuur.nl` `van-grinsven.nl` `vioolpianolesnijmegen.nl` `waltergoeting.nl`
+- TransIP / #1–#2 host: `arcadic.nl` `catercompany.eu` `damiro-ontruiming.nl` `fueldesign.nl` `getsalesdone.eu` `jbscleaningservice.nl` `jbsgroep.nl` `lindeman-schuttingen.nl` `lobatto.eu` `nickfalkenberg.com` `puuragenturen.com` `radicalcup.nl` `shirtshop-amsterdam.com` `shirtshop-amsterdam.nl` `svrap.nl` `time2choco.nl` `toffeebreak.com` `toffeebreak.eu` `toffeebreak.net` `xbrands.nl`
+- Denit / #3 host: `autom8-it.nl` `auvimedia.nl` `beertema.nl` `dependans.nl` `elsburgeronland.nl` `haagspreventienetwerk.nl` `idmaker.nl` `inclusiefmedia.nl` `joytofilms.com` `kerkdebron.org` `kippenburg.nl` `lindhout-es.nl` `maartenwoud.nl` `mijderwijk.nl` `mijndenhaag.org` `mirjam-ouwerkerk.nl` `paian.nl` `radiobeurslisse.nl` `robvankan.nl` `sinister.nl` `slampampers.nl` `smartlappenkoor.com` `teletrailer-huren.nl` `thatsmagic.nl` `tradeservice.nl` `trouwautoverhuur.nl` `van-grinsven.nl` `vioolpianolesnijmegen.nl` `waltergoeting.nl`
 
 Out: our names (`tientjeketama.nl` `rednaw.nl` `*.github.io`); landlord / GFW-class (`www.hetzner.com` `www.apple.com`); gov costume (`ind.nl`); CDN / TLS1.2 / geo (`bol.com` Akamai; `ah.nl` `funda.nl` `nu.nl` `www.ns.nl` Akamai; `marktplaats.nl` `knmi.nl` `npo.nl` CloudFront/AGA; Cloudflare edges; `www.kieskeurig.nl` Bunny; `www.startpagina.nl` TLS1.2; `sap.com` geo); apex→`www` (`independer.nl` Azure App Gateway — `www` is canonical). Shared-host adjacency is for **finding** spares, not a REALITY benefit by itself.
 
@@ -66,16 +69,7 @@ Out: our names (`tientjeketama.nl` `rednaw.nl` `*.github.io`); landlord / GFW-cl
 
 ## Decide
 
-### Platform box lookup in `hostkeys:ip`?
-
-`-- platform <env>` re-derives `${BASE_DOMAIN//./-}-<env>`, a second copy of `locals.server_name`, which silently breaks if `var.server_name` is ever set.
-
-| | Option |
-|--|--------|
-| **A** | Keep the re-derivation. `var.server_name` stays unused in practice. |
-| **B** | Look up by label instead (`hcloud server list -l …`): platform `environment=<env>`, VPN `purpose=vpn`. Name-independent; both roots already carry the labels. |
-
-Choice: _unpicked_
+None.
 
 ## Do
 
