@@ -23,12 +23,22 @@ fi
 
 __secrets=$(SOPS_AGE_KEY_FILE="${SOPS_KEY_FILE}" sops -d "${SECRETS_INFRA}")
 
-TF_VAR_hcloud_token=$(echo "${__secrets}" | yq -r '.hcloud_token')
-TF_VAR_ssh_keys=$(echo "${__secrets}" | yq '.ssh_keys' -o=json)
-TF_VAR_vpn_allowed_ssh_ips=$(echo "${__secrets}" | yq '.vpn_allowed_ssh_ips' -o=json)
+TF_VAR_hcloud_token=$(echo "${__secrets}" | yq -r '.hcloud_token // ""')
+TF_VAR_ssh_keys=$(echo "${__secrets}" | yq '.ssh_keys // null' -o=json)
+TF_VAR_vpn_allowed_ssh_ips=$(echo "${__secrets}" | yq '.vpn_allowed_ssh_ips // null' -o=json)
+
+_missing=()
+[ -n "${TF_VAR_hcloud_token}" ] && [ "${TF_VAR_hcloud_token}" != "null" ] || _missing+=("hcloud_token")
+[ "${TF_VAR_ssh_keys}" != "null" ] && [ "${TF_VAR_ssh_keys}" != "[]" ] || _missing+=("ssh_keys")
+[ "${TF_VAR_vpn_allowed_ssh_ips}" != "null" ] && [ "${TF_VAR_vpn_allowed_ssh_ips}" != "[]" ] || _missing+=("vpn_allowed_ssh_ips")
+if [ "${#_missing[@]}" -gt 0 ]; then
+  echo "❌ Missing from ${SECRETS_INFRA} (manual §2.1): ${_missing[*]}" >&2
+  unset __secrets _IAC_ROOT _missing
+  return 1 2>/dev/null || exit 1
+fi
 
 export TF_VAR_hcloud_token
 export TF_VAR_ssh_keys
 export TF_VAR_vpn_allowed_ssh_ips
 
-unset __secrets _IAC_ROOT
+unset __secrets _IAC_ROOT _missing

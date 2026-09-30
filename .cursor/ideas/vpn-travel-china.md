@@ -54,7 +54,7 @@ Try order:
 
 | Rank | Host | Role |
 |--|--|--|
-| 1 | `amateurkunstamstelveen.nl` | Start here. Quiet local WordPress on TransIP `77.72.150.234`. Verified 2026-09-30 from platform CX23 `nbg1-dc3` (VPN box not up yet — same Nürnberg egress). |
+| 1 | `amateurkunstamstelveen.nl` | Start here. Quiet local WordPress on TransIP `77.72.150.234`. Verified 2026-09-30 from VPN CX23 `nbg1` (and earlier from platform). |
 | 2 | `seapalace.nl` | Easy SNI swap after a renew. Same TransIP machine as #1 — new claimed name, same dest neighbourhood. |
 | 3 | `jamstudios.nl` | Neighbourhood swap after a renew. Denit `80.247.175.21` — new name and different real host/AS. Mild extra diversification; not required for every burn. |
 
