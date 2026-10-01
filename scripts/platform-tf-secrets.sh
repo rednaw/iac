@@ -14,8 +14,15 @@
 
 : "${SOPS_KEY_FILE:?SOPS_KEY_FILE must be exported before sourcing this script}"
 
-_IAC_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-SECRETS_DIR="${SECRETS_DIR:-$(realpath -m "${_IAC_ROOT}/../secrets")}"
+# Prefer caller-exported SECRETS_DIR (Task always sets it). Avoid BASH_SOURCE under
+# `set -u` when this file is sourced from a non-bash or odd context.
+if [ -z "${SECRETS_DIR:-}" ]; then
+  _here="${BASH_SOURCE[0]-}"
+  [ -n "${_here}" ] || _here="$0"
+  _IAC_ROOT="$(cd "$(dirname "${_here}")/.." && pwd)"
+  SECRETS_DIR="$(realpath -m "${_IAC_ROOT}/../secrets")"
+  unset _here _IAC_ROOT
+fi
 SECRETS_INFRA="${SECRETS_INFRA:-${SECRETS_DIR}/infra.yml}"
 if [ ! -f "${SECRETS_INFRA}" ]; then
   echo "❌ Encrypted infra missing: ${SECRETS_INFRA}" >&2
@@ -43,4 +50,4 @@ export TF_VAR_server_type
 export TF_VAR_transip_account_name
 export TF_VAR_transip_private_key
 
-unset __secrets _IAC_ROOT
+unset __secrets

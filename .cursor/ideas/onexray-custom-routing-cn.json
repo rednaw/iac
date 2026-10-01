@@ -1,0 +1,44 @@
+{
+  "name": "CN geosite direct",
+  "outbounds": [
+    {}
+  ],
+  "dns": {
+    "servers": [
+      {
+        "tag": "app-dns-direct",
+        "address": "8.8.8.8"
+      }
+    ]
+  },
+  "routing": {
+    "domainStrategy": "IPIfNonMatch",
+    "rules": [
+      {
+        "ruleTag": "GitHub through VPN",
+        "domain": [
+          "geosite:GITHUB"
+        ],
+        "balancerTag": "proxy"
+      },
+      {
+        "ruleTag": "Direct domains",
+        "domain": [
+          "geosite:PRIVATE",
+          "geosite:APPLE",
+          "geosite:MICROSOFT",
+          "geosite:BING",
+          "geosite:CN"
+        ],
+        "outboundTag": "direct"
+      },
+      {
+        "ruleTag": "Direct private IPs",
+        "ip": [
+          "geoip:PRIVATE"
+        ],
+        "outboundTag": "direct"
+      }
+    ]
+  }
+}

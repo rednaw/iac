@@ -44,20 +44,34 @@ tasks:
     vars:
       PURPOSE:
         sh: echo "{{.CLI_ARGS}}" | awk '{print $1}'
+      # Primary-IP renew / recreate often reboots; wait before declaring failure.
+      ACCEPT_MAX_ATTEMPTS: "24"
+      ACCEPT_SLEEP_SECS: "5"
     deps: [_check:purpose]
     cmds:
       - |
+        set -euo pipefail
         IP=$(task hostkeys:ip -- "{{.PURPOSE}}") || exit 1
         ssh-keygen -R "$IP" -f "${HOME}/.ssh/known_hosts" -q 2>/dev/null || true
+        MAX="{{.ACCEPT_MAX_ATTEMPTS}}"
+        SLEEP="{{.ACCEPT_SLEEP_SECS}}"
         echo "🔑 Accepting host key of ${IP} ({{.PURPOSE}})..."
-        for user in ubuntu root; do
-          if ssh -4 -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10 -o BatchMode=yes \
-              "${user}@${IP}" "exit" 2>/dev/null; then
-            echo "✅ Host key accepted (${user}@${IP})"
-            exit 0
+        attempt=1
+        while [ "$attempt" -le "$MAX" ]; do
+          for user in ubuntu root; do
+            if ssh -4 -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10 -o BatchMode=yes \
+                "${user}@${IP}" "exit" 2>/dev/null; then
+              echo "✅ Host key accepted (${user}@${IP})"
+              exit 0
+            fi
+          done
+          if [ "$attempt" -lt "$MAX" ]; then
+            echo "   SSH not ready yet (attempt ${attempt}/${MAX}); retry in ${SLEEP}s…"
+            sleep "$SLEEP"
           fi
+          attempt=$((attempt + 1))
         done
-        echo "❌ Could not SSH to ${IP} as ubuntu or root." >&2
+        echo "❌ Could not SSH to ${IP} as ubuntu or root after ${MAX} attempts." >&2
         echo "   Away from home? Run: task ssh-allow-me" >&2
         exit 1
 

@@ -235,12 +235,11 @@ Diagnosis discipline: distinguishing "burned IP" from "broken box" is the whole 
 The GFW blocked **our** Hetzner IPv4 — not the dest’s real host. Disk, Docker, Xray, and SOPS keys stay; you are swapping the **managed primary IPv4** only. That new address is the fix. Stepping dest is optional camouflage for the next chapter (#2 = new SNI same hoster, #3 = different neighbourhood; or keep #1). Fail if the new address equals the old (Hetzner pool recycle) — retry until it differs. OneXray **off** on both devices, MacBook on eSIM:
 
 ```bash
-task vpn:provision:renew-ip   # replace hcloud_primary_ip; assert new ≠ old; platform untouched
-task ssh-allow-me             # trip only — skip at home
-task hostkeys:accept -- vpn   # -4, accept-new, wipes its own target IP first
+task ssh-allow-me             # trip only — before renew so hostkeys can SSH; skip at home
+task vpn:provision:renew-ip   # replace IPv4 → hostkeys:accept -- vpn → vpn:config
 # optional: set next roster dest in secrets, then:
 # task vpn:configure:apply    # only if dest stepped — Xray on disk must learn the new SNI
-task vpn:config               # new QR (new IP; new SNI if you stepped dest)
+# task vpn:config             # again (renew already emitted the pre-step link)
 ```
 
 No bootstrap — and no configure unless dest stepped. Re-import on **both** devices → OneXray on → optionally `task ssh-revoke-me`. Never change dest while keeping a burned address.
