@@ -14,6 +14,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     unzip \
     jq \
     gnupg \
+    qrencode \
     python3 \
     python3-pip \
     python3-venv \

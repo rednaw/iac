@@ -5,8 +5,9 @@
 #
 # No env argument anywhere: there is exactly one VPN box (TFC workspace "vpn").
 #
-# Burned IP (default): provision:renew-ip → [travel: ssh-allow-me] →
-#   hostkeys:accept -- vpn → [optional dest + configure:apply] → config.
+# Burned IP (default): [travel: ssh-allow-me] → provision:renew-ip
+#   (= IP replace → hostkeys:accept -- vpn → config).
+#   Optional dest step after: configure:apply → config again.
 # Wedged wipe: provision:destroy → provision:apply → hostkeys:accept →
 #   configure:bootstrap → configure:apply → config.
 version: '3'
@@ -51,7 +52,7 @@ tasks:
           SECRETS_SCRIPT: scripts/vpn-tf-secrets.sh
 
   provision:renew-ip:
-    desc: "Burned IP: replace managed primary IPv4, keep disk; fail if address unchanged"
+    desc: "Burned IP: replace primary IPv4, then hostkeys:accept + vpn:config"
     silent: true
     deps: [":_check:sops-key", ":_check:secrets"]
     cmds:
@@ -87,10 +88,6 @@ tasks:
             ssh-keygen -R "$old_ip" -f "${HOME}/.ssh/known_hosts" -q 2>/dev/null || true
             echo ""
             echo "✅ Primary IPv4 renewed: ${old_ip} → ${new_ip}"
-            echo "   Next: task ssh-allow-me   # skip at home"
-            echo "         task hostkeys:accept -- vpn"
-            echo "         # optional dest step → task vpn:configure:apply"
-            echo "         task vpn:config"
             exit 0
           fi
           echo "⚠️  Pool returned the same IPv4 (${new_ip}); retrying…" >&2
@@ -98,6 +95,8 @@ tasks:
         done
         echo "❌ Still on ${old_ip} after ${MAX} replaces. Wait and retry, or wipe (destroy/apply)." >&2
         exit 1
+      - task hostkeys:accept -- vpn
+      - task: config
 
   provision:output:
     desc: "Show VPN provisioning outputs (current IPv4)"
