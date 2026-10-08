@@ -7,7 +7,7 @@ Custom Routing JSON: [../ideas/onexray-custom-routing-cn.json](../ideas/onexray-
 Dest roster / notes: [../ideas/vpn-travel-china.md](../ideas/vpn-travel-china.md).  
 eSIM price/GB/reviews: [../ideas/china-esim-comparison.md](../ideas/china-esim-comparison.md).
 
-**Live now (home):** TFC `vpn`; server `vpn` = `2.31.1.95` / `2a01:4f8:1c16:ad0a::/64` (`nbg1`; pool recycled this address after renew away from `157.90.17.23`); dest `amateurkunstamstelveen.nl`; **one shared UUID**; Mac (+ Dev Container) smoke passed via `api.ipify.org` when OneXray is on.
+**Live now (home):** TFC `vpn`; server `vpn` = `2.31.1.95` / `2a01:4f8:1c16:ad0a::/64` (`nbg1`); dest `amateurkunstamstelveen.nl`; **one shared UUID**. Burned IP renew rehearsed end-to-end; Mac + phone OneXray on via current `vpn:config` link.
 
 ---
 
@@ -76,10 +76,10 @@ Choice: _unpicked_
 
 ### 0. Review / hardening leftovers
 
-- [ ] Agent: implemented
-- [ ] Human: reviewed
+- [x] Agent: implemented
+- [x] Human: reviewed
 
-**Agent will implement** — `renew-ip` → `:_terraform:init`; `hostkeys:accept` retry; `ssh-revoke-me` multi-IP; `ssh-allow-me` robustness; manual aligned to this plan (hotel OneXray, shared UUID, no dual-CN-SIM default, no kill-switch claim, OneXray UI names; eSIM brand per Decide).
+**Agent will implement** — done: `renew-ip` → `:_terraform:init` then replace loop → `hostkeys:accept` (retry) → `vpn:config`; `ssh-revoke-me` deletes marked rules as wholes (multi-CIDR); `ssh-allow-me` multi-endpoint IP detect, standing-list skip, per-FW verify; manual aligned (hotel OneXray, shared UUID, travel eSIM street habit, no dual-CN-SIM default, no kill switch, GeoData/Custom Routing names, fail2ban off).
 
 **Human must:** review diffs.
 

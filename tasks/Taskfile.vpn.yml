@@ -56,6 +56,9 @@ tasks:
     silent: true
     deps: [":_check:sops-key", ":_check:secrets"]
     cmds:
+      - task: :_terraform:init
+        vars:
+          TF_DIR: '{{.VPN_TF_DIR}}'
       - |
         set -euo pipefail
         # shellcheck disable=SC2269  # Task {{.VPN_TF_DIR}} → $TF_DIR for shellcheck only
@@ -64,7 +67,6 @@ tasks:
         export SOPS_KEY_FILE="{{.SOPS_KEY_FILE}}"
         export SECRETS_DIR="{{.SECRETS_DIR}}"
         export SECRETS_INFRA="{{.SECRETS_INFRA}}"
-        TFC_ORG=$(SOPS_AGE_KEY_FILE="{{.SOPS_KEY_FILE}}" sops -d "{{.SECRETS_INFRA}}" | yq -r '.terraform_cloud_organization')
 
         old_ip=$(task hostkeys:ip -- vpn) || {
           echo "❌ No VPN server to renew (provision first?)" >&2
@@ -75,7 +77,6 @@ tasks:
         echo ""
 
         unset TF_WORKSPACE || true
-        terraform -chdir="$TF_DIR" init -input=false -reconfigure -backend-config="organization=${TFC_ORG}" >/dev/null
         # shellcheck disable=SC1091
         . "./scripts/vpn-tf-secrets.sh"
 

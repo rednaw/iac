@@ -39,11 +39,11 @@ Two things REALITY does **not** fix:
 flowchart LR
   subgraph devices [Trip devices]
     mac[MacBook<br/>OneXray + admin]
-    ip[iPhone<br/>OneXray only]
+    phones[Phones<br/>OneXray + travel eSIM]
   end
   subgraph cn [China]
     hotel[Hotel Wi-Fi]
-    esim[Roaming eSIM]
+    cell[Travel eSIM data]
   end
   subgraph hetzner [Hetzner nbg1]
     vpn["VPN box (throwaway)<br/>Xray container, :443"]
@@ -51,14 +51,15 @@ flowchart LR
   end
   dest[dest site<br/>e.g. amateurkunstamstelveen.nl]
   net[Internet]
-  mac & ip -->|VLESS/REALITY tcp 443| hotel --> vpn --> net
+  mac & phones -->|VLESS/REALITY tcp 443| hotel --> vpn --> net
+  phones -->|OneXray off| cell --> net
   vpn -.->|probes forwarded| dest
-  esim -.->|out-of-band admin:<br/>Hetzner API/Console, TFC, SSH| hetzner
+  cell -.->|admin when tunnel down:<br/>Hetzner API/Console, TFC, SSH| hetzner
 ```
 
-- **OneXray** on both devices creates a TUN interface that captures *all* device traffic (IPv4 and IPv6) and routes it: domains in `geosite:cn` go **direct** (Chinese sites over the hotel network — normal, fast, and not a leak), everything else goes through the tunnel and exits in Nuremberg. We do not use `geoip:cn` rules because they require resolving the domain first, and Chinese DNS answers are poisoned.
-- The **eSIMs** are out-of-band management only (they roam via the home carrier, so they exit outside the GFW). OneXray stays **off** on cellular. The eSIM is never the daily internet path.
-- The **VPN box** shares nothing with the platform: its own Terraform root (`terraform/vpn/`, TFC workspace `vpn`), its own firewall (443 + SSH from home only), no Traefik, no apps, no DNS record, `backups = false`. SSH and Ansible always address it by its API IPv4 — it has no hostname anywhere.
+- **OneXray** (Mac + phones when on hotel Wi‑Fi / shared exit) creates a TUN that captures device traffic (IPv4 and IPv6) and routes it: domains in `geosite:cn` go **direct** (Chinese sites over the local network — normal, fast, not a leak), everything else through the tunnel and out in Nuremberg. We do not use `geoip:cn` (needs resolve-first; Chinese DNS is poisoned). **No kill switch** (spec).
+- **Travel eSIM** (Trip.com / …): **daily phone data** on the street — OneXray **off** (the eSIM already clears the GFW). **Order Didi in this mode.** KPN stays the home number (roaming **off** in CN; SMS/2FA). Mainland tourist SIM = contingency only. The laptop does **not** rely on eSIM for normal work — hotel Wi‑Fi + OneXray.
+- The **VPN box** shares nothing with the platform: its own Terraform root (`terraform/vpn/`, TFC workspace `vpn`), its own firewall (443 + SSH from home only), no Traefik, no apps, no DNS record, `backups = false`, **fail2ban off**. SSH and Ansible always use the API IPv4 — no hostname.
 
 ### The four secrets
 
@@ -77,7 +78,7 @@ Renewing the primary IPv4 (or wiping the box) changes the **address** in the sha
 
 ## 2. Installation (at home, before the trip)
 
-Prerequisites: this MacBook with the iac devcontainer, age key, and Hetzner/TFC/TransIP access working; OneXray ([App Store](https://apps.apple.com/us/app/onexray/id6745748773)) installed on Mac and iPhone; spec Do §0–§6 implemented; TFC workspace `vpn` created.
+Prerequisites: this MacBook with the iac devcontainer, age key, and Hetzner/TFC/TransIP access working; OneXray ([App Store](https://apps.apple.com/us/app/onexray/id6745748773)) installed on Mac and phones; TFC workspace `vpn` created; travel eSIMs bought/installed per the spec.
 
 ### 2.1 Generate secrets (once)
 
@@ -124,9 +125,9 @@ First host that passes both is the dest. Set `vpn_dest` in secrets, then `task v
 task vpn:config   # emits vless:// links + QR from secrets + current IPv4 (no SSH involved)
 ```
 
-The link looks like `vless://<uuid>@<ipv4>:443?security=reality&sni=<dest>&fp=chrome&pbk=<pubkey>&sid=<short_id>&flow=xtls-rprx-vision&type=tcp`. Note it embeds the **IPv4, never a hostname** — a hostname would reintroduce poisoned DNS and IPv6 Happy-Eyeballs holes.
+The link looks like `vless://<uuid>@<ipv4>:443?security=reality&sni=<dest>&fp=chrome&pbk=<pubkey>&sid=<short_id>&flow=xtls-rprx-vision&type=tcp`. Note it embeds the **IPv4, never a hostname** — a hostname would reintroduce poisoned DNS and IPv6 Happy-Eyeballs holes. **One shared UUID** for Mac + all phones (same link).
 
-On **both** devices, in OneXray: import the link/QR; download GeoData (now, at home); routing rule `geosite:cn` → direct, everything else → the VLESS outbound, **no `geoip:cn`**; kill switch on; TUN IPv6 on (app default — do not disable IPv6 on the devices either); iOS: only one VPN profile active, iCloud Private Relay **off**; check the device clock is automatic and correct.
+On **every** device, in OneXray: import the link/QR; download **GeoData** (at home); set **Custom Routing** from [`onexray-custom-routing-cn.json`](onexray-custom-routing-cn.json) (`geosite:CN` → direct, everything else → this outbound; **no `geoip:CN`**); **no kill switch**; TUN IPv6 on (app default — do not disable IPv6 on the devices either); iOS: only one VPN profile active, iCloud Private Relay **off**; device clock automatic and correct.
 
 ### 2.5 Smoke tests (all must pass before departure)
 
@@ -148,16 +149,18 @@ Finally, work through the trip checklist at the bottom of the [spec](vpn-travel-
 
 ## 3. Usage (on the trip)
 
-**Daily:** connect to hotel Wi-Fi, turn OneXray on, live normally. Chinese apps and sites go direct (that's the routing rule, not a leak); everything else exits in Nuremberg.
+**Hotel Wi‑Fi (Mac, and phones when you want the shared Hetzner exit):** OneXray **on**. Chinese apps/sites go direct (routing rule, not a leak); everything else exits in Nuremberg.
 
-**New network / captive portal:** OneXray **off** → clear the portal → OneXray **on**. The kill switch will otherwise fight the portal.
+**Street / cellular (travel eSIM):** OneXray **off**. Order **Didi** in this mode — do not force a Hetzner exit for ride-hail. KPN stays for SMS only (roaming off).
 
-**Cellular:** OneXray **off** on the eSIM, always. The eSIM already exits outside the GFW via the home carrier, and it exists for one purpose: managing infrastructure when the tunnel is down (tether the MacBook to it).
+**New network / captive portal:** OneXray **off** → clear the portal → OneXray **on**.
+
+**Repair / admin:** OneXray **off**; tether or use travel eSIM; `task ssh-allow-me` when your public IPv4 is not on the standing home list.
 
 **Rules that keep the box alive:**
 
-- Never share the QR / share link with anyone. One leaked UUID means manual key rotation (§4).
-- No torrents, no SMTP, no scanning from the exit — Hetzner abuse mail is the account-level risk (it's the same account as `rednaw.nl`). Watch the Hetzner account email during the trip; answer any abuse mail the same day.
+- Never share the QR / share link. One leaked UUID means rotate for **everyone** (§4).
+- No torrents, no SMTP, no scanning from the exit — Hetzner abuse mail is account-level (same account as `rednaw.nl`). Watch the Hetzner account email during the trip; answer any abuse mail the same day.
 - Never change dest on a live burned IP — a dest swap on an address the GFW is already watching looks like exactly what it is. New dest only together with a **new** IPv4 (Burned IP renew or wipe).
 - Never delete the VM from the Hetzner Console — that desyncs Terraform state. Destroy / renew is always via `task vpn:provision:*`.
 - Do not download a VPN client inside China; app stores and downloads are poisoned/blocked. Everything is installed before departure.
@@ -170,7 +173,7 @@ Finally, work through the trip checklist at the bottom of the [spec](vpn-travel-
 
 - Current IP: `task vpn:provision:output` (or `hcloud server list`).
 - On the box: Xray runs as a Docker container with `network_mode: host`, listening on 443. The image digest is pinned; `docker-ce` is apt-held for the travel window.
-- Nothing else runs there. No Traefik, no port 80, no fail2ban jail on 443 (fail2ban only guards SSH via the base role).
+- Nothing else runs there. No Traefik, no port 80. **fail2ban is off** on the VPN box (`base_fail2ban_enabled: false`).
 
 ### Health check
 
@@ -193,7 +196,7 @@ task ssh-allow-me    # adds your current public IPv4 /32 to *every* iac firewall
 task ssh-revoke-me   # removes only rules carrying the allow-me marker; home rules untouched
 ```
 
-Facts to remember: it detects and connects over IPv4 only; it refuses to add an IP that belongs to an iac server; the extra rule lives only in Hetzner (not Terraform, not git), so the **next `*:provision:apply` on a box silently drops that box's extra rule** — that is expected, just run allow-me again. Skip both tasks at home. CGNAT caveat: see §5.
+Facts to remember: IPv4-only detection (several public endpoints); refuses iac server addresses; skips if the IP is already on that firewall (standing or travel); verifies the marker after add; `ssh-revoke-me` deletes each marked rule as a whole (multi-CIDR safe). Extra rules live only in Hetzner (not Terraform/git), so the **next `*:provision:apply` on a box silently drops that box's extra rule** — expected; re-run allow-me. Skip both tasks at home. CGNAT: see §5.
 
 ### Changing dest (roster step)
 
@@ -203,13 +206,13 @@ Roster roles (spec): **#2** = cheap SNI swap (same TransIP machine as #1 — not
 
 ### Rotating UUID / keys (only after a leak)
 
-Regenerate UUID, keypair, and short_id (§2.1) in secrets → `task vpn:configure:apply` → `task vpn:config` → re-import on both devices. The IP stays; the old link is dead.
+Regenerate UUID, keypair, and short_id (§2.1) in secrets → `task vpn:configure:apply` → `task vpn:config` → re-import on **every** device (shared UUID). The IP stays; the old link is dead.
 
 ---
 
 ## 5. Troubleshooting
 
-First split the problem in two: **can the client reach the box** (tunnel layer) vs **is the box healthy** (server layer). The eSIM is your out-of-band path to answer the second question.
+First split the problem in two: **can the client reach the box** (tunnel layer) vs **is the box healthy** (server layer). Travel eSIM (OneXray off) or tether is your out-of-band path for the second question.
 
 | Symptom | Likely cause | Action |
 |---|---|---|
@@ -218,11 +221,11 @@ First split the problem in two: **can the client reach the box** (tunnel layer) 
 | Worked for days in CN, now dead; box healthy via eSIM; 443 unreachable from hotel but fine from eSIM | **Burned IP** | Runbook §6.1 |
 | Box unreachable even via eSIM/SSH; Hetzner Console shows it wedged | Wedged box (same disk) | Runbook §6.2 |
 | Only one network fails (hotel blocks, other Wi-Fi / tether works) | Local network filtering, not the GFW | Not burned; use another network, don't recreate |
-| SSH times out after `ssh-allow-me` | **CGNAT**: the detected eSIM IPv4 differs from your SSH egress IP, or rotated | Re-run allow-me once; if still refused, Hetzner Console → web console, or add the `/32` by hand (same marker; also wiped on next apply) |
+| SSH times out after `ssh-allow-me` | **CGNAT**: detected public IPv4 ≠ SSH egress, or rotated | Re-run allow-me once; if still refused, Hetzner Console → web console, or add the `/32` by hand (same marker; also wiped on next apply) |
 | SSH: `REMOTE HOST IDENTIFICATION HAS CHANGED` | Recycled Hetzner IP with a stale known_hosts entry | `hostkeys:accept` wipes its own target IP first, so this shouldn't happen through the tasks; manually: `ssh-keygen -R <ip>` and retry |
-| `vpn:provision:*` can't reach Terraform Cloud from CN | You're not on the eSIM path | Tether to the eSIM (exits abroad); if TFC itself is down, wait — the Console is only for emergencies, never for deleting the VM |
+| `vpn:provision:*` can't reach Terraform Cloud from CN | Not on a path that exits abroad | Tether to travel eSIM (international breakout); if TFC itself is down, wait — Console only for emergencies, never for deleting the VM |
 | Slow but working | GFW throttling or hotel congestion | Live with it; recreating for speed spends a fresh IP for nothing |
-| Hetzner abuse email | Something from the exit tripped a report | Answer the same day, factually (personal single-user VPN). See spec "Exit use" |
+| Hetzner abuse email | Something from the exit tripped a report | Answer the same day, factually (personal travel VPN). See spec "Exit use" |
 
 Diagnosis discipline: distinguishing "burned IP" from "broken box" is the whole game. Burned = the box is provably healthy (SSH via eSIM works, `docker logs` clean, `curl` from the box egresses fine) while port 443 from Chinese networks is dead. Only then **renew the IPv4** (§6.1). Wedged disk → wipe (§6.2).
 
@@ -254,7 +257,7 @@ The laptop holds everything: age key, SSH key, clone, and the API credentials fo
 
 ### 6.4 Everything failed
 
-Both eSIMs dead, or box unrecoverable and recreate impossible: turn OneXray off and live directly — Chinese apps, offline maps, and banking were all tested VPN-free before departure. Do not improvise a new tunnel from inside China (no client downloads, no browsing "as normal" on the eSIM). Fix it at home.
+Travel eSIMs dead / no admin path, or box unrecoverable and recreate impossible: turn OneXray off and live on local nets — Chinese apps, offline maps, banking were smoke-tested VPN-free before departure. Do not improvise a new tunnel from inside China (no client downloads, no "browse as normal" on the travel eSIM just to fix the VPS). Fix it at home.
 
 ---
 
