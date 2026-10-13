@@ -7,7 +7,7 @@ Custom Routing JSON: [../ideas/onexray-custom-routing-cn.json](../ideas/onexray-
 Dest roster / notes: [../ideas/vpn-travel-china.md](../ideas/vpn-travel-china.md).  
 eSIM price/GB/reviews: [../ideas/china-esim-comparison.md](../ideas/china-esim-comparison.md).
 
-**Live now (home):** TFC `vpn`; server `vpn` = `2.31.1.95` / `2a01:4f8:1c16:ad0a::/64` (`nbg1`); dest `amateurkunstamstelveen.nl`; **one shared UUID**. Burned IP renew rehearsed end-to-end; Mac + phone OneXray on via current `vpn:config` link.
+**Live now (Beijing hotel):** TFC `vpn`; server `vpn` = `2.31.48.200` / `2a01:4f8:1c16:ad0a::/64` (`nbg1`); dest `amateurkunstamstelveen.nl`; **one shared UUID**. Hotel Wi‑Fi burned prior IPv4; renew done (targeted apply + allow-me + config); OneXray working again via current `vpn:config` link.
 
 ---
 
@@ -79,7 +79,7 @@ Choice: _unpicked_
 - [x] Agent: implemented
 - [x] Human: reviewed
 
-**Agent will implement** — done: `renew-ip` → `:_terraform:init` then replace loop → `hostkeys:accept` (retry) → `vpn:config`; `ssh-revoke-me` deletes marked rules as wholes (multi-CIDR); `ssh-allow-me` multi-endpoint IP detect, standing-list skip, per-FW verify; manual aligned (hotel OneXray, shared UUID, travel eSIM street habit, no dual-CN-SIM default, no kill switch, GeoData/Custom Routing names, fail2ban off).
+**Agent will implement** — done: `renew-ip` → targeted replace (IP+server only) → `ssh-allow-me` → `hostkeys:accept` (non-fatal) → `vpn:config`; `ssh-revoke-me` deletes marked rules as wholes (multi-CIDR); `ssh-allow-me` multi-endpoint IP detect, standing-list skip, per-FW verify; manual aligned (hotel OneXray, shared UUID, travel eSIM street habit, no dual-CN-SIM default, no kill switch, GeoData/Custom Routing names, fail2ban off).
 
 **Human must:** review diffs.
 
@@ -99,7 +99,7 @@ Choice: _unpicked_
 
 **Agent will implement** — keep routing JSON + manual aligned.
 
-**Human must:** same `task vpn:config` link on 3 phones + Mac; Custom Routing + GeoData; Private Relay off; clock OK; smoke hotel-style (Wi‑Fi + OneXray → `api.ipify.org` = VPS). Rehearse Burned IP renew at home if time.
+**Human must:** same `task vpn:config` link on 3 phones + Mac; Custom Routing + GeoData; Private Relay off; clock OK; smoke hotel-style (Wi‑Fi + OneXray → `api.ipify.org` = VPS). Burned IP renew already proven live in Beijing.
 
 ### 3. Streaming (after Streaming Decide)
 
