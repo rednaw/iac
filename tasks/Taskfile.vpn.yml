@@ -140,6 +140,12 @@ tasks:
           PURPOSE: vpn
           PLAYBOOK: playbooks/vpn.yml
 
+  smoke:
+    desc: "Hotel binary smoke (OneXray on): works? / renew? — exit 0 = OK"
+    silent: true
+    cmds:
+      - bash scripts/vpn-china-smoke.sh
+
   config:
     desc: "Emit OneXray share link + QR from secrets and the current IPv4 (no SSH; does not install Xray)"
     silent: true

@@ -227,6 +227,8 @@ First split the problem in two: **can the client reach the box** (tunnel layer) 
 | Slow but working | GFW throttling or hotel congestion | Live with it; recreating for speed spends a fresh IP for nothing |
 | Hetzner abuse email | Something from the exit tripped a report | Answer the same day, factually (personal travel VPN). See spec "Exit use" |
 
+Quick check on the Mac (OneXray **on**): `task vpn:smoke` — exit 0 / `VERDICT=OK` means leave it; `BURNED?` means confirm the box via eSIM then §6.1.
+
 Diagnosis discipline: distinguishing "burned IP" from "broken box" is the whole game. Burned = the box is provably healthy (SSH via eSIM works, `docker logs` clean, `curl` from the box egresses fine) while port 443 from Chinese networks is dead. Only then **renew the IPv4** (§6.1). Wedged disk → wipe (§6.2).
 
 ---
