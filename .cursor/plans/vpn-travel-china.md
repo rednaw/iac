@@ -31,7 +31,7 @@ eSIM price/GB/reviews: [../ideas/china-esim-comparison.md](../ideas/china-esim-c
 | IPv6 | VPS dual-stack; share links IPv4-only. |
 | Primary IPv4 | Managed `hcloud_primary_ip` for Burned IP renew without wipe. |
 | Dest | Live `#1` `amateurkunstamstelveen.nl`. Roster: #2 `seapalace.nl`, #3 `jamstudios.nl`. Burn = our IP, not dest’s. |
-| Burned IP | Trip: `ssh-allow-me` first (skip at home). Then `vpn:provision:renew-ip` (= IP replace → `hostkeys:accept -- vpn` → `vpn:config`). Optional dest step after: `configure:apply` → `vpn:config` again. Re-import all devices. |
+| Burned IP | `vpn:provision:renew-ip` (= targeted IP replace [keeps travel allow-me] → `ssh-allow-me` → `hostkeys:accept` → `vpn:config` even if hostkeys fails). Optional dest step after: `configure:apply` → `vpn:config` again. Re-import all devices. |
 | Wedged | destroy/apply → hostkeys → bootstrap → configure → `vpn:config`. |
 | SSH | Home-only standing lists; travel `ssh-allow-me` / `ssh-revoke-me`. |
 | Ops DNS | No VPN hostname; links embed IPv4. |

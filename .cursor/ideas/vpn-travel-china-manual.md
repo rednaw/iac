@@ -141,7 +141,7 @@ With OneXray **on**, at home:
 | WebRTC | [browserleaks.com/webrtc](https://browserleaks.com/webrtc) | No home LAN / home public IP |
 | Probe view | From another network: `curl -sI https://<vps-ip>` with `--resolve <dest>:443:<vps-ip>` | You get the dest site, like any stranger would |
 
-Then rehearse the two drills **at home** while mistakes are cheap: **Burned IP renew** (§6.1, skipping `ssh-allow-me`), and a **VPN wipe** (§6.2: destroy → apply → `hostkeys:accept` → bootstrap → configure → `vpn:config`). Do **not** destroy the platform box — there is no disposable platform-dev.
+Then rehearse the two drills **at home** while mistakes are cheap: **Burned IP renew** (§6.1 — one `task vpn:provision:renew-ip`), and a **VPN wipe** (§6.2: destroy → apply → `hostkeys:accept` → bootstrap → configure → `vpn:config`). Do **not** destroy the platform box — there is no disposable platform-dev.
 
 Finally, work through the trip checklist at the bottom of the [spec](vpn-travel-china.md).
 
@@ -238,14 +238,14 @@ Diagnosis discipline: distinguishing "burned IP" from "broken box" is the whole 
 The GFW blocked **our** Hetzner IPv4 — not the dest’s real host. Disk, Docker, Xray, and SOPS keys stay; you are swapping the **managed primary IPv4** only. That new address is the fix. Stepping dest is optional camouflage for the next chapter (#2 = new SNI same hoster, #3 = different neighbourhood; or keep #1). Fail if the new address equals the old (Hetzner pool recycle) — retry until it differs. OneXray **off** on both devices, MacBook on eSIM:
 
 ```bash
-task ssh-allow-me             # trip only — before renew so hostkeys can SSH; skip at home
-task vpn:provision:renew-ip   # replace IPv4 → hostkeys:accept -- vpn → vpn:config
+task vpn:provision:renew-ip   # targeted IP replace → ssh-allow-me → hostkeys → vpn:config
+# (hostkeys may fail on CGNAT/port-22 filter; config still prints — re-import anyway)
 # optional: set next roster dest in secrets, then:
 # task vpn:configure:apply    # only if dest stepped — Xray on disk must learn the new SNI
 # task vpn:config             # again (renew already emitted the pre-step link)
 ```
 
-No bootstrap — and no configure unless dest stepped. Re-import on **both** devices → OneXray on → optionally `task ssh-revoke-me`. Never change dest while keeping a burned address.
+No bootstrap — and no configure unless dest stepped. Apply is **targeted** (primary IP + server only) so it does not wipe travel `ssh-allow-me` rules. Re-import on **every** device → OneXray on → optionally `task ssh-revoke-me`. Never change dest while keeping a burned address.
 
 ### 6.2 Wedged box (disk / Docker / compromise)
 

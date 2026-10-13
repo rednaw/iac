@@ -5,8 +5,9 @@
 #
 # No env argument anywhere: there is exactly one VPN box (TFC workspace "vpn").
 #
-# Burned IP (default): [travel: ssh-allow-me] → provision:renew-ip
-#   (= IP replace → hostkeys:accept -- vpn → config).
+# Burned IP (default): provision:renew-ip
+#   (= IP replace [targeted; keeps travel allow-me] → ssh-allow-me →
+#      hostkeys:accept -- vpn → config even if hostkeys fails).
 #   Optional dest step after: configure:apply → config again.
 # Wedged wipe: provision:destroy → provision:apply → hostkeys:accept →
 #   configure:bootstrap → configure:apply → config.
@@ -52,7 +53,7 @@ tasks:
           SECRETS_SCRIPT: scripts/vpn-tf-secrets.sh
 
   provision:renew-ip:
-    desc: "Burned IP: replace primary IPv4, then hostkeys:accept + vpn:config"
+    desc: "Burned IP: replace primary IPv4, then allow-me + hostkeys + vpn:config"
     silent: true
     deps: [":_check:sops-key", ":_check:secrets"]
     cmds:
@@ -74,6 +75,7 @@ tasks:
         }
         echo "🔁 Burned IP renew: keep disk, replace primary IPv4 (current ${old_ip})"
         echo "   Max attempts: ${MAX} (Hetzner may recycle the same address)"
+        echo "   Targeted apply (primary IP + server only — travel SSH allow-me kept)"
         echo ""
 
         unset TF_WORKSPACE || true
@@ -83,7 +85,12 @@ tasks:
         attempt=1
         while [ "$attempt" -le "$MAX" ]; do
           echo "—— attempt ${attempt}/${MAX}: terraform apply -replace=hcloud_primary_ip.v4 ——"
-          terraform -chdir="$TF_DIR" apply -replace=hcloud_primary_ip.v4 -auto-approve
+          # Do not apply the firewall: a full apply syncs SSH rules from Terraform
+          # and wipes Hetzner-only travel allow-me rules mid-renew.
+          terraform -chdir="$TF_DIR" apply -auto-approve \
+            -replace=hcloud_primary_ip.v4 \
+            -target=hcloud_primary_ip.v4 \
+            -target=module.server.hcloud_server.this
           new_ip=$(task hostkeys:ip -- vpn) || exit 1
           if [ "$new_ip" != "$old_ip" ]; then
             ssh-keygen -R "$old_ip" -f "${HOME}/.ssh/known_hosts" -q 2>/dev/null || true
@@ -96,7 +103,18 @@ tasks:
         done
         echo "❌ Still on ${old_ip} after ${MAX} replaces. Wait and retry, or wipe (destroy/apply)." >&2
         exit 1
-      - task hostkeys:accept -- vpn
+      # Refresh travel SSH allow (no-op at home if already on standing list).
+      - task: :ssh-allow-me
+      - |
+        set +e
+        task hostkeys:accept -- vpn
+        hk=$?
+        set -e
+        if [ "$hk" -ne 0 ]; then
+          echo "" >&2
+          echo "⚠️  hostkeys:accept failed (CGNAT / port 22 filtered?). vpn:config still runs —" >&2
+          echo "   re-import the link; fix SSH later (Console, or allow-me with the real egress)." >&2
+        fi
       - task: config
 
   provision:output:
