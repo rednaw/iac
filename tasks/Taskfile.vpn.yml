@@ -6,7 +6,7 @@
 # No env argument anywhere: there is exactly one VPN box (TFC workspace "vpn").
 #
 # Burned IP (default): provision:renew-ip
-#   (= targeted IP replace → vpn:config; no SSH).
+#   (= create new primary IPv4 → move server → delete old → vpn:config; no SSH).
 #   Optional dest step after: configure:apply → config again.
 # Wedged wipe: provision:destroy → provision:apply → hostkeys:accept →
 #   configure:bootstrap → configure:apply → config.
@@ -14,8 +14,6 @@ version: '3'
 
 vars:
   VPN_TF_DIR: terraform/vpn
-  # Hetzner can hand back the same IPv4 after delete; renew retries replace.
-  RENEW_IP_MAX_ATTEMPTS: "5"
 
 tasks:
   provision:reconfigure:
@@ -52,57 +50,22 @@ tasks:
           SECRETS_SCRIPT: scripts/vpn-tf-secrets.sh
 
   provision:renew-ip:
-    desc: "Burned IP: replace primary IPv4, then vpn:config (no SSH)"
+    desc: "Burned IP: create/move/delete primary IPv4, then vpn:config (no SSH)"
     silent: true
     deps: [":_check:sops-key", ":_check:secrets"]
     cmds:
-      - task: :_terraform:init
-        vars:
-          TF_DIR: '{{.VPN_TF_DIR}}'
+      # hcloud swap does not need TFC. Init/state sync is best-effort inside the script
+      # (hotel Wi‑Fi without a working tunnel often cannot reach app.terraform.io).
       - |
         set -euo pipefail
-        # shellcheck disable=SC2269  # Task {{.VPN_TF_DIR}} → $TF_DIR for shellcheck only
-        TF_DIR="{{.VPN_TF_DIR}}"
-        MAX="{{.RENEW_IP_MAX_ATTEMPTS}}"
         export SOPS_KEY_FILE="{{.SOPS_KEY_FILE}}"
         export SECRETS_DIR="{{.SECRETS_DIR}}"
         export SECRETS_INFRA="{{.SECRETS_INFRA}}"
-
-        old_ip=$(task hostkeys:ip -- vpn) || {
-          echo "❌ No VPN server to renew (provision first?)" >&2
-          exit 1
-        }
-        echo "🔁 Burned IP renew: keep disk, replace primary IPv4 (current ${old_ip})"
-        echo "   Max attempts: ${MAX} (Hetzner may recycle the same address)"
-        echo "   Targeted apply (primary IP + server only — no SSH wait)"
-        echo ""
-
+        export VPN_TF_DIR="{{.VPN_TF_DIR}}"
         unset TF_WORKSPACE || true
         # shellcheck disable=SC1091
         . "./scripts/vpn-tf-secrets.sh"
-
-        attempt=1
-        while [ "$attempt" -le "$MAX" ]; do
-          echo "—— attempt ${attempt}/${MAX}: terraform apply -replace=hcloud_primary_ip.v4 ——"
-          # Do not apply the firewall: a full apply syncs SSH rules from Terraform
-          # and wipes Hetzner-only travel allow-me rules mid-renew.
-          terraform -chdir="$TF_DIR" apply -auto-approve \
-            -replace=hcloud_primary_ip.v4 \
-            -target=hcloud_primary_ip.v4 \
-            -target=module.server.hcloud_server.this
-          new_ip=$(task hostkeys:ip -- vpn) || exit 1
-          if [ "$new_ip" != "$old_ip" ]; then
-            ssh-keygen -R "$old_ip" -f "${HOME}/.ssh/known_hosts" -q 2>/dev/null || true
-            echo ""
-            echo "✅ Primary IPv4 renewed: ${old_ip} → ${new_ip}"
-            echo "   Re-import the link below on every device (SSH not required)."
-            exit 0
-          fi
-          echo "⚠️  Pool returned the same IPv4 (${new_ip}); retrying…" >&2
-          attempt=$((attempt + 1))
-        done
-        echo "❌ Still on ${old_ip} after ${MAX} replaces. Wait and retry, or wipe (destroy/apply)." >&2
-        exit 1
+        bash ./scripts/vpn-renew-ip.sh
       - task: config
 
   provision:output:
