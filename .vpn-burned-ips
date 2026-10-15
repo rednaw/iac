@@ -1,0 +1,9 @@
+# GFW-burned Hetzner primary IPv4s for this trip (local; gitignored).
+# vpn-renew-ip.sh appends on renew and rejects these on create.
+2.31.1.95
+2.31.48.200
+157.90.17.23
+46.225.46.11
+178.104.45.5
+5.75.148.65
+91.99.57.254

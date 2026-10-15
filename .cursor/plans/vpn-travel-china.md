@@ -31,7 +31,7 @@ eSIM price/GB/reviews: [../ideas/china-esim-comparison.md](../ideas/china-esim-c
 | IPv6 | VPS dual-stack; share links IPv4-only. |
 | Primary IPv4 | Managed `hcloud_primary_ip` for Burned IP renew without wipe. |
 | Dest | Live `#1` `amateurkunstamstelveen.nl`. Roster: #2 `seapalace.nl`, #3 `jamstudios.nl`. Burn = our IP, not dest’s. |
-| Burned IP | `vpn:provision:renew-ip` (= targeted IP replace → `vpn:config`; no SSH). Optional dest step after: `configure:apply` → `vpn:config` again. Re-import all devices. |
+| Burned IP | `vpn:provision:renew-ip` (= create new primary IPv4 → move server → delete old → `vpn:config`; no SSH; brief poweroff). Optional dest step after: `configure:apply` → `vpn:config` again. Re-import all devices. |
 | Wedged | destroy/apply → hostkeys → bootstrap → configure → `vpn:config`. |
 | SSH | Home-only standing lists; travel `ssh-allow-me` / `ssh-revoke-me`. |
 | Ops DNS | No VPN hostname; links embed IPv4. |
@@ -79,7 +79,7 @@ Choice: _unpicked_
 - [x] Agent: implemented
 - [x] Human: reviewed
 
-**Agent will implement** — done: `renew-ip` → targeted replace (IP+server only) → `vpn:config` (no SSH); `ssh-revoke-me` deletes marked rules as wholes (multi-CIDR); `ssh-allow-me` multi-endpoint IP detect, standing-list skip, per-FW verify; manual aligned (hotel OneXray, shared UUID, travel eSIM street habit, no dual-CN-SIM default, no kill switch, GeoData/Custom Routing names, fail2ban off).
+**Agent will implement** — done: `renew-ip` → create/move/delete primary IPv4 (`scripts/vpn-renew-ip.sh`) → `vpn:config` (no SSH); `ssh-revoke-me` deletes marked rules as wholes (multi-CIDR); `ssh-allow-me` multi-endpoint IP detect, standing-list skip, per-FW verify; manual aligned (hotel OneXray, shared UUID, travel eSIM street habit, no dual-CN-SIM default, no kill switch, GeoData/Custom Routing names, fail2ban off).
 
 **Human must:** review diffs.
 
