@@ -24,6 +24,7 @@ includes:
   _ansible: tasks/Taskfile._ansible.yml
   platform: tasks/Taskfile.platform.yml
   vpn: tasks/Taskfile.vpn.yml
+  gate: tasks/Taskfile.gate.yml
   secrets: tasks/Taskfile.secrets.yml
   workflow: tasks/Taskfile.workflow.yml
   server: tasks/Taskfile.server.yml
@@ -54,14 +55,19 @@ tasks:
         echo "  task platform:configure:bootstrap   # One-time as root"
         echo "  task platform:configure:apply"
         echo ""
-        echo "VPN — travel VPN box (docs/future/vpn-travel-china-manual.md):"
+        echo "VPN — live trip box (Default project; docs/future/vpn-travel-china-manual.md):"
         echo "  task vpn:provision:plan|apply|destroy|output"
         echo "  task vpn:provision:renew-ip"
         echo "  task vpn:configure:bootstrap|apply"
         echo "  task vpn:config"
         echo ""
+        echo "Gate — parallel box (Hetzner project Gate / TFC gate; NOT the trip vpn):"
+        echo "  task gate:provision:plan|apply|destroy|output"
+        echo "  task gate:configure:bootstrap|apply"
+        echo "  # secrets: ../secrets/gate.yml only; never use for trip server vpn"
+        echo ""
         echo "Host keys / travel SSH:"
-        echo "  task hostkeys:accept -- platform|vpn"
+        echo "  task hostkeys:accept -- platform|vpn|gate"
         echo "  task ssh-allow-me"
         echo "  task ssh-revoke-me"
         echo ""
