@@ -1,0 +1,87 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+#
+# Parallel Gate box in Hetzner Cloud project Gate (TFC workspace "gate").
+# Not the live trip VPN — that remains vpn:* / terraform/vpn / Default token.
+#
+# Secrets: ../secrets/gate.yml only for Hetzner + Fresh vpn_*.
+# TFC org/token: still from infra.yml via _terraform:init.
+version: '3'
+
+vars:
+  GATE_TF_DIR: terraform/gate
+  GATE_SECRETS: '{{.SECRETS_DIR}}/gate.yml'
+
+tasks:
+  provision:reconfigure:
+    desc: "Reconfigure Terraform backend for gate (TFC workspace gate)"
+    cmds:
+      - task: :_terraform:reconfigure
+        vars:
+          TF_DIR: '{{.GATE_TF_DIR}}'
+
+  provision:plan:
+    desc: "Plan Gate provisioning (project Gate token from gate.yml; not trip vpn)"
+    deps: [":_check:sops-key", ":_check:secrets", _check:gate-secrets]
+    cmds:
+      - task: :_terraform:plan
+        vars:
+          TF_DIR: '{{.GATE_TF_DIR}}'
+          SECRETS_SCRIPT: scripts/gate-tf-secrets.sh
+
+  provision:apply:
+    desc: "Apply Gate provisioning (creates gate-v4 + server gate + firewall)"
+    deps: [":_check:sops-key", ":_check:secrets", _check:gate-secrets]
+    cmds:
+      - task: :_terraform:apply
+        vars:
+          TF_DIR: '{{.GATE_TF_DIR}}'
+          PURPOSE: gate
+          SECRETS_SCRIPT: scripts/gate-tf-secrets.sh
+
+  provision:destroy:
+    desc: "Destroy Gate box + primary IP + firewall (trip vpn untouched)"
+    deps: [":_check:sops-key", ":_check:secrets", _check:gate-secrets]
+    cmds:
+      - task: :_terraform:destroy
+        vars:
+          TF_DIR: '{{.GATE_TF_DIR}}'
+          PURPOSE: gate
+          SECRETS_SCRIPT: scripts/gate-tf-secrets.sh
+
+  provision:output:
+    desc: "Show Gate provisioning outputs (current IPv4)"
+    cmds:
+      - task: :_terraform:output
+        vars:
+          TF_DIR: '{{.GATE_TF_DIR}}'
+
+  configure:bootstrap:
+    desc: "One-time bootstrap as root (after hostkeys:accept -- gate)"
+    deps: [":_check:sops-key", ":_check:secrets", _check:gate-secrets]
+    cmds:
+      - task: :_ansible:bootstrap
+        vars:
+          PURPOSE: gate
+          PLAYBOOK: playbooks/bootstrap.yml
+          SECRETS_FILE: '{{.GATE_SECRETS}}'
+          HCLOUD_SECRETS_SCRIPT: scripts/gate-tf-secrets.sh
+
+  configure:apply:
+    desc: "Apply Gate config (base + Xray REALITY; Fresh vpn_* from gate.yml)"
+    deps: [":_check:sops-key", ":_check:secrets", _check:gate-secrets]
+    cmds:
+      - task: :_ansible:run
+        vars:
+          PURPOSE: gate
+          PLAYBOOK: playbooks/vpn.yml
+          SECRETS_FILE: '{{.GATE_SECRETS}}'
+          HCLOUD_SECRETS_SCRIPT: scripts/gate-tf-secrets.sh
+
+  _check:gate-secrets:
+    desc: "(internal) Ensure secrets/gate.yml exists"
+    internal: true
+    silent: true
+    deps: [":_check:secrets-dir"]
+    preconditions:
+      - sh: test -f "{{.GATE_SECRETS}}"
+        msg: "Encrypted gate secrets missing: {{.GATE_SECRETS}}. Add gate.yml (project-Gate token + Fresh vpn_*)."

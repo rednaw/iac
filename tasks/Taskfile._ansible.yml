@@ -4,16 +4,13 @@
 # (e.g. platform:configure:apply -> _ansible:run).
 #
 # Parameters consumers pass:
-#   PURPOSE    Server purpose ("platform", "vpn")
-#   PLAYBOOK   Playbook path relative to ansible/ (e.g. "playbooks/server.yml")
+#   PURPOSE                 Server purpose ("platform", "vpn", "gate")
+#   PLAYBOOK                Playbook path relative to ansible/
+#   SECRETS_FILE            Optional path for ansible -e secrets_file=…
+#   HCLOUD_SECRETS_SCRIPT   Optional sourceable script that exports
+#                           TF_VAR_hcloud_token / HCLOUD_TOKEN (gate)
 #
-# Inventory name is the purpose ("platform" / "vpn"). ansible_host is always
-# the API IPv4 (hostkeys:ip), never a DNS hostname — ansible.cfg pins
-# StrictHostKeyChecking=yes, so run hostkeys:accept once after a (re)create
-# before bootstrap/run.
-#
-# Callers must pass PURPOSE as a literal (platform / vpn). Do not share that
-# name in include-level Task vars — later includes overwrite earlier ones.
+# Inventory name is the purpose. ansible_host is always the API IPv4.
 version: '3'
 
 tasks:
@@ -34,9 +31,23 @@ tasks:
     cmds:
       - task: install
       - |
+        set -euo pipefail
+        export SOPS_KEY_FILE="{{.SOPS_KEY_FILE}}"
+        export SECRETS_DIR="{{.SECRETS_DIR}}"
+        if [ -n "{{.HCLOUD_SECRETS_SCRIPT}}" ]; then
+          # This task runs with dir: ansible — script path is from repo root.
+          # shellcheck disable=SC1090
+          . "$(git rev-parse --show-toplevel)/{{.HCLOUD_SECRETS_SCRIPT}}"
+          export HCLOUD_TOKEN="${TF_VAR_hcloud_token:?gate HCLOUD_TOKEN missing after secrets script}"
+          unset HCLOUD_CONTEXT 2>/dev/null || true
+        fi
         echo "NOTE: This step connects as root using your Hetzner SSH key to set up the ubuntu user."
         IP=$(task hostkeys:ip -- "{{.PURPOSE}}") || exit 1
-        ansible-playbook -i "{{.PURPOSE}}," "{{.PLAYBOOK}}" -e "ansible_host=${IP}"
+        EXTRA=()
+        if [ -n "{{.SECRETS_FILE}}" ]; then
+          EXTRA+=(-e "secrets_file={{.SECRETS_FILE}}")
+        fi
+        ansible-playbook -i "{{.PURPOSE}}," "{{.PLAYBOOK}}" -e "ansible_host=${IP}" "${EXTRA[@]}"
 
   run:
     desc: "(internal) Run Ansible playbook"
@@ -46,6 +57,20 @@ tasks:
     cmds:
       - task: install
       - |
+        set -euo pipefail
+        export SOPS_KEY_FILE="{{.SOPS_KEY_FILE}}"
+        export SECRETS_DIR="{{.SECRETS_DIR}}"
+        if [ -n "{{.HCLOUD_SECRETS_SCRIPT}}" ]; then
+          # This task runs with dir: ansible — script path is from repo root.
+          # shellcheck disable=SC1090
+          . "$(git rev-parse --show-toplevel)/{{.HCLOUD_SECRETS_SCRIPT}}"
+          export HCLOUD_TOKEN="${TF_VAR_hcloud_token:?gate HCLOUD_TOKEN missing after secrets script}"
+          unset HCLOUD_CONTEXT 2>/dev/null || true
+        fi
         echo "⚙️  Running Ansible playbook on {{.PURPOSE}}..."
         IP=$(task hostkeys:ip -- "{{.PURPOSE}}") || exit 1
-        ansible-playbook -i "{{.PURPOSE}}," "{{.PLAYBOOK}}" -e "ansible_host=${IP}"
+        EXTRA=()
+        if [ -n "{{.SECRETS_FILE}}" ]; then
+          EXTRA+=(-e "secrets_file={{.SECRETS_FILE}}")
+        fi
+        ansible-playbook -i "{{.PURPOSE}}," "{{.PLAYBOOK}}" -e "ansible_host=${IP}" "${EXTRA[@]}"
