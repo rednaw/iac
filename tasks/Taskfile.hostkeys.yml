@@ -23,13 +23,12 @@ tasks:
     cmds:
       - |
         set -euo pipefail
-        PURPOSE="{{.PURPOSE}}"
-        case "$PURPOSE" in
+        case "{{.PURPOSE}}" in
           platform) SERVER_NAME="platform" ;;
           vpn)      SERVER_NAME="vpn" ;;
           gate)     SERVER_NAME="gate" ;;
         esac
-        if [ "$PURPOSE" = "gate" ]; then
+        if [ "{{.PURPOSE}}" = "gate" ]; then
           export SOPS_KEY_FILE="{{.SOPS_KEY_FILE}}"
           export SECRETS_DIR="{{.SECRETS_DIR}}"
           # shellcheck disable=SC1091
