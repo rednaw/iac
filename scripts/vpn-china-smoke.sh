@@ -9,10 +9,12 @@
 # Optional: VPN_DEST=…  EXPECT_IP=…  TIMEOUT=…  FAST=…
 set -euo pipefail
 
-VPN_DEST="${VPN_DEST:-amateurkunstamstelveen.nl}"
+VPN_DEST="${VPN_DEST:-}"
 EXPECT_IP="${EXPECT_IP:-}"
 TIMEOUT="${TIMEOUT:-5}"
 FAST="${FAST:-3}"
+# Wikipedia through the tunnel is flaky (redirects / UA / short timeout) even when
+# the VPS egress match already proves OneXray is on — keep a soft probe only.
 
 ok() { printf '  ✓  %s\n' "$1"; }
 fail() { printf '  ✗  %s\n' "$1"; }
@@ -72,7 +74,11 @@ echo "  Are you exiting through the travel VPS? (OneXray on + this network)"
 if [ -n "$EXPECT_IP" ]; then
   echo "  Expected VPS address: ${EXPECT_IP}"
 fi
-echo "  Cover site (dest):    ${VPN_DEST}"
+if [ -n "$VPN_DEST" ]; then
+  echo "  Cover site (dest):    ${VPN_DEST}"
+else
+  echo "  Cover site (dest):    (unset — set VPN_DEST or run via task vpn:smoke)"
+fi
 echo ""
 echo "Checks:"
 
@@ -137,7 +143,7 @@ fi
 PROBE_IP="${EXPECT_IP:-$IPIFY}"
 if [ "$MATCH_OK" -eq 1 ]; then
   VPS443_OK=1
-elif [ -n "$PROBE_IP" ]; then
+elif [ -n "$PROBE_IP" ] && [ -n "$VPN_DEST" ]; then
   code=$(http_code "https://${VPN_DEST}/" --resolve "${VPN_DEST}:443:${PROBE_IP}")
   if [[ "$code" =~ ^[23][0-9][0-9]$ ]]; then
     VPS443_OK=1
@@ -145,14 +151,22 @@ elif [ -n "$PROBE_IP" ]; then
   else
     fail "VPS port 443 not reachable from here (HTTP ${code}) — burned Wi‑Fi or box down?"
   fi
+elif [ -n "$PROBE_IP" ]; then
+  skip "No dest set — skipping direct VPS:443 probe"
 else
   fail "No address to probe for VPS port 443"
 fi
 
-# Normally needs the tunnel from mainland (Cloudflare does not count).
-if curl_ok "https://www.wikipedia.org/"; then
+# Western site probe (not Cloudflare). Soft when MATCH_OK already proves the tunnel.
+WEST_TIMEOUT=$(( TIMEOUT * 2 ))
+if run_to "$WEST_TIMEOUT" curl -4 -fsSL --connect-timeout "$TIMEOUT" --max-time "$WEST_TIMEOUT" \
+     -o /dev/null "https://www.wikipedia.org/" 2>/dev/null \
+  || run_to "$WEST_TIMEOUT" curl -4 -fsSL --connect-timeout "$TIMEOUT" --max-time "$WEST_TIMEOUT" \
+     -o /dev/null "https://en.wikipedia.org/wiki/Main_Page" 2>/dev/null; then
   WEST_OK=1
   ok "Wikipedia loads — tunnel/breakout likely on"
+elif [ "$MATCH_OK" -eq 1 ]; then
+  skip "Wikipedia curl flaked — ignoring (VPS egress already matched)"
 else
   fail "Wikipedia failed — usual when OneXray is OFF here"
 fi
@@ -209,11 +223,13 @@ echo "  Path: ${path_human}"
 verdict="DOWN"
 hint="Network looks dead. Fix Wi‑Fi / mobile data first, then run again."
 
-# MATCH_OK already proves egress via this VPS; vps443 is extra (can flake in some nets).
-if [ "$MATCH_OK" -eq 1 ] && [ "$WEST_OK" -eq 1 ]; then
+# MATCH_OK already proves egress via this VPS; Wikipedia / vps443 are extras (can flake).
+if [ "$MATCH_OK" -eq 1 ]; then
   verdict="OK"
   if [ "$ESIMISH" -eq 1 ]; then
     hint="Tunnel works on eSIM/breakout. That does NOT prove hotel Wi‑Fi is fine — retest on hotel Wi‑Fi with OneXray ON."
+  elif [ "$WEST_OK" -eq 0 ]; then
+    hint="Tunnel works (VPS egress matched). Wikipedia curl flaked — ignore if the browser loads it."
   elif [ "$SPLIT_OK" -eq 0 ]; then
     hint="Tunnel works. If China apps should bypass the VPN, check Custom Routing / GeoData in OneXray."
   else

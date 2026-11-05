@@ -10,11 +10,11 @@
 # Denylist: .vpn-burned-ips (gitignored) — append old IP on renew; reject as live.
 # Brief poweroff during move. Disk kept.
 #
-# Preconditions: cwd = iac repo root; hcloud auth; TF_VAR_* set.
+# Preconditions: cwd = iac repo root; hcloud auth.
+# TFC state is not updated here — refresh later with task vpn:provision:apply if needed.
 set -euo pipefail
 
 SERVER="${VPN_SERVER_NAME:-vpn}"
-TF_DIR="${VPN_TF_DIR:-terraform/vpn}"
 IP_NAME="${VPN_PRIMARY_IP_NAME:-vpn-v4}"
 POWER_WAIT_MAX="${VPN_RENEW_POWER_WAIT_MAX:-90}"
 CREATE_MAX="${VPN_RENEW_CREATE_MAX:-15}"
@@ -99,21 +99,30 @@ new_id=""
 new_ip=""
 new_name=""
 attempt=1
+
+cleanup_holds() {
+  echo "⚠️  Cleaning up IPs held this run…" >&2
+  delete_held
+}
+trap cleanup_holds ERR EXIT
+
 while [ "$attempt" -le "$CREATE_MAX" ]; do
   ts=$(date -u +%Y%m%d%H%M%S)
   new_name="${IP_NAME}-new-${ts}-${attempt}"
   echo "—— create primary IPv4 ${new_name} (attempt ${attempt}/${CREATE_MAX}) ——"
-  create_json=$(hcloud primary-ip create \
+  if ! create_json=$(hcloud primary-ip create \
     --type ipv4 \
     --name "$new_name" \
     --location "$location" \
     --auto-delete=false \
-    -o json)
+    -o json); then
+    echo "❌ primary-ip create failed (quota or API). Holds from this run will be deleted." >&2
+    exit 1
+  fi
   new_id=$(echo "$create_json" | yq -r '.primary_ip.id // .id')
   new_ip=$(echo "$create_json" | yq -r '.primary_ip.ip // .ip')
   if ! [[ "$new_id" =~ ^[0-9]+$ ]] || ! [[ "$new_ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
     echo "❌ primary-ip create failed to return id/ip: ${create_json}" >&2
-    delete_held
     exit 1
   fi
   if [ "$new_ip" = "$old_ip" ] || is_burned "$new_ip"; then
@@ -126,11 +135,13 @@ while [ "$attempt" -le "$CREATE_MAX" ]; do
   break
 done
 if [ "$attempt" -gt "$CREATE_MAX" ]; then
-  echo "❌ No fresh IPv4 after ${CREATE_MAX} creates; deleting holds from this run…" >&2
-  delete_held
+  echo "❌ No fresh IPv4 after ${CREATE_MAX} creates." >&2
   exit 1
 fi
 
+# Successful create loop — drop EXIT cleanup of holds (still need them until
+# after move; ERR trap below keeps delete_held on later failure).
+trap - EXIT
 cleanup_on_fail() {
   echo "⚠️  Aborting — server left as-is; deleting holds from this run; new ${new_id} may need manual cleanup" >&2
   delete_held
@@ -175,19 +186,6 @@ done < <(hcloud primary-ip list -o json | yq -r '
 
 echo "—— rename ${new_name} → ${IP_NAME} ——"
 hcloud primary-ip update --name "$IP_NAME" "$new_id"
-
-echo "—— sync Terraform state (best-effort; skip if TFC unreachable) ——"
-if terraform -chdir="$TF_DIR" init -input=false >/dev/null 2>&1 \
-  && terraform -chdir="$TF_DIR" state rm 'hcloud_primary_ip.v4' >/dev/null 2>&1 \
-  && terraform -chdir="$TF_DIR" import -input=false 'hcloud_primary_ip.v4' "$new_id" >/dev/null 2>&1 \
-  && terraform -chdir="$TF_DIR" apply -auto-approve -refresh-only -input=false \
-       -target=hcloud_primary_ip.v4 \
-       -target=module.server.hcloud_server.this >/dev/null 2>&1; then
-  echo "   TF state updated"
-else
-  echo "⚠️  TF state NOT synced (no TFC / init failed). Live IP is still ${new_ip}." >&2
-  echo "   From a path that reaches app.terraform.io later: re-run state fix or full vpn apply." >&2
-fi
 
 ssh-keygen -R "$old_ip" -f "${HOME}/.ssh/known_hosts" -q 2>/dev/null || true
 

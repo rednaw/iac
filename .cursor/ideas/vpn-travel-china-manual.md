@@ -200,7 +200,12 @@ Facts to remember: IPv4-only detection (several public endpoints); refuses iac s
 
 ### Changing dest (roster step)
 
-Only at home, or together with a Burned IP **renew** (new IPv4): edit `vpn_dest` in secrets → `task vpn:configure:apply` if Xray must pick up the new dest on disk → `task vpn:config` → re-import on **both** devices.
+Together with a Burned IP **renew** (new IPv4) — never dest-only on an already-burned address.
+
+1. Edit `vpn_dest` in `../secrets/infra.yml` (roster `#2` `seapalace.nl`, then `#3` `jamstudios.nl`).
+2. `task vpn:provision:renew-ip` → `task vpn:config` (clients can already use the new IP with **old** SNI until step 4–5 finish — or wait).
+3. **SSH for configure** (eSIM, OneXray **off**): standing home CIDRs in `vpn_allowed_ssh_ips` are for **post-trip EU** only — they do not help from CN. Do not rely on `ssh-allow-me` (CGNAT). **Brief world-open:** set `vpn_allowed_ssh_ips` to `["0.0.0.0/0", "::/0"]` → `task vpn:provision:apply` → `task vpn:configure:apply` → restore home CIDRs in secrets → `task vpn:provision:apply` again. Same sitting; never leave 22 world-open.
+4. `task vpn:config` → re-import on **every** device (new SNI in the link).
 
 Roster roles (spec): **#2** = cheap SNI swap (same TransIP machine as #1 — not self-defeating; the GFW blocked *our* IP, not theirs). **#3** = neighbourhood swap (different hoster). Keeping #1 after a renew is fine when you only needed a new address.
 

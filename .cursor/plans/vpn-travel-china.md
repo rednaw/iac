@@ -7,7 +7,7 @@ Custom Routing JSON: [../ideas/onexray-custom-routing-cn.json](../ideas/onexray-
 Dest roster / notes: [../ideas/vpn-travel-china.md](../ideas/vpn-travel-china.md).  
 eSIM price/GB/reviews: [../ideas/china-esim-comparison.md](../ideas/china-esim-comparison.md).
 
-**Live now (Beijing hotel):** TFC `vpn`; server `vpn` = `2.31.48.200` / `2a01:4f8:1c16:ad0a::/64` (`nbg1`); dest `amateurkunstamstelveen.nl`; **one shared UUID**. Hotel Wi‑Fi burned prior IPv4; renew done (targeted apply + allow-me + config); OneXray working again via current `vpn:config` link.
+**Live now (Beijing hotel):** TFC `vpn` (output may lag renew); live IPv4 via `hostkeys:ip` / `vpn:config`; dest `#3` `jamstudios.nl`; **one shared UUID**. Tunnel OK on hotel Wi‑Fi (smoke: VPS egress match).
 
 ---
 
@@ -30,10 +30,10 @@ eSIM price/GB/reviews: [../ideas/china-esim-comparison.md](../ideas/china-esim-c
 | OneXray vs eSIM | Complementary, not duplicates. **eSIM** = phone independence outdoors (and indoors if you prefer). **VPS** = hotel Mac, rednaw admin, shared exit, Burned-IP story. Do not rely on eSIM for the laptop. |
 | IPv6 | VPS dual-stack; share links IPv4-only. |
 | Primary IPv4 | Managed `hcloud_primary_ip` for Burned IP renew without wipe. |
-| Dest | Live `#1` `amateurkunstamstelveen.nl`. Roster: #2 `seapalace.nl`, #3 `jamstudios.nl`. Burn = our IP, not dest’s. |
+| Dest | Live `#3` `jamstudios.nl`. Roster: #1 `amateurkunstamstelveen.nl`, #2 `seapalace.nl`. Burn = our IP, not dest’s. |
 | Burned IP | `vpn:provision:renew-ip` (= create new primary IPv4 → move server → delete old → `vpn:config`; no SSH; brief poweroff). Optional dest step after: `configure:apply` → `vpn:config` again. Re-import all devices. |
 | Wedged | destroy/apply → hostkeys → bootstrap → configure → `vpn:config`. |
-| SSH | Home-only standing lists; travel `ssh-allow-me` / `ssh-revoke-me`. |
+| SSH | **Platform:** standing home CIDRs (EU admin). **VPN:** standing home CIDRs kept for post-trip only — useless from CN. Trip `configure:apply` (dest, Xray): **brief world-open** — `vpn_allowed_ssh_ips` → `0.0.0.0/0` (+ `::/0`) → `task vpn:provision:apply` → `configure:apply` → restore home CIDRs → `provision:apply`. Same sitting; never leave 22 world-open; eSIM, OneXray off. Do not rely on `ssh-allow-me` for vpn (CGNAT). `renew-ip` / `vpn:config` stay no-SSH. |
 | Ops DNS | No VPN hostname; links embed IPv4. |
 | Competition | No second commercial VPN by default. |
 | Platform name | Literal `"platform"`; no `var.server_name`. |

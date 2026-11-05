@@ -54,14 +54,12 @@ tasks:
     silent: true
     deps: [":_check:sops-key", ":_check:secrets"]
     cmds:
-      # hcloud swap does not need TFC. Init/state sync is best-effort inside the script
-      # (hotel Wi‑Fi without a working tunnel often cannot reach app.terraform.io).
+      # hcloud swap only — no TFC. State drifts until a later vpn:provision:apply.
       - |
         set -euo pipefail
         export SOPS_KEY_FILE="{{.SOPS_KEY_FILE}}"
         export SECRETS_DIR="{{.SECRETS_DIR}}"
         export SECRETS_INFRA="{{.SECRETS_INFRA}}"
-        export VPN_TF_DIR="{{.VPN_TF_DIR}}"
         unset TF_WORKSPACE || true
         # shellcheck disable=SC1091
         . "./scripts/vpn-tf-secrets.sh"
@@ -94,8 +92,16 @@ tasks:
   smoke:
     desc: "Hotel binary smoke (OneXray on): works? / renew? — exit 0 = OK"
     silent: true
+    deps: [":_check:sops-key", ":_check:secrets"]
     cmds:
-      - bash scripts/vpn-china-smoke.sh
+      - |
+        # Dest from secrets (override with VPN_DEST=… if needed). Soft-fail if sops hiccups.
+        if [ -z "${VPN_DEST:-}" ]; then
+          VPN_DEST=$(SOPS_AGE_KEY_FILE="{{.SOPS_KEY_FILE}}" sops -d "{{.SECRETS_INFRA}}" 2>/dev/null \
+            | yq -r '.vpn_dest // ""' 2>/dev/null || true)
+          export VPN_DEST
+        fi
+        bash scripts/vpn-china-smoke.sh
 
   config:
     desc: "Emit OneXray share link + QR from secrets and the current IPv4 (no SSH; does not install Xray)"
