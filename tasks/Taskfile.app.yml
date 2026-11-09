@@ -17,6 +17,12 @@ vars:
   IAC_ROOT:
     sh: realpath "{{.TASKFILE_DIR}}/.."
   APPS_ROOT: /workspaces
+  # Prefer shell REGISTRY; else registry.<base_domain> from secrets (no postCreate needed).
+  REGISTRY:
+    sh: |
+      if [ -n "${REGISTRY:-}" ]; then printf '%s\n' "$REGISTRY"
+      else printf 'registry.%s\n' "$(SOPS_AGE_KEY_FILE="{{.SOPS_KEY_FILE}}" sops -d "{{.SECRETS_INFRA}}" | yq -r '.base_domain')"
+      fi
 
 tasks:
   deploy:
@@ -61,7 +67,7 @@ tasks:
           -e "ansible_host=${IP}" \
           -e "app_root={{.APP_ROOT}}" \
           -e "sha={{.SHA}}" \
-          -e "registry_name=${REGISTRY}" \
+          -e "registry_name={{.REGISTRY}}" \
           -e "image_name=$IMAGE_NAME"
 
   versions:
@@ -80,7 +86,7 @@ tasks:
       - |
         IMAGE_NAME=$(yq -r '.image_name' "{{.APP_ROOT}}/.iac/iac.yml")
         APP_SLUG="${IMAGE_NAME##*/}"
-        cd "{{.IAC_ROOT}}" && python3 scripts/application_versions.py "$REGISTRY" "$IMAGE_NAME" "$APP_SLUG"
+        cd "{{.IAC_ROOT}}" && python3 scripts/application_versions.py "{{.REGISTRY}}" "$IMAGE_NAME" "$APP_SLUG"
 
   delete-tag:
     desc: "Remove a tag from the app image in the registry (one-time, e.g. task app:delete-tag -- myapp latest)"
@@ -99,7 +105,7 @@ tasks:
         vars: { APP: '{{.APP}}' }
       - |
         IMAGE_NAME=$(yq -r '.image_name' "{{.APP_ROOT}}/.iac/iac.yml")
-        REF="${REGISTRY}/${IMAGE_NAME}:{{.TAG}}"
+        REF="{{.REGISTRY}}/${IMAGE_NAME}:{{.TAG}}"
         echo "Deleting tag {{.TAG}} from registry (${REF})..."
         crane delete "$REF"
         echo "Done."

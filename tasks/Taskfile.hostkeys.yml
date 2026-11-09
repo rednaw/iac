@@ -96,9 +96,6 @@ tasks:
     desc: "(internal) Validate CLI_ARGS: platform|vpn|gate"
     internal: true
     silent: true
-    preconditions:
-      - sh: '[ -n "${BASE_DOMAIN:-}" ]'
-        msg: "BASE_DOMAIN must be set by devcontainer (from base_domain in secrets)"
     cmds:
       - |
         PURPOSE=$(echo "{{.CLI_ARGS}}" | awk '{print $1}')
