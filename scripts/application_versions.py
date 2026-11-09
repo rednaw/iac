@@ -92,6 +92,14 @@ def parse_timestamp(ts: str) -> datetime | None:
         return None
 
 
+def format_created(ts: str) -> str:
+    """Display created labels as 'YYYY-MM-DD HH:MM:SS' (OCI often uses ISO T/Z)."""
+    dt = parse_timestamp(ts)
+    if dt is None:
+        return ts
+    return dt.strftime("%Y-%m-%d %H:%M:%S")
+
+
 def _sort_key_timestamp(ts: str) -> tuple[bool, float]:
     """Return (is_empty, comparable_float) so sort never mixes naive/aware datetimes.
     Empty timestamps sort last (reverse=True: newest first, then empty at end)."""
@@ -175,7 +183,7 @@ def print_overview(full_repo: str, tags: list[str], deployed_digest: str):
     
     for img in images:
         tag = img["tag"]
-        created = img["created"]
+        created = format_created(img["created"])
         description = img["description"]
         is_deployed = img["is_deployed"]
         row = f"  {created:20} {description:40} {tag:16}"
