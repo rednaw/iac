@@ -4,12 +4,12 @@
 #
 # Naming:
 #   platform: Hetzner server name "platform"; Ansible inventory "platform".
-#   vpn:      Hetzner server name "vpn"; inventory "vpn" (trip, Default project).
+#   vpn:      Hetzner server name "vpn"; inventory "vpn" (Default; secrets/vpn.yml).
 #   gate:     Hetzner server name "gate"; inventory "gate" (Cloud project Gate).
 #   SSH/Ansible always use the API IPv4 (no platform DNS name).
 #
-# Purpose gate always loads HCLOUD_TOKEN from secrets/gate.yml (never ambient
-# Default/Rednaw token).
+# Purpose vpn / gate always load HCLOUD_TOKEN from secrets/vpn.yml or gate.yml
+# (never ambient Default token alone — vpn.yml should mirror Default).
 version: '3'
 
 tasks:
@@ -28,11 +28,11 @@ tasks:
           vpn)      SERVER_NAME="vpn" ;;
           gate)     SERVER_NAME="gate" ;;
         esac
-        if [ "{{.PURPOSE}}" = "gate" ]; then
+        if [ "{{.PURPOSE}}" = "gate" ] || [ "{{.PURPOSE}}" = "vpn" ]; then
           export SOPS_KEY_FILE="{{.SOPS_KEY_FILE}}"
           export SECRETS_DIR="{{.SECRETS_DIR}}"
           # shellcheck disable=SC1091
-          . "./scripts/gate-tf-secrets.sh"
+          . "./scripts/{{.PURPOSE}}-tf-secrets.sh"
         fi
         IP=$(hcloud server ip "$SERVER_NAME") || {
           echo "No Hetzner server named $SERVER_NAME (not provisioned?)" >&2
@@ -62,11 +62,11 @@ tasks:
     cmds:
       - |
         set -euo pipefail
-        if [ "{{.PURPOSE}}" = "gate" ]; then
+        if [ "{{.PURPOSE}}" = "gate" ] || [ "{{.PURPOSE}}" = "vpn" ]; then
           export SOPS_KEY_FILE="{{.SOPS_KEY_FILE}}"
           export SECRETS_DIR="{{.SECRETS_DIR}}"
           # shellcheck disable=SC1091
-          . "./scripts/gate-tf-secrets.sh"
+          . "./scripts/{{.PURPOSE}}-tf-secrets.sh"
         fi
         IP=$(task hostkeys:ip -- "{{.PURPOSE}}") || exit 1
         ssh-keygen -R "$IP" -f "${HOME}/.ssh/known_hosts" -q 2>/dev/null || true
@@ -89,7 +89,7 @@ tasks:
           attempt=$((attempt + 1))
         done
         echo "❌ Could not SSH to ${IP} as ubuntu or root after ${MAX} attempts." >&2
-        echo "   Away from home? Gate uses vpn_allowed_ssh_ips in gate.yml (world for first apply)." >&2
+        echo "   Away from home? vpn/gate use vpn_allowed_ssh_ips in vpn.yml / gate.yml (world for first apply)." >&2
         exit 1
 
   _check:purpose:

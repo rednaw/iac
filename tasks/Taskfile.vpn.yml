@@ -1,19 +1,17 @@
 # yaml-language-server: $schema=https://taskfile.dev/schema.json
 #
-# Public commands for the "vpn" server purpose (travel VPN, REALITY on 443).
-# Design: docs/future/vpn-travel-china.md — manual: vpn-travel-china-manual.md
+# Public commands for the "vpn" server purpose (dev REALITY box on Default).
+# Secrets: ../secrets/vpn.yml only for Hetzner + vpn_*. TFC org still infra.yml.
 #
-# No env argument anywhere: there is exactly one VPN box (TFC workspace "vpn").
-#
-# Burned IP (default): provision:renew-ip
-#   (= create new primary IPv4 → move server → delete old → vpn:config; no SSH).
-#   Optional dest step after: configure:apply → config again.
+# Burned IP (break-glass): provision:renew-ip
+#   Primary renew = fullmoongate/vpn IssueOps.
 # Wedged wipe: provision:destroy → provision:apply → hostkeys:accept →
 #   configure:bootstrap → configure:apply → config.
 version: '3'
 
 vars:
   VPN_TF_DIR: terraform/vpn
+  VPN_SECRETS: '{{.SECRETS_DIR}}/vpn.yml'
 
 tasks:
   provision:reconfigure:
@@ -25,6 +23,7 @@ tasks:
 
   provision:plan:
     desc: "Plan VPN provisioning changes"
+    deps: [":_check:sops-key", ":_check:secrets", _check:vpn-secrets]
     cmds:
       - task: :_terraform:plan
         vars:
@@ -33,6 +32,7 @@ tasks:
 
   provision:apply:
     desc: "Apply VPN provisioning (creates managed primary IPv4 + server)"
+    deps: [":_check:sops-key", ":_check:secrets", _check:vpn-secrets]
     cmds:
       - task: :_terraform:apply
         vars:
@@ -42,6 +42,7 @@ tasks:
 
   provision:destroy:
     desc: "Destroy VPN primary IP + box + firewall (platform untouched)"
+    deps: [":_check:sops-key", ":_check:secrets", _check:vpn-secrets]
     cmds:
       - task: :_terraform:destroy
         vars:
@@ -50,16 +51,16 @@ tasks:
           SECRETS_SCRIPT: scripts/vpn-tf-secrets.sh
 
   provision:renew-ip:
-    desc: "Burned IP: create/move/delete primary IPv4, then vpn:config (no SSH)"
+    desc: "Break-glass burned IP (prefer fullmoongate/vpn IssueOps); then vpn:config"
     silent: true
-    deps: [":_check:sops-key", ":_check:secrets"]
+    deps: [":_check:sops-key", ":_check:secrets", _check:vpn-secrets]
     cmds:
       # hcloud swap only — no TFC. State drifts until a later vpn:provision:apply.
       - |
         set -euo pipefail
         export SOPS_KEY_FILE="{{.SOPS_KEY_FILE}}"
         export SECRETS_DIR="{{.SECRETS_DIR}}"
-        export SECRETS_INFRA="{{.SECRETS_INFRA}}"
+        export SECRETS_VPN="{{.VPN_SECRETS}}"
         unset TF_WORKSPACE || true
         # shellcheck disable=SC1091
         . "./scripts/vpn-tf-secrets.sh"
@@ -75,29 +76,35 @@ tasks:
 
   configure:bootstrap:
     desc: "One-time bootstrap as root (after wipe recreate + hostkeys:accept; not needed for renew-ip)"
+    deps: [":_check:sops-key", ":_check:secrets", _check:vpn-secrets]
     cmds:
       - task: :_ansible:bootstrap
         vars:
           PURPOSE: vpn
           PLAYBOOK: playbooks/bootstrap.yml
+          SECRETS_FILE: '{{.VPN_SECRETS}}'
+          HCLOUD_SECRETS_SCRIPT: scripts/vpn-tf-secrets.sh
 
   configure:apply:
     desc: "Apply VPN server configuration (base hardening + Xray REALITY container)"
+    deps: [":_check:sops-key", ":_check:secrets", _check:vpn-secrets]
     cmds:
       - task: :_ansible:run
         vars:
           PURPOSE: vpn
           PLAYBOOK: playbooks/vpn.yml
+          SECRETS_FILE: '{{.VPN_SECRETS}}'
+          HCLOUD_SECRETS_SCRIPT: scripts/vpn-tf-secrets.sh
 
   smoke:
     desc: "Hotel binary smoke (OneXray on): works? / renew? — exit 0 = OK"
     silent: true
-    deps: [":_check:sops-key", ":_check:secrets"]
+    deps: [":_check:sops-key", ":_check:secrets", _check:vpn-secrets]
     cmds:
       - |
         # Dest from secrets (override with VPN_DEST=… if needed). Soft-fail if sops hiccups.
         if [ -z "${VPN_DEST:-}" ]; then
-          VPN_DEST=$(SOPS_AGE_KEY_FILE="{{.SOPS_KEY_FILE}}" sops -d "{{.SECRETS_INFRA}}" 2>/dev/null \
+          VPN_DEST=$(SOPS_AGE_KEY_FILE="{{.SOPS_KEY_FILE}}" sops -d "{{.VPN_SECRETS}}" 2>/dev/null \
             | yq -r '.vpn_dest // ""' 2>/dev/null || true)
           export VPN_DEST
         fi
@@ -106,17 +113,23 @@ tasks:
   config:
     desc: "Emit OneXray share link + QR from secrets and the current IPv4 (no SSH; does not install Xray)"
     silent: true
-    deps: [":_check:sops-key", ":_check:secrets"]
+    deps: [":_check:sops-key", ":_check:secrets", _check:vpn-secrets]
     cmds:
       - |
-        SECRETS=$(SOPS_AGE_KEY_FILE="{{.SOPS_KEY_FILE}}" sops -d "{{.SECRETS_INFRA}}")
+        set -euo pipefail
+        export SOPS_KEY_FILE="{{.SOPS_KEY_FILE}}"
+        export SECRETS_DIR="{{.SECRETS_DIR}}"
+        export SECRETS_VPN="{{.VPN_SECRETS}}"
+        # shellcheck disable=SC1091
+        . "./scripts/vpn-tf-secrets.sh"
+        SECRETS=$(SOPS_AGE_KEY_FILE="{{.SOPS_KEY_FILE}}" sops -d "{{.VPN_SECRETS}}")
         UUID=$(echo "$SECRETS" | yq -r '.vpn_uuid // ""')
         PBK=$(echo "$SECRETS" | yq -r '.vpn_reality_public_key // ""')
         SID=$(echo "$SECRETS" | yq -r '.vpn_short_id // ""')
         DEST=$(echo "$SECRETS" | yq -r '.vpn_dest // ""')
         for pair in "vpn_uuid:$UUID" "vpn_reality_public_key:$PBK" "vpn_short_id:$SID" "vpn_dest:$DEST"; do
           if [ -z "${pair#*:}" ]; then
-            echo "❌ ${pair%%:*} missing from {{.SECRETS_INFRA}} (see manual §2.1)" >&2
+            echo "❌ ${pair%%:*} missing from {{.VPN_SECRETS}}" >&2
             exit 1
           fi
         done
@@ -135,3 +148,12 @@ tasks:
         echo ""
         echo "⚠️  This link IS the credential (UUID + public key). Never share it."
         echo "   Client routing: geosite:cn → direct, everything else → this outbound; no geoip:cn."
+
+  _check:vpn-secrets:
+    desc: "(internal) Ensure secrets/vpn.yml exists"
+    internal: true
+    silent: true
+    deps: [":_check:secrets-dir"]
+    preconditions:
+      - sh: test -f "{{.VPN_SECRETS}}"
+        msg: "Encrypted vpn secrets missing: {{.VPN_SECRETS}}. Add vpn.yml (Default token mirror + vpn_*)."

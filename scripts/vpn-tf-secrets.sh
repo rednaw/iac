@@ -1,19 +1,16 @@
 #!/usr/bin/env bash
-# Source this from the IaC repo root to populate TF_VAR_* for the vpn
-# Terraform root from the private secrets sibling (../secrets/infra.yml).
+# Source this from the IaC repo root to populate TF_VAR_* for terraform/vpn
+# from the private secrets sibling (../secrets/vpn.yml) only.
 #
-# Caller contract:
-#   - cwd is the IaC repo root (or SECRETS_DIR is exported)
-#   - SOPS_KEY_FILE is exported (path to age private key)
-#   - SECRETS_DIR defaults to realpath of ../secrets beside this repo
+# Also exports HCLOUD_TOKEN from that file so hcloud/hostkeys hit the intended
+# project (Default / platform mirror for the dev box), overwriting any ambient
+# token in the shell.
 #
-# Same hcloud_token and ssh_keys as platform (one Hetzner account); the SSH
-# allowlist is the VPN's own (home only — never platform IPs, never the world).
+# Never reads infra.yml for Hetzner or vpn_* emit fields. TFC org/token still
+# come from infra.yml via _terraform:init (separate).
 
 : "${SOPS_KEY_FILE:?SOPS_KEY_FILE must be exported before sourcing this script}"
 
-# Prefer caller-exported SECRETS_DIR (Task always sets it). Avoid BASH_SOURCE under
-# `set -u` when this file is sourced from a non-bash or odd context.
 if [ -z "${SECRETS_DIR:-}" ]; then
   _here="${BASH_SOURCE[0]-}"
   [ -n "${_here}" ] || _here="$0"
@@ -21,14 +18,14 @@ if [ -z "${SECRETS_DIR:-}" ]; then
   SECRETS_DIR="$(realpath -m "${_IAC_ROOT}/../secrets")"
   unset _here _IAC_ROOT
 fi
-SECRETS_INFRA="${SECRETS_INFRA:-${SECRETS_DIR}/infra.yml}"
-if [ ! -f "${SECRETS_INFRA}" ]; then
-  echo "❌ Encrypted infra missing: ${SECRETS_INFRA}" >&2
-  echo "   Clone private rednaw/secrets beside iac (../secrets)." >&2
+SECRETS_VPN="${SECRETS_VPN:-${SECRETS_DIR}/vpn.yml}"
+if [ ! -f "${SECRETS_VPN}" ]; then
+  echo "❌ Encrypted vpn secrets missing: ${SECRETS_VPN}" >&2
+  echo "   Add vpn.yml in private rednaw/secrets (Default token mirror + vpn_* for server vpn)." >&2
   return 1 2>/dev/null || exit 1
 fi
 
-__secrets=$(SOPS_AGE_KEY_FILE="${SOPS_KEY_FILE}" sops -d "${SECRETS_INFRA}")
+__secrets=$(SOPS_AGE_KEY_FILE="${SOPS_KEY_FILE}" sops -d "${SECRETS_VPN}")
 
 TF_VAR_hcloud_token=$(echo "${__secrets}" | yq -r '.hcloud_token // ""')
 TF_VAR_ssh_keys=$(echo "${__secrets}" | yq '.ssh_keys // null' -o=json)
@@ -39,7 +36,7 @@ _missing=()
 [ "${TF_VAR_ssh_keys}" != "null" ] && [ "${TF_VAR_ssh_keys}" != "[]" ] || _missing+=("ssh_keys")
 [ "${TF_VAR_vpn_allowed_ssh_ips}" != "null" ] && [ "${TF_VAR_vpn_allowed_ssh_ips}" != "[]" ] || _missing+=("vpn_allowed_ssh_ips")
 if [ "${#_missing[@]}" -gt 0 ]; then
-  echo "❌ Missing from ${SECRETS_INFRA} (manual §2.1): ${_missing[*]}" >&2
+  echo "❌ Missing from ${SECRETS_VPN}: ${_missing[*]}" >&2
   unset __secrets _missing
   return 1 2>/dev/null || exit 1
 fi
@@ -47,5 +44,8 @@ fi
 export TF_VAR_hcloud_token
 export TF_VAR_ssh_keys
 export TF_VAR_vpn_allowed_ssh_ips
+
+export HCLOUD_TOKEN="${TF_VAR_hcloud_token}"
+unset HCLOUD_CONTEXT 2>/dev/null || true
 
 unset __secrets _missing

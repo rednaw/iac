@@ -1,6 +1,6 @@
 # China travel eSIM — price / GB / days / reviews
 
-Snapshot for the ~1‑month trip (3 phones). **Currency: EUR** (NL). **Prices move**; recheck checkout before buy. Checked ~2026‑10‑01. Living pick lives in [../plans/vpn-travel-china.md](../plans/vpn-travel-china.md) Decide.
+**Historical** (trip over). Snapshot for the ~1‑month trip (3 phones). **Currency: EUR** (NL). Checked ~2026‑10‑01. Archived plan: [../completed/vpn-travel-china.md](../completed/vpn-travel-china.md).
 
 **Our usage shape:** maps / WeChat / Alipay / **Didi** / messaging on cellular; Cursor/laptop = hotel Wi‑Fi + OneXray (not eSIM). No Chinese number from any of these (data-only). Smoke: Western app + Didi with OneXray **off**. Phones may take **different brands / GB tiers** (e.g. one heavy 50 GB, two light 20 GB).
 

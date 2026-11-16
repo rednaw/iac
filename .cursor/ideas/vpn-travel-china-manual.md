@@ -1,8 +1,8 @@
-**Speculation / parked.** Not an active three-list plan. Lives in `iac/.cursor/ideas/` next to the stack.
+**Historical.** China trip is over. Archived plan: [../completed/vpn-travel-china.md](../completed/vpn-travel-china.md). Dest roster: [vpn-travel-china.md](vpn-travel-china.md). Living: `../plans/gate-friend-provision.md` + sibling `vpn/.cursor/plans/`.
 
-# VPN for China — operator manual
+# VPN for China — operator manual (archive)
 
-Companion to the spec: [vpn-travel-china.md](vpn-travel-china.md). The spec holds decisions and pending work; this is the manual: how it works, how to install, run, debug, and recover it. All commands here (`task vpn:*`, `task hostkeys:accept`, `task ssh-allow-me`/`ssh-revoke-me`) are implemented; code lives in `terraform/vpn/`, `ansible/roles/vpn/`, `tasks/Taskfile.vpn.yml`, `tasks/Taskfile.hostkeys.yml`, `scripts/ssh-*.sh`. **Not legal advice.**
+Commands (`task vpn:*`, `task hostkeys:accept`, `task ssh-allow-me`/`ssh-revoke-me`) remain useful for the **dev** `vpn` box. Code: `terraform/vpn/`, `ansible/roles/vpn/`, `tasks/Taskfile.vpn.yml`, `tasks/Taskfile.hostkeys.yml`, `scripts/ssh-*.sh`. **Not legal advice.**
 
 ---
 

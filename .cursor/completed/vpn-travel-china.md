@@ -1,3 +1,5 @@
+<!-- Archived: China trip over. Not living Decide/Do. Dest roster: ../ideas/vpn-travel-china.md -->
+
 # VPN for China travel
 
 Dedicated Hetzner VPS (REALITY / VLESS) for a ~1‑month trip: **three Western travellers** (3 phones) + **hotel MacBook** (admin + work). Same Hetzner account as platform (`rednaw.nl`). **Not legal advice.**

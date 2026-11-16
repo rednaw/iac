@@ -2,9 +2,9 @@
 
 # Admin SSH on this Mac’s T2
 
-Iac-wide: operator SSH identity is this Intel MacBook’s **T2 Secure Enclave**, not a copyable `id_ed25519`. **Not** the China trip — that may keep the file key until this ships. Trip spec: [vpn-travel-china.md](vpn-travel-china.md).
+Iac-wide: operator SSH identity is this Intel MacBook’s **T2 Secure Enclave**, not a copyable `id_ed25519`. Uncoupled from VPN friend/cutover work.
 
-Implement after explicit go. Open [Decide](#decide) does not block that trip’s Do §0.
+Implement after explicit go.
 
 ---
 
@@ -17,7 +17,7 @@ Implement after explicit go. Open [Decide](#decide) does not block that trip’s
 | Identity | Non-exportable **P-256** in the T2. Chip cannot do Ed25519. Public key is normal `ecdsa-sha2-nistp256` (Hetzner upload + `authorized_keys`). File Ed25519 **retired after** enroll. New Mac = new key, update Hetzner + Ansible. |
 | Container | iac Dev Container is Linux. Signing stays on the **host**. Forward host `SSH_AUTH_SOCK` (Secretive or equivalent). Bind-mount of `~/.ssh` files is not enough. |
 | Not this | Firewall IP allowlists (home / `ssh-allow-me`). SOPS age key, `hcloud_token`, TFC, TransIP — still files on disk. No MDM, Tailscale, or YubiKey. |
-| vs China | Uncoupled. [vpn-travel-china.md](vpn-travel-china.md) does not wait. If this ships **before** the trip, that plan’s home smoke + Burned IP must use the agent (Touch ID in the container path). |
+| vs VPN | Uncoupled from `gate-friend-provision` / vpn ops. If this ships first, renew/provision smoke must use the host agent (Touch ID in the container path). |
 
 ---
 

@@ -1,3 +1,5 @@
+<!-- Archived: parallel TF Gate root shipped. Living friend provision: ../plans/gate-friend-provision.md -->
+
 ## Add parallel Gate provision/configure in `iac` (do not touch live trip VPN)
 
 Spec: sibling `../gate/.cursor/plans/vpn-control-plane.md` → Decided **Gate provision path** + Do **1**.
