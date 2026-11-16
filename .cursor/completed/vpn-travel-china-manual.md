@@ -1,4 +1,4 @@
-**Historical.** China trip is over. Archived plan: [../completed/vpn-travel-china.md](../completed/vpn-travel-china.md). Dest roster: [vpn-travel-china.md](vpn-travel-china.md). Living: `../plans/gate-friend-provision.md` + sibling `vpn/.cursor/plans/`.
+**Historical.** China trip is over. Archived plan: [vpn-travel-china.md](vpn-travel-china.md). Dest roster: [../ideas/vpn-travel-china.md](../ideas/vpn-travel-china.md). Living: `../plans/gate-friend-provision.md` + sibling `vpn/.cursor/plans/`.
 
 # VPN for China — operator manual (archive)
 

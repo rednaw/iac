@@ -4,12 +4,12 @@
 
 Dedicated Hetzner VPS (REALITY / VLESS) for a ~1‑month trip: **three Western travellers** (3 phones) + **hotel MacBook** (admin + work). Same Hetzner account as platform (`rednaw.nl`). **Not legal advice.**
 
-Operator manual: [../ideas/vpn-travel-china-manual.md](../ideas/vpn-travel-china-manual.md).  
-Custom Routing JSON: [../ideas/onexray-custom-routing-cn.json](../ideas/onexray-custom-routing-cn.json).  
-Dest roster / notes: [../ideas/vpn-travel-china.md](../ideas/vpn-travel-china.md).  
-eSIM price/GB/reviews: [../ideas/china-esim-comparison.md](../ideas/china-esim-comparison.md).
+Operator manual: [vpn-travel-china-manual.md](vpn-travel-china-manual.md).  
+Custom Routing JSON: [onexray-custom-routing-cn.json](onexray-custom-routing-cn.json).  
+eSIM price/GB/reviews: [china-esim-comparison.md](china-esim-comparison.md).  
+Living dest roster: [../ideas/vpn-travel-china.md](../ideas/vpn-travel-china.md).
 
-**Live now (Beijing hotel):** TFC `vpn` (output may lag renew); live IPv4 via `hostkeys:ip` / `vpn:config`; dest `#3` `jamstudios.nl`; **one shared UUID**. Tunnel OK on hotel Wi‑Fi (smoke: VPS egress match).
+**Trip status:** over. Lab/friend work lives in `../plans/gate-friend-provision.md` + sibling `vpn/.cursor/plans/`.
 
 ---
 

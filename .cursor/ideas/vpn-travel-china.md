@@ -1,7 +1,6 @@
-**Trip over.** Archived plan: [../completed/vpn-travel-china.md](../completed/vpn-travel-china.md). Living work: friend provision in [../plans/gate-friend-provision.md](../plans/gate-friend-provision.md); renew ops in sibling `vpn/.cursor/plans/`. This file keeps the **dest roster** only.
+**Dest roster only** (living). Trip archive: [../completed/vpn-travel-china.md](../completed/vpn-travel-china.md). Living work: [../plans/gate-friend-provision.md](../plans/gate-friend-provision.md); renew ops in sibling `vpn/.cursor/plans/`. Criteria: [../rules/vpn-reality-dest.mdc](../rules/vpn-reality-dest.mdc).
 
-Operator manual (historical): [vpn-travel-china-manual.md](vpn-travel-china-manual.md).  
-Custom Routing: [onexray-custom-routing-cn.json](onexray-custom-routing-cn.json).
+Operator manual / eSIM / routing JSON: under [../completed/](../completed/) (`vpn-travel-china-manual.md`, `china-esim-comparison.md`, `onexray-custom-routing-cn.json`).
 
 # Dest roster (REALITY)
 

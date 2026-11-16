@@ -8,16 +8,17 @@ Parameterized friend-box provision/destroy/configure in **`iac`**. Peer track to
 |--|--|
 | Ownership | This plan = **iac** (+ `secrets`). Renew ops hardening = **vpn** `operations.md`. Cutover = **vpn** `friend1-cutover.md`. |
 | Pre-cutover lab | Develop and prove here against **rednaw** Hetzner (Default/`vpn`, legacy project Gate patterns as needed) and the maintainer `fullmoongate/vpn` control plane. Do not put Friend 1 on their own customer until both this plan and vpn ops hardening are ready. |
-| Tool | **B — hcloud + Task** (no TF/TFC for friend boxes). `task gate:provision:* -- <id>` → that friend’s `HCLOUD_TOKEN` → create-if-absent / destroy-by-name. Ansible only for SSH configure. |
-| Secrets | **`secrets/gate-{id}.yml`** (`gate-1.yml`, …) + `.sops.yaml` rule `gate-[0-9]+\.yml$`. Never platform/`infra.yml` token in friend files. Legacy shared box keeps `gate.yml` until destroy. |
-| Resource names | Always `gate` / `gate-v4` / `gate-firewall` inside each customer (isolation = token/customer). |
-| Legacy TF | `terraform/gate` + TFC `gate` + `gate.yml` = rednaw shared legacy only; **no further apply** to heal renew drift — destroy/teardown when cutovers allow. Archived parallel-TF work: [../completed/gate-terraform-parallel.md](../completed/gate-terraform-parallel.md). |
-| Dev `vpn` box | Stays `terraform/vpn` / TFC `vpn` / `vpn:*` for wipe/configure. **SoT = `secrets/vpn.yml`** (not `infra.yml`) for Hetzner + `vpn_*`. Primary renew = `fullmoongate/vpn` IssueOps; demote `task vpn:provision:renew-ip` to break-glass. |
+| Tool | **B — hcloud + Task** for the whole vpn provision story (friends **and** lab `vpn`). No TF/TFC create/apply to heal renew drift; no “leave IP out of state” TF half-measure. Ansible only for SSH configure. |
+| Provision CLI | **`provision:present`** / **`provision:absent`**. Friends: `task gate:provision:present|absent -- <id>`. Lab mirror: `task vpn:provision:present|absent`. Present = create-if-absent (server + primary IPv4 + firewall); absent = destroy-by-name. Idempotent. Not `apply`/`destroy`/`ensure`/`wipe`. |
+| Secrets | **`secrets/gate-{id}.yml`** (`gate-1.yml`, …) + `.sops.yaml` rule `gate-[0-9]+\.yml$`. Never platform/`infra.yml` token in friend files. Legacy shared box keeps `gate.yml` until destroy. Lab: **`secrets/vpn.yml`**. |
+| Resource names | Friends: always `gate` / `gate-v4` / `gate-firewall` inside each customer. Lab: `vpn` / `vpn-v4` / `vpn-firewall`. Isolation = token/customer. |
+| TF roots | `terraform/gate` + TFC `gate` and `terraform/vpn` + TFC `vpn` = **retire**: no further apply; present/absent via hcloud; destroy/abandon workspaces when cool. Archived parallel-TF: [../completed/gate-terraform-parallel.md](../completed/gate-terraform-parallel.md). |
+| Lab `vpn` | `vpn:provision:present|absent` + configure from `vpn.yml`. Primary renew = `fullmoongate/vpn` IssueOps; `vpn:provision:renew-ip` = break-glass only. |
 | Friends | Never open `iac`. Maintainer only runs provision/configure. |
 
 ## Decide
 
-None.
+None. (Reopened “keep TF / omit IP from state?” → closed: drop TF for the vpn story.)
 
 ## Do
 
@@ -48,29 +49,29 @@ None.
 
 **Human must:** authorize **secrets** sibling edit; create/fill `gate-1.yml` when ready for Friend 1 customer (not required to start Agent wiring).
 
-### 2. hcloud ensure/destroy + Task `gate:provision:* -- <id>`
+### 2. hcloud `provision:present` / `provision:absent` — lab `vpn` + friends `gate:* -- <id>`
 
 - [ ] Agent: implemented
 - [ ] Human: reviewed
 
-**Agent will implement** — can start now: replace **friend** use of `terraform/gate` with scripts that ensure/destroy `gate` / `gate-v4` / `gate-firewall` via hcloud from the id’s secrets file; wire `tasks/Taskfile.gate.yml` CLI id; leave legacy TF tasks usable for rednaw `gate.yml` destroy until cool-off.
+**Agent will implement** — can start now: scripts for present (create-if-absent) / absent (destroy-by-name) of server + managed primary IPv4 + firewall via hcloud. Lab: `vpn` / `vpn-v4` / `vpn-firewall` from `vpn.yml` → `task vpn:provision:present|absent` (retire `plan|apply|destroy` as the operator path). Friends: `gate` / `gate-v4` / `gate-firewall` from `gate-{id}.yml` → `task gate:provision:present|absent -- <id>`. Old TF task names only as explicit TFC teardown helpers until cool-off.
 
-**Human must:** controlled smoke on rednaw lab (or Friend 1 empty customer when console ready) — not live friend traffic.
+**Human must:** controlled absent→present smoke on rednaw lab `vpn` first; Friend 1 empty customer later — not live friend traffic.
 
 ### 3. hostkeys + configure by id
 
 - [ ] Agent: implemented
 - [ ] Human: reviewed
 
-**Agent will implement** — after Do 1–2: `hostkeys` / `gate:configure:*` take the same `<id>` and force `HCLOUD_TOKEN` + `vpn_*` from that file only.
+**Agent will implement** — after Do 1–2: `hostkeys` / `gate:configure:*` take the same `<id>` and force `HCLOUD_TOKEN` + `vpn_*` from that file only. Lab `vpn` already on `vpn.yml`.
 
 **Human must:** review that ambient Default/platform token cannot leak into friend paths.
 
-### 4. Record no-further-TF for legacy gate / renew drift
+### 4. Retire TF apply for vpn + legacy gate (docs/help)
 
 - [ ] Agent: implemented
 - [ ] Human: reviewed
 
-**Agent will implement** — can start now: task help / plan cross-links: do not `task gate:provision:apply` / `vpn:provision:apply` to heal a renewed IP; destroy or hcloud teardown only.
+**Agent will implement** — can start now: task help / plan cross-links: no TF `provision:apply` on those roots to create, heal renew drift, or wipe; use `provision:present|absent` only; TFC workspaces abandon when ready.
 
-**Human must:** avoid TF apply on legacy gate / drifted vpn until intentional destroy.
+**Human must:** stop using TF apply on those roots; confirm after lab `vpn:provision:absent` → `present`.
