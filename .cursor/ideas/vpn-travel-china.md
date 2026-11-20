@@ -1,4 +1,4 @@
-**Dest roster only** (living). Trip archive: [../completed/vpn-travel-china.md](../completed/vpn-travel-china.md). Living work: [../plans/gate-friend-provision.md](../plans/gate-friend-provision.md); renew ops in sibling `vpn/.cursor/plans/`. Criteria: [../rules/vpn-reality-dest.mdc](../rules/vpn-reality-dest.mdc).
+**Dest roster only** (living). Trip archive: [../completed/vpn-travel-china.md](../completed/vpn-travel-china.md). Living work: [../plans/provision-simplify.md](../plans/provision-simplify.md); renew ops in sibling `vpn/.cursor/plans/`. Criteria: [../rules/vpn-reality-dest.mdc](../rules/vpn-reality-dest.mdc).
 
 Operator manual / eSIM / routing JSON: under [../completed/](../completed/) (`vpn-travel-china-manual.md`, `china-esim-comparison.md`, `onexray-custom-routing-cn.json`).
 
