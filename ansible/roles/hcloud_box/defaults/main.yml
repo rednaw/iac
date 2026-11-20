@@ -1,0 +1,39 @@
+---
+# Box identity: <name> / <name>-v4 / <name>-firewall, all labelled purpose=<name>.
+hcloud_box_name: ""
+hcloud_box_profile: reality
+hcloud_box_state: present
+hcloud_box_location: nbg1
+hcloud_box_server_type: cx23
+hcloud_box_image: ubuntu-24.04
+hcloud_box_ssh_keys: []
+
+hcloud_box_ip_name: "{{ hcloud_box_name }}-v4"
+hcloud_box_firewall_name: "{{ hcloud_box_name }}-firewall"
+
+# Rules carrying this description belong to <purpose>:ssh:allow and survive converge.
+hcloud_box_ssh_allow_marker: "Allow SSH from trusted IPs"
+
+hcloud_box_labels:
+  purpose: "{{ hcloud_box_name }}"
+  managed_by: iac
+hcloud_box_firewall_labels:
+  purpose: "{{ hcloud_box_name }}"
+  iac_managed: "true"
+  managed_by: iac
+
+# Standing inbound rules per profile. No SSH: default deny until ssh:allow.
+hcloud_box_standing_rules:
+  reality:
+    - direction: in
+      protocol: icmp
+      port: null
+      source_ips: ["0.0.0.0/0", "::/0"]
+      destination_ips: []
+      description: Allow ping from anywhere
+    - direction: in
+      protocol: tcp
+      port: "443"
+      source_ips: ["0.0.0.0/0", "::/0"]
+      destination_ips: []
+      description: REALITY (VLESS over TLS)

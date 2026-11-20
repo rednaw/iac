@@ -1,5 +1,5 @@
 # Parallel Gate box (REALITY on 443) in Hetzner Cloud project Gate.
-# Legacy shared box only. Dev vpn box is hcloud (vpn:provision:present|absent).
+# Legacy shared box only. Dev vpn box is Ansible (vpn:provision:present|absent).
 #
 # Deliberately absent: DNS, port 80, backups.
 

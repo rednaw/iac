@@ -41,6 +41,18 @@ _sync_mise_tools() {
 
 _sync_mise_tools
 
+# Same drift for Python deps: workspace requirements.txt may be ahead of the image venv.
+_sync_python_deps() {
+  if ! sudo -n true 2>/dev/null; then
+    echo "WARN: passwordless sudo unavailable; run: sudo /opt/ansible-venv/bin/pip install -r requirements.txt" >&2
+    return 0
+  fi
+  echo "Syncing Ansible venv to match workspace requirements.txt..."
+  sudo /opt/ansible-venv/bin/pip install -q -r "${IAC_ROOT}/requirements.txt"
+}
+
+_sync_python_deps
+
 ########################################
 # Bootstrap mode
 ########################################

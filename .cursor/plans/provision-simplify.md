@@ -44,12 +44,12 @@ None.
 
 ### 1. Ansible provision skeleton (lab vpn)
 
-- [ ] Agent: implemented
-- [ ] Human: reviewed
+- [x] Agent: implemented
+- [x] Human: reviewed
 
-**Agent will implement** — add `hetzner.hcloud` to `ansible/requirements.yml`; role/playbook for cloud box (server + primary IPv4 + firewall profile, marker rules preserved); SOPS → vars; Task entrypoint replacing `vpn:provision:present|absent`; retire `scripts/box-provision.sh`. Ops scripts unchanged.
+**Agent will implement** — `hetzner.hcloud` 7.2.0 in `ansible/requirements.yml`; its Python deps (`requests`, `python-dateutil`) in `requirements.txt`; role `ansible/roles/hcloud_box` (present/absent, marker rules preserved, profile `reality`) + `ansible/playbooks/provision.yml` (token + `ssh_keys` from `secrets_file` via `module_defaults`); `_ansible:provision` behind `vpn:provision:present|absent`; `scripts/box-provision.sh` removed. Verified: lint/syntax/taskfiles; `--check` present on live `vpn` = 0 changes.
 
-**Human must:** converge lab `vpn` in place (no recreate) → `task vpn:ssh:allow` → `vpn:configure:apply` → `vpn:vless-link`; confirm REALITY link still works.
+**Human must:** (container create now syncs `requirements.txt` into the venv via `devcontainer-setup.sh`) `task vpn:provision:present` (expect no changes) → `task vpn:ssh:allow` → `vpn:configure:apply` → `vpn:vless-link`; confirm REALITY link still works. Optional full round trip: `vpn:provision:absent` → `present` → bootstrap.
 
 ### 2. Platform adopt on Ansible
 

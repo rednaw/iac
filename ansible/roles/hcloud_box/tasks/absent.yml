@@ -1,0 +1,49 @@
+---
+# Delete server, every <name>-v4* / <name>-hold-* / <name>-burned-* primary
+# IPv4 (renew leftovers), and the firewall. Missing pieces are skipped.
+
+- name: Read server
+  hetzner.hcloud.server_info:
+    name: "{{ hcloud_box_name }}"
+  register: _server_info
+
+- name: Delete server
+  hetzner.hcloud.server:
+    name: "{{ hcloud_box_name }}"
+    state: absent
+
+- name: Read primary IPs
+  hetzner.hcloud.primary_ip_info:
+  register: _ip_info
+
+- name: Delete box primary IPv4s
+  hetzner.hcloud.primary_ip:
+    id: "{{ item.id }}"
+    state: absent
+  loop: >-
+    {{ _ip_info.hcloud_primary_ip_info | selectattr('type', 'equalto', 'ipv4')
+       | selectattr('name', 'match', '^' + hcloud_box_name + '-(v4($|-new-)|hold-|burned-)') | list }}
+  loop_control:
+    label: "{{ item.name }} ({{ item.ip }})"
+
+- name: Delete firewall (retry while detaching)
+  hetzner.hcloud.firewall:
+    name: "{{ hcloud_box_firewall_name }}"
+    state: absent
+  register: _fw_delete
+  until: _fw_delete is succeeded
+  retries: 10
+  delay: 3
+
+- name: Forget host key
+  ansible.builtin.known_hosts:
+    name: "{{ item.ipv4_address }}"
+    path: "{{ lookup('env', 'HOME') }}/.ssh/known_hosts"
+    state: absent
+  loop: "{{ _server_info.hcloud_server_info | selectattr('ipv4_address') | list }}"
+  loop_control:
+    label: "{{ item.ipv4_address }}"
+
+- name: Record outcome
+  ansible.builtin.set_fact:
+    hcloud_box_summary: "✅ {{ hcloud_box_name }} absent."

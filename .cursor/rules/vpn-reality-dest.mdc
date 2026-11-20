@@ -1,6 +1,6 @@
 ---
 description: REALITY vpn_dest candidate criteria and Hetzner reachability
-globs: ansible/roles/vpn/**,tasks/Taskfile.vpn.yml,scripts/vpn-*.sh,scripts/box-provision.sh,.cursor/ideas/vpn-travel-china.md,.cursor/plans/provision-simplify.md
+globs: ansible/roles/vpn/**,tasks/Taskfile.vpn.yml,scripts/vpn-*.sh,ansible/roles/hcloud_box/**,.cursor/ideas/vpn-travel-china.md,.cursor/plans/provision-simplify.md
 alwaysApply: false
 ---
 
