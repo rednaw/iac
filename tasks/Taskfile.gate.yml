@@ -1,7 +1,7 @@
 # yaml-language-server: $schema=https://taskfile.dev/schema.json
 #
 # Parallel Gate box in Hetzner Cloud project Gate (TFC workspace "gate").
-# Not the live trip VPN — that remains vpn:* / terraform/vpn / Default token.
+# Legacy shared box only. Dev vpn box = vpn:provision:present|absent (hcloud).
 #
 # Secrets: ../secrets/gate.yml only for Hetzner + Fresh vpn_*.
 # TFC org/token: still from infra.yml via _terraform:init.
@@ -54,6 +54,20 @@ tasks:
       - task: :_terraform:output
         vars:
           TF_DIR: '{{.GATE_TF_DIR}}'
+
+  ssh:allow:
+    desc: "Allow current public IPv4 /32 (TCP/22) on gate-firewall"
+    silent: true
+    deps: [":_check:sops-key", ":_check:secrets", _check:gate-secrets]
+    cmds:
+      - bash ./scripts/ssh-allow.sh gate
+
+  ssh:deny:
+    desc: "Remove gate:ssh:allow travel rules from gate-firewall"
+    silent: true
+    deps: [":_check:sops-key", ":_check:secrets", _check:gate-secrets]
+    cmds:
+      - bash ./scripts/ssh-deny.sh gate
 
   configure:bootstrap:
     desc: "One-time bootstrap as root (after hostkeys:accept -- gate)"

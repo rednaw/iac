@@ -8,7 +8,7 @@
 #   PLAYBOOK                Playbook path relative to ansible/
 #   SECRETS_FILE            Optional path for ansible -e secrets_file=…
 #   HCLOUD_SECRETS_SCRIPT   Optional sourceable script that exports
-#                           TF_VAR_hcloud_token / HCLOUD_TOKEN (vpn/gate)
+#                           HCLOUD_TOKEN for that box's project (vpn/gate)
 #
 # Inventory name is the purpose. ansible_host is always the API IPv4.
 version: '3'
@@ -38,7 +38,7 @@ tasks:
           # This task runs with dir: ansible — script path is from repo root.
           # shellcheck disable=SC1090
           . "$(git rev-parse --show-toplevel)/{{.HCLOUD_SECRETS_SCRIPT}}"
-          export HCLOUD_TOKEN="${TF_VAR_hcloud_token:?HCLOUD_TOKEN missing after secrets script}"
+          : "${HCLOUD_TOKEN:?HCLOUD_TOKEN missing after secrets script}"
           unset HCLOUD_CONTEXT 2>/dev/null || true
         fi
         echo "NOTE: This step connects as root using your Hetzner SSH key to set up the ubuntu user."
@@ -64,7 +64,7 @@ tasks:
           # This task runs with dir: ansible — script path is from repo root.
           # shellcheck disable=SC1090
           . "$(git rev-parse --show-toplevel)/{{.HCLOUD_SECRETS_SCRIPT}}"
-          export HCLOUD_TOKEN="${TF_VAR_hcloud_token:?HCLOUD_TOKEN missing after secrets script}"
+          : "${HCLOUD_TOKEN:?HCLOUD_TOKEN missing after secrets script}"
           unset HCLOUD_CONTEXT 2>/dev/null || true
         fi
         echo "⚙️  Running Ansible playbook on {{.PURPOSE}}..."

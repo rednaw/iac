@@ -11,7 +11,6 @@
 # Brief poweroff during move. Disk kept.
 #
 # Preconditions: cwd = iac repo root; hcloud auth.
-# TFC state is not updated here — refresh later with task vpn:provision:apply if needed.
 set -euo pipefail
 
 SERVER="${VPN_SERVER_NAME:-vpn}"

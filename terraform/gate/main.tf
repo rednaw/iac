@@ -1,7 +1,7 @@
 # Parallel Gate box (REALITY on 443) in Hetzner Cloud project Gate.
-# Trip box stays terraform/vpn + TFC vpn + Default token — do not retarget.
+# Legacy shared box only. Dev vpn box is hcloud (vpn:provision:present|absent).
 #
-# Deliberately absent: DNS, port 80, backups (same posture as vpn root).
+# Deliberately absent: DNS, port 80, backups.
 
 locals {
   location = "nbg1"

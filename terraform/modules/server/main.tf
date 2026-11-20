@@ -21,8 +21,8 @@ resource "hcloud_firewall" "this" {
   }
   name = local.firewall_name
 
-  # iac_managed marks every firewall of this module so root task ssh-allow-me
-  # can enumerate them all (travel SSH /32) regardless of purpose.
+  # iac_managed = true on every module firewall. vpn|gate:ssh:allow|deny
+  # select purpose=vpn|gate only (not platform).
   labels = merge(var.labels, { iac_managed = "true" })
 
   rule {

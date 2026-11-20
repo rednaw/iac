@@ -56,20 +56,20 @@ tasks:
         echo "  task platform:configure:apply"
         echo ""
         echo "VPN — dev box (Default; secrets/vpn.yml; renew via fullmoongate/vpn):"
-        echo "  task vpn:provision:plan|apply|destroy|output"
+        echo "  task vpn:provision:present|absent   # hcloud, idempotent"
         echo "  task vpn:provision:renew-ip   # break-glass; prefer IssueOps"
+        echo "  task vpn:ssh:allow|deny|shell # temporary /32; interactive SSH"
         echo "  task vpn:configure:bootstrap|apply"
-        echo "  task vpn:config"
+        echo "  task vpn:vless-link"
         echo ""
         echo "Gate — legacy shared box (Hetzner project Gate / TFC gate):"
         echo "  task gate:provision:plan|apply|destroy|output"
+        echo "  task gate:ssh:allow|deny"
         echo "  task gate:configure:bootstrap|apply"
         echo "  # secrets: ../secrets/gate.yml only; never for server vpn"
         echo ""
-        echo "Host keys / travel SSH:"
+        echo "Host keys:"
         echo "  task hostkeys:accept -- platform|vpn|gate"
-        echo "  task ssh-allow-me"
-        echo "  task ssh-revoke-me"
         echo ""
         echo "Workflow (Prefect):"
         echo "  task workflow:deploy"
@@ -106,18 +106,6 @@ tasks:
         echo "  task backup:restore   -- <app> [snap] [...]"
         echo "  task backup:download  -- <app>"
         echo "  task backup:upload    -- <app>"
-
-  ssh-allow-me:
-    desc: "Travel only: allow current public IPv4 /32 (TCP/22) on every iac firewall (skip at home)"
-    silent: true
-    cmds:
-      - ./scripts/ssh-allow-me.sh
-
-  ssh-revoke-me:
-    desc: "Remove all ssh-allow-me travel rules (home rules untouched)"
-    silent: true
-    cmds:
-      - ./scripts/ssh-revoke-me.sh
 
   _check:sops-key:
     desc: "(internal) Ensure SOPS key exists"
