@@ -1,7 +1,7 @@
 # yaml-language-server: $schema=https://taskfile.dev/schema.json
 #
 # Public commands for the "vpn" server purpose (dev REALITY box on Default).
-# Secrets: ../secrets/vpn.yml only. Provision = hcloud (no Terraform).
+# Secrets: ../secrets/vpn.yml only. Provision = Ansible hetzner.hcloud (no Terraform).
 #
 # Burned IP (break-glass): provision:renew-ip
 #   Primary renew = fullmoongate/vpn IssueOps.
@@ -14,21 +14,17 @@ vars:
 
 tasks:
   provision:present:
-    desc: "Create missing vpn / vpn-v4 / vpn-firewall via hcloud; converge firewall rules (idempotent)"
+    desc: "Create missing vpn / vpn-v4 / vpn-firewall; converge firewall rules (Ansible, idempotent)"
     silent: true
     deps: [":_check:sops-key", ":_check:secrets", _check:vpn-secrets]
     cmds:
-      - |
-        set -euo pipefail
-        export SOPS_KEY_FILE="{{.SOPS_KEY_FILE}}"
-        export SECRETS_DIR="{{.SECRETS_DIR}}"
-        export SECRETS_VPN="{{.VPN_SECRETS}}"
-        # shellcheck disable=SC1091
-        . "./scripts/vpn-secrets.sh"
-        BOX_NAME=vpn bash ./scripts/box-provision.sh present
-        echo ""
-        echo "💡 Next: task vpn:ssh:allow → vpn:configure:bootstrap →"
-        echo "   vpn:configure:apply → vpn:vless-link."
+      - task: :_ansible:provision
+        vars:
+          PURPOSE: vpn
+          STATE: present
+          SECRETS_FILE: '{{.VPN_SECRETS}}'
+      - echo ""
+      - echo "💡 New box? task vpn:ssh:allow → vpn:configure:bootstrap → vpn:configure:apply → vpn:vless-link."
 
   ssh:allow:
     desc: "Allow current public IPv4 /32 (TCP/22) on vpn-firewall, then accept host key"
@@ -57,19 +53,16 @@ tasks:
         exec ssh -4 -t -o StrictHostKeyChecking=accept-new "ubuntu@${IP}"
 
   provision:absent:
-    desc: "Delete vpn server, all vpn primary IPv4s, and vpn-firewall via hcloud (platform untouched)"
+    desc: "Delete vpn server, all vpn primary IPv4s, and vpn-firewall (Ansible; platform untouched)"
     silent: true
     prompt: "Delete server vpn, its primary IPv4(s) and vpn-firewall?"
     deps: [":_check:sops-key", ":_check:secrets", _check:vpn-secrets]
     cmds:
-      - |
-        set -euo pipefail
-        export SOPS_KEY_FILE="{{.SOPS_KEY_FILE}}"
-        export SECRETS_DIR="{{.SECRETS_DIR}}"
-        export SECRETS_VPN="{{.VPN_SECRETS}}"
-        # shellcheck disable=SC1091
-        . "./scripts/vpn-secrets.sh"
-        BOX_NAME=vpn bash ./scripts/box-provision.sh absent
+      - task: :_ansible:provision
+        vars:
+          PURPOSE: vpn
+          STATE: absent
+          SECRETS_FILE: '{{.VPN_SECRETS}}'
 
   provision:renew-ip:
     desc: "Break-glass burned IP (prefer fullmoongate/vpn IssueOps); then vpn:vless-link"

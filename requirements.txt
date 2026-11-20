@@ -3,4 +3,7 @@
 ansible ==13.8.0
 ansible-lint ==26.11.0
 PyYAML == 6.0.3
+# hetzner.hcloud collection runtime deps
+python-dateutil ==4.0.0
+requests ==2.34.2
 python-dotenv ==1.2.4

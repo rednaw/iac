@@ -56,7 +56,7 @@ tasks:
         echo "  task platform:configure:apply"
         echo ""
         echo "VPN — dev box (Default; secrets/vpn.yml; renew via fullmoongate/vpn):"
-        echo "  task vpn:provision:present|absent   # hcloud, idempotent"
+        echo "  task vpn:provision:present|absent   # Ansible, idempotent"
         echo "  task vpn:provision:renew-ip   # break-glass; prefer IssueOps"
         echo "  task vpn:ssh:allow|deny|shell # temporary /32; interactive SSH"
         echo "  task vpn:configure:bootstrap|apply"

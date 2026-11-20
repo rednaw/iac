@@ -1,7 +1,7 @@
 # yaml-language-server: $schema=https://taskfile.dev/schema.json
 #
 # Parallel Gate box in Hetzner Cloud project Gate (TFC workspace "gate").
-# Legacy shared box only. Dev vpn box = vpn:provision:present|absent (hcloud).
+# Legacy shared box only. Dev vpn box = vpn:provision:present|absent (Ansible).
 #
 # Secrets: ../secrets/gate.yml only for Hetzner + Fresh vpn_*.
 # TFC org/token: still from infra.yml via _terraform:init.

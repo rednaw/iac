@@ -1,0 +1,16 @@
+---
+- name: Validate box inputs
+  ansible.builtin.assert:
+    that:
+      - hcloud_box_name | length > 0
+      - hcloud_box_state in ['present', 'absent']
+      - hcloud_box_profile in hcloud_box_standing_rules
+    quiet: true
+
+- name: Converge box
+  ansible.builtin.import_tasks: present.yml
+  when: hcloud_box_state == 'present'
+
+- name: Remove box
+  ansible.builtin.import_tasks: absent.yml
+  when: hcloud_box_state == 'absent'

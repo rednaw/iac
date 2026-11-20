@@ -1,0 +1,95 @@
+---
+# Create whatever is missing; converge firewall standing rules and labels.
+# Never resizes, rebuilds or re-addresses an existing server: renew owns the
+# IPv4 once the box exists.
+
+- name: Read firewall
+  hetzner.hcloud.firewall_info:
+    name: "{{ hcloud_box_firewall_name }}"
+  register: _fw_info
+
+- name: Converge firewall (standing rules + ssh:allow marker rules)
+  hetzner.hcloud.firewall:
+    name: "{{ hcloud_box_firewall_name }}"
+    labels: "{{ hcloud_box_firewall_labels }}"
+    rules: >-
+      {{ hcloud_box_standing_rules[hcloud_box_profile]
+         + (_fw_info.hcloud_firewall_info | map(attribute='rules') | flatten
+            | selectattr('description', 'equalto', hcloud_box_ssh_allow_marker) | list) }}
+    state: present
+
+- name: Read server
+  hetzner.hcloud.server_info:
+    name: "{{ hcloud_box_name }}"
+  register: _server_info
+
+- name: Existing server
+  when: _server_info.hcloud_server_info | length > 0
+  block:
+    - name: Refuse to touch a server without IPv4 (mid-renew?)
+      ansible.builtin.assert:
+        that: _server_info.hcloud_server_info[0].ipv4_address | default('', true) | length > 0
+        fail_msg: "{{ hcloud_box_name }} has no IPv4 (mid-renew?). Finish or rerun renew."
+        quiet: true
+
+    - name: Attach firewall
+      hetzner.hcloud.firewall_resource:
+        firewall: "{{ hcloud_box_firewall_name }}"
+        servers: ["{{ hcloud_box_name }}"]
+        state: present
+
+    - name: Record outcome (existing server)
+      ansible.builtin.set_fact:
+        hcloud_box_summary: "✅ {{ hcloud_box_name }} present ({{ _server_info.hcloud_server_info[0].ipv4_address }}); server left as-is."
+
+- name: New server
+  when: _server_info.hcloud_server_info | length == 0
+  block:
+    - name: Validate SSH keys
+      ansible.builtin.assert:
+        that: hcloud_box_ssh_keys | length > 0
+        fail_msg: ssh_keys must be a non-empty list in the secrets file.
+        quiet: true
+
+    - name: Read primary IPv4
+      hetzner.hcloud.primary_ip_info:
+        name: "{{ hcloud_box_ip_name }}"
+      register: _ip_info
+
+    - name: Refuse a primary IPv4 assigned elsewhere
+      ansible.builtin.assert:
+        that: _ip_info.hcloud_primary_ip_info | map(attribute='assignee_id') | select | list | length == 0
+        fail_msg: "{{ hcloud_box_ip_name }} is assigned to another resource, but server {{ hcloud_box_name }} does not exist."
+        quiet: true
+
+    - name: Ensure primary IPv4
+      hetzner.hcloud.primary_ip:
+        name: "{{ hcloud_box_ip_name }}"
+        type: ipv4
+        location: "{{ hcloud_box_location }}"
+        auto_delete: false
+        labels: "{{ hcloud_box_labels }}"
+        state: present
+
+    - name: Create server
+      hetzner.hcloud.server:
+        name: "{{ hcloud_box_name }}"
+        server_type: "{{ hcloud_box_server_type }}"
+        image: "{{ hcloud_box_image }}"
+        location: "{{ hcloud_box_location }}"
+        ipv4: "{{ hcloud_box_ip_name }}"
+        firewalls: ["{{ hcloud_box_firewall_name }}"]
+        ssh_keys: "{{ hcloud_box_ssh_keys | map('string') | list }}"
+        labels: "{{ hcloud_box_labels }}"
+        state: present
+      register: _server
+
+    - name: Forget stale host key for the new IPv4
+      ansible.builtin.known_hosts:
+        name: "{{ _server.hcloud_server.ipv4_address }}"
+        path: "{{ lookup('env', 'HOME') }}/.ssh/known_hosts"
+        state: absent
+
+    - name: Record outcome (new server)
+      ansible.builtin.set_fact:
+        hcloud_box_summary: "✅ {{ hcloud_box_name }} created ({{ _server.hcloud_server.ipv4_address }}). SSH closed until: task {{ hcloud_box_name }}:ssh:allow"

@@ -6,6 +6,7 @@
 # Parameters consumers pass:
 #   PURPOSE                 Server purpose ("platform", "vpn", "gate")
 #   PLAYBOOK                Playbook path relative to ansible/
+#   STATE                   provision only: present | absent
 #   SECRETS_FILE            Optional path for ansible -e secrets_file=…
 #   HCLOUD_SECRETS_SCRIPT   Optional sourceable script that exports
 #                           HCLOUD_TOKEN for that box's project (vpn/gate)
@@ -22,6 +23,25 @@ tasks:
     cmds:
       - echo "📦 Installing Ansible collections..."
       - ansible-galaxy collection install -r requirements.yml
+
+  provision:
+    desc: "(internal) Converge or remove a cloud box (hetzner.hcloud, localhost)"
+    internal: true
+    dir: ansible
+    silent: true
+    requires:
+      vars: [PURPOSE, SECRETS_FILE, STATE]
+    cmds:
+      - task: install
+      - |
+        set -euo pipefail
+        HCLOUD_BOX_SUMMARY_FILE=$(mktemp)
+        export HCLOUD_BOX_SUMMARY_FILE
+        trap 'rm -f "$HCLOUD_BOX_SUMMARY_FILE"' EXIT
+        ANSIBLE_STDOUT_CALLBACK=unixy_noskip ansible-playbook -i localhost, playbooks/provision.yml \
+          -e "box={{.PURPOSE}}" -e "state={{.STATE}}" -e "secrets_file={{.SECRETS_FILE}}"
+        echo ""
+        cat "$HCLOUD_BOX_SUMMARY_FILE"
 
   bootstrap:
     desc: "(internal) Bootstrap server as root"
