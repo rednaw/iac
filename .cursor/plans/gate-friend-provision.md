@@ -7,34 +7,37 @@ Parameterized friend-box provision/destroy/configure in **`iac`**. Peer track to
 | | |
 |--|--|
 | Ownership | This plan = **iac** (+ `secrets`). Renew ops hardening = **vpn** `operations.md`. Cutover = **vpn** `friend1-cutover.md`. |
-| Pre-cutover lab | Develop and prove here against **rednaw** Hetzner (Default/`vpn`, legacy project Gate patterns as needed) and the maintainer `fullmoongate/vpn` control plane. Do not put Friend 1 on their own customer until both this plan and vpn ops hardening are ready. |
-| Tool | **B — hcloud + Task** for the whole vpn provision story (friends **and** lab `vpn`). No TF/TFC create/apply to heal renew drift; no “leave IP out of state” TF half-measure. Ansible only for SSH configure. |
+| Pre-cutover lab | Develop and prove **only on lab `vpn`** (rednaw Default + `fullmoongate/vpn`). **Do not touch** live legacy Gate or platform for this track. |
+| Sequence | **1)** vpn-only development (iac lab + vpn ops). **2)** go-live Friend 1 on **fullmoongate1/gate**. **3)** communication. **4)** full decommission of legacy `gate` (shared box / TFC `gate` / `gate.yml`). Platform stays TF throughout. |
+| Tool | **B — hcloud + Task** for the vpn provision story (lab `vpn`, then friends). No TF/TFC create/apply to heal renew drift. Ansible only for SSH configure. **Platform stays Terraform** (TFC `platform` + standing SSH allowlist + TransIP DNS). |
 | Provision CLI | **`provision:present`** / **`provision:absent`**. Friends: `task gate:provision:present|absent -- <id>`. Lab mirror: `task vpn:provision:present|absent`. Present = create-if-absent (server + primary IPv4 + firewall); absent = destroy-by-name. Idempotent. Not `apply`/`destroy`/`ensure`/`wipe`. |
 | Secrets | **`secrets/gate-{id}.yml`** (`gate-1.yml`, …) + `.sops.yaml` rule `gate-[0-9]+\.yml$`. Never platform/`infra.yml` token in friend files. Legacy shared box keeps `gate.yml` until destroy. Lab: **`secrets/vpn.yml`**. |
 | Resource names | Friends: always `gate` / `gate-v4` / `gate-firewall` inside each customer. Lab: `vpn` / `vpn-v4` / `vpn-firewall`. Isolation = token/customer. |
-| TF roots | `terraform/gate` + TFC `gate` and `terraform/vpn` + TFC `vpn` = **retire**: no further apply; present/absent via hcloud; destroy/abandon workspaces when cool. Archived parallel-TF: [../completed/gate-terraform-parallel.md](../completed/gate-terraform-parallel.md). |
+| TF roots | `terraform/platform` + TFC `platform` = **keep**. `terraform/vpn` + TFC `vpn` = **retire** (delete workspace when cool; do not TFC-destroy live box). `terraform/gate` + TFC `gate` = **retire** when gate is on hcloud. Archived parallel-TF: [../completed/gate-terraform-parallel.md](../completed/gate-terraform-parallel.md). |
 | Lab `vpn` | `vpn:provision:present|absent` + configure from `vpn.yml`. Primary renew = `fullmoongate/vpn` IssueOps; `vpn:provision:renew-ip` = break-glass only. |
+| Two SSH models | **VPN family** (lab `vpn` + friends `gate`): Task + hcloud; **no standing SSH allowlist**; ICMP+443 only; open 22 via `task vpn:ssh:allow` / `gate:ssh:allow`, close via `:ssh:deny` (description `Allow SSH from trusted IPs`, kept across `present`). **Platform:** Terraform + standing `allowed_ssh_ips`; not on the allow path. |
+| Legacy gate SSH | **Temporary exception:** until Do 2 (`gate:provision:present\|absent`), legacy `terraform/gate` may still apply `vpn_allowed_ssh_ips`. End state = same as lab vpn (markers only). |
 | Friends | Never open `iac`. Maintainer only runs provision/configure. |
 
 ## Decide
 
-None. (Reopened “keep TF / omit IP from state?” → closed: drop TF for the vpn story.)
+None.
 
 ## Do
 
 ### 0. Retarget iac `vpn:*` to `secrets/vpn.yml`
 
 - [x] Agent: implemented
-- [ ] Human: reviewed
+- [x] Human: reviewed
 
-**Agent will implement** — `vpn-tf-secrets.sh`, `Taskfile.vpn.yml` (config/smoke/configure), `hostkeys` purpose `vpn` load `vpn.yml` only.
+**Agent will implement** — `vpn-secrets.sh` (was `vpn-tf-secrets.sh`), `Taskfile.vpn.yml` (config/smoke/configure), `hostkeys` purpose `vpn` load `vpn.yml` only.
 
-**Human must:** set `vpn.yml` `hcloud_token` + `ssh_keys` to Default/platform mirror (still Gate-shaped after Gate→vpn copy); then strip leftover `vpn_*` from `infra.yml`; `task secrets:push` in vpn container when ready; smoke `task vpn:config` / `hostkeys:ip -- vpn`.
+**Human must:** set `vpn.yml` `hcloud_token` + `ssh_keys` to Default/platform mirror (still Gate-shaped after Gate→vpn copy); then strip leftover `vpn_*` from `infra.yml`; `task secrets:push` in vpn container when ready; smoke `task vpn:vless-link` / `hostkeys:ip -- vpn`.
 
 ### 0b. Demote `vpn:provision:renew-ip` to break-glass
 
 - [x] Agent: implemented
-- [ ] Human: reviewed
+- [x] Human: reviewed
 
 **Agent will implement** — task help / renew-ip desc point at `fullmoongate/vpn` IssueOps as primary; script remains break-glass.
 
@@ -45,33 +48,69 @@ None. (Reopened “keep TF / omit IP from state?” → closed: drop TF for the 
 - [ ] Agent: implemented
 - [ ] Human: reviewed
 
-**Agent will implement** — can start now: load path `secrets/gate-{id}.yml` for `task gate:* -- <id>`; add `.sops.yaml` rule `gate-[0-9]+\.yml$` in sibling `secrets` (after go). Keep `gate.yml` path for legacy destroy/configure until retirement.
+**Agent will implement** — **after vpn-only phase / before Friend 1 go-live:** load path `secrets/gate-{id}.yml` for `task gate:* -- <id>`; add `.sops.yaml` rule `gate-[0-9]+\.yml$` in sibling `secrets` (after go). Keep `gate.yml` until legacy decommission.
 
-**Human must:** authorize **secrets** sibling edit; create/fill `gate-1.yml` when ready for Friend 1 customer (not required to start Agent wiring).
+**Human must:** authorize **secrets** sibling edit; create/fill Friend 1 file when go-live nears (fullmoongate1).
 
-### 2. hcloud `provision:present` / `provision:absent` — lab `vpn` + friends `gate:* -- <id>`
+### 2a. Lab `vpn:provision:present|absent` (hcloud)
+
+- [x] Agent: implemented
+- [ ] Human: reviewed
+
+**Agent will implement** — `scripts/box-provision.sh present|absent` (`BOX_NAME` → `<name>` / `<name>-v4` / `<name>-firewall`; present converges standing rules and keeps `Allow SSH from trusted IPs` rules; never re-addresses an existing server; absent also removes `<name>-v4-new-*` / `-hold-*` / `-burned-*`). `scripts/vpn-secrets.sh` (was `vpn-tf-secrets.sh`) exports `HCLOUD_TOKEN` + `BOX_SSH_KEYS_JSON` from `vpn.yml`. `terraform/vpn` removed; `test:terraform:*` = platform only.
+
+**Human must:** `task vpn:provision:present` → `task vpn:ssh:allow` (opens /32 + hostkeys:accept) → `vpn:configure:bootstrap` → `vpn:configure:apply` → `vpn:vless-link`; optional: drop unused `vpn_allowed_ssh_ips` from `vpn.yml`; then vpn window `task secrets:push` + `task denylist:push`. **TFC:** remove vpn-related state / delete workspace `vpn` when cool (box already hcloud-managed — do **not** TFC-destroy live resources). Console: drop any leftover defunct SSH rule (e.g. old `iac-travel-allow-me` description) if still present.
+
+### 2a-ssh. VPN-family travel SSH CLI (`*:ssh:allow` / `:deny`)
+
+- [x] Agent: implemented
+- [ ] Human: reviewed
+
+**Agent will implement** — `task vpn:ssh:allow|deny` and `gate:ssh:allow|deny` via `scripts/ssh-allow.sh` / `ssh-deny.sh` (load that purpose’s secrets; `-l purpose=<name>`; not platform). No root `ssh-allow-me` / `ssh-revoke-me`. Marker kept across `present`.
+
+**Human must:** after present, smoke `task vpn:ssh:allow`; confirm platform firewall unchanged. Gate: `task gate:ssh:allow` (loads Gate token).
+
+### 2. Friends `gate:provision:present|absent -- <id>` (Friend 1 go-live)
 
 - [ ] Agent: implemented
 - [ ] Human: reviewed
 
-**Agent will implement** — can start now: scripts for present (create-if-absent) / absent (destroy-by-name) of server + managed primary IPv4 + firewall via hcloud. Lab: `vpn` / `vpn-v4` / `vpn-firewall` from `vpn.yml` → `task vpn:provision:present|absent` (retire `plan|apply|destroy` as the operator path). Friends: `gate` / `gate-v4` / `gate-firewall` from `gate-{id}.yml` → `task gate:provision:present|absent -- <id>`. Old TF task names only as explicit TFC teardown helpers until cool-off.
+**Agent will implement** — **after vpn-only + Do 1:** reuse `scripts/box-provision.sh` with `BOX_NAME=gate` + `gate-{id}.yml` → `task gate:provision:present|absent -- <id>`. Target go-live: **fullmoongate1/gate**. Do not migrate legacy shared Gate in this step.
 
-**Human must:** controlled absent→present smoke on rednaw lab `vpn` first; Friend 1 empty customer later — not live friend traffic.
+**Human must:** controlled provision on Friend 1 customer; then cutover per `vpn/.cursor/plans/friend1-cutover.md`.
 
 ### 3. hostkeys + configure by id
 
 - [ ] Agent: implemented
 - [ ] Human: reviewed
 
-**Agent will implement** — after Do 1–2: `hostkeys` / `gate:configure:*` take the same `<id>` and force `HCLOUD_TOKEN` + `vpn_*` from that file only. Lab `vpn` already on `vpn.yml`.
+**Agent will implement** — after Do 1–2: `hostkeys` / `gate:configure:*` take the same `<id>` and force token + `vpn_*` from that file only. Lab `vpn` already on `vpn.yml`.
 
-**Human must:** review that ambient Default/platform token cannot leak into friend paths.
+**Human must:** review no Default/platform token leak into friend paths.
 
-### 4. Retire TF apply for vpn + legacy gate (docs/help)
+### 4. Retire TF for lab vpn (docs/help + TFC `vpn`)
 
 - [ ] Agent: implemented
 - [ ] Human: reviewed
 
-**Agent will implement** — can start now: task help / plan cross-links: no TF `provision:apply` on those roots to create, heal renew drift, or wipe; use `provision:present|absent` only; TFC workspaces abandon when ready.
+**Agent will implement** — vpn-only now: help/tips — no `vpn:provision:apply`; present/absent only. Do not change gate/platform TF help until decommission phase.
 
-**Human must:** stop using TF apply on those roots; confirm after lab `vpn:provision:absent` → `present`.
+**Human must:** DELETE TFC workspace `vpn` via API when cool (abandon state; do not TFC-destroy live box). Leave `gate` + `platform` workspaces until later.
+
+### 5. Communication (after Friend 1 live)
+
+- [ ] Agent: implemented
+- [ ] Human: reviewed
+
+**Agent will implement** — none until asked (draft copy only if requested).
+
+**Human must:** tell friends / operators the new path (fullmoongate1 live; legacy gate sunset timeline).
+
+### 6. Decommission legacy gate
+
+- [ ] Agent: implemented
+- [ ] Human: reviewed
+
+**Agent will implement** — after communication: remove/retire `terraform/gate`, gate TF tasks, TFC `gate` workspace delete via API; wipe shared box via hcloud absent when traffic gone; `gate.yml` retirement.
+
+**Human must:** confirm no remaining users on legacy shared Gate; run absent / TFC delete; archive `fullmoongate/gate` when ready.

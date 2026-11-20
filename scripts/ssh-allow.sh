@@ -1,20 +1,30 @@
 #!/usr/bin/env bash
-# Travel only (skip at home): allow the current public IPv4 (/32, TCP/22) on
-# every iac-managed Hetzner firewall (label iac_managed=true) in one go.
+# VPN-family travel SSH: allow current public IPv4 (/32, TCP/22) on one
+# purpose's firewalls (purpose=vpn|gate). Platform is never a valid purpose.
 #
-# The extra rule lives only in Hetzner — not Terraform, not SOPS, not git —
-# so the next *:provision:apply on a box wipes that box's extra rule (rerun
-# this script). Rules carry a description marker so ssh-revoke-me never
-# touches the standing (home) allowlist.
+#   task vpn:ssh:allow | task gate:ssh:allow
+#   bash scripts/ssh-allow.sh vpn|gate
 #
-# CGNAT caveat (roaming / travel eSIMs): the detected IPv4 can differ from the
-# SSH egress IP or rotate per flow. If SSH still refuses afterwards: rerun
-# once, then fall back to the Hetzner Console (web console, or add the /32 by
-# hand with the same marker).
+# Loads that purpose's secrets (vpn.yml / gate.yml). Description marker
+# "Allow SSH from trusted IPs"; kept across provision:present. Legacy gate
+# TF apply still wipes markers.
 set -euo pipefail
 
-MARKER="iac-travel-allow-me"
-LABEL="iac_managed=true"
+PURPOSE="${1:-}"
+MARKER="Allow SSH from trusted IPs"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SECRETS_DIR="${SECRETS_DIR:-$(realpath -m "${ROOT}/../secrets")}"
+SOPS_KEY_FILE="${SOPS_KEY_FILE:-${HOME}/.config/sops/age/keys.txt}"
+
+usage() {
+  echo "Usage: task vpn:ssh:allow | task gate:ssh:allow" >&2
+  exit 1
+}
+
+case "$PURPOSE" in
+  vpn|gate) ;;
+  *) usage ;;
+esac
 
 detect_public_ipv4() {
   local url ip
@@ -32,27 +42,41 @@ detect_public_ipv4() {
   return 1
 }
 
+if [ ! -f "$SOPS_KEY_FILE" ]; then
+  echo "❌ Missing age key at ${SOPS_KEY_FILE}" >&2
+  exit 1
+fi
+export SOPS_KEY_FILE SECRETS_DIR
+
+case "$PURPOSE" in
+  vpn)
+    # shellcheck disable=SC1091
+    . "${ROOT}/scripts/vpn-secrets.sh"
+    ;;
+  gate)
+    # shellcheck disable=SC1091
+    . "${ROOT}/scripts/gate-tf-secrets.sh"
+    ;;
+esac
+
 MYIP=$(detect_public_ipv4 || true)
 if ! [[ "${MYIP:-}" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-  echo "❌ No public IPv4 detected from ipify/ifconfig.me/icanhazip. Refusing — check connectivity (-4)." >&2
+  echo "❌ No public IPv4 detected. Check connectivity (-4)." >&2
   exit 1
 fi
-echo "🌍 Public IPv4: ${MYIP}"
+echo "🌍 Public IPv4: ${MYIP} → purpose=${PURPOSE}"
 
-if ! hcloud firewall list -l "$LABEL" -o noheader -o columns=name >/dev/null; then
-  echo "❌ hcloud cannot list firewalls (token / context?). Fix hcloud auth, then retry." >&2
-  exit 1
-fi
-
-if hcloud server list -o noheader -o columns=ipv4 | grep -Fxq "$MYIP"; then
-  echo "❌ ${MYIP} is an iac server address — refusing to allowlist it." >&2
-  echo "   OneXray (or another tunnel) on? Turn it off so detection sees the hotel/eSIM IPv4, then retry." >&2
+if hcloud server list -o noheader -o columns=ipv4 2>/dev/null | grep -Fxq "$MYIP"; then
+  echo "❌ ${MYIP} is a server address in this project — refusing (OneXray on?)." >&2
   exit 1
 fi
 
-FIREWALLS=$(hcloud firewall list -l "$LABEL" -o noheader -o columns=name)
+FIREWALLS=$(hcloud firewall list -l "purpose=${PURPOSE}" -o noheader -o columns=name | awk 'NF')
 if [ -z "$FIREWALLS" ]; then
-  echo "❌ No firewalls labelled ${LABEL} found (provision with the updated server module first)." >&2
+  echo "❌ No firewall with purpose=${PURPOSE} in this project." >&2
+  if [ "$PURPOSE" = "vpn" ]; then
+    echo "   Create first: task vpn:provision:present" >&2
+  fi
   exit 1
 fi
 
@@ -65,7 +89,6 @@ for FW in $FIREWALLS; do
   if echo "$RULES_JSON" | jq -e --arg ip "${MYIP}/32" \
       '.rules[] | select(.direction == "in" and .protocol == "tcp" and .port == "22")
                 | select(.source_ips[] == $ip)' >/dev/null; then
-    # Already covered (standing home rule or a prior travel rule).
     if echo "$RULES_JSON" | jq -e --arg ip "${MYIP}/32" --arg m "$MARKER" \
         '.rules[] | select(.direction == "in" and .protocol == "tcp" and .port == "22")
                   | select(.source_ips[] == $ip)
@@ -80,7 +103,6 @@ for FW in $FIREWALLS; do
 
   if hcloud firewall add-rule "$FW" --direction in --protocol tcp --port 22 \
       --source-ips "${MYIP}/32" --description "$MARKER" >/dev/null; then
-    # Confirm the rule landed (API can succeed without the rule matching later SSH).
     if hcloud firewall describe "$FW" -o json | jq -e --arg ip "${MYIP}/32" --arg m "$MARKER" \
         '.rules[] | select(.description == $m) | select(.source_ips[] == $ip)' >/dev/null; then
       echo "✅ ${FW}: added ${MYIP}/32"
@@ -96,8 +118,8 @@ for FW in $FIREWALLS; do
 done
 
 echo ""
-echo "⚠️  Extra rules are Hetzner-only: the next *:provision:apply on a box WIPES its extra rule."
-echo "   Done for the day / back home: task ssh-revoke-me"
+echo "⚠️  Marker rules are Hetzner-only. vpn:provision:present keeps them; legacy gate TF apply wipes them."
+echo "   Done for the day: task ${PURPOSE}:ssh:deny"
 echo "   Summary: added=${ADDED} skipped=${SKIPPED}"
 if [ "$FAILED" -ne 0 ]; then
   exit 1

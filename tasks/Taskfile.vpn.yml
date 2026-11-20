@@ -1,81 +1,93 @@
 # yaml-language-server: $schema=https://taskfile.dev/schema.json
 #
 # Public commands for the "vpn" server purpose (dev REALITY box on Default).
-# Secrets: ../secrets/vpn.yml only for Hetzner + vpn_*. TFC org still infra.yml.
+# Secrets: ../secrets/vpn.yml only. Provision = hcloud (no Terraform).
 #
 # Burned IP (break-glass): provision:renew-ip
 #   Primary renew = fullmoongate/vpn IssueOps.
-# Wedged wipe: provision:destroy → provision:apply → hostkeys:accept →
-#   configure:bootstrap → configure:apply → config.
+# Wipe: provision:absent → provision:present → ssh:allow →
+#   configure:bootstrap → configure:apply → vless-link.
 version: '3'
 
 vars:
-  VPN_TF_DIR: terraform/vpn
   VPN_SECRETS: '{{.SECRETS_DIR}}/vpn.yml'
 
 tasks:
-  provision:reconfigure:
-    desc: "Reconfigure Terraform backend after org/project change"
-    cmds:
-      - task: :_terraform:reconfigure
-        vars:
-          TF_DIR: '{{.VPN_TF_DIR}}'
-
-  provision:plan:
-    desc: "Plan VPN provisioning changes"
-    deps: [":_check:sops-key", ":_check:secrets", _check:vpn-secrets]
-    cmds:
-      - task: :_terraform:plan
-        vars:
-          TF_DIR: '{{.VPN_TF_DIR}}'
-          SECRETS_SCRIPT: scripts/vpn-tf-secrets.sh
-
-  provision:apply:
-    desc: "Apply VPN provisioning (creates managed primary IPv4 + server)"
-    deps: [":_check:sops-key", ":_check:secrets", _check:vpn-secrets]
-    cmds:
-      - task: :_terraform:apply
-        vars:
-          TF_DIR: '{{.VPN_TF_DIR}}'
-          PURPOSE: vpn
-          SECRETS_SCRIPT: scripts/vpn-tf-secrets.sh
-
-  provision:destroy:
-    desc: "Destroy VPN primary IP + box + firewall (platform untouched)"
-    deps: [":_check:sops-key", ":_check:secrets", _check:vpn-secrets]
-    cmds:
-      - task: :_terraform:destroy
-        vars:
-          TF_DIR: '{{.VPN_TF_DIR}}'
-          PURPOSE: vpn
-          SECRETS_SCRIPT: scripts/vpn-tf-secrets.sh
-
-  provision:renew-ip:
-    desc: "Break-glass burned IP (prefer fullmoongate/vpn IssueOps); then vpn:config"
+  provision:present:
+    desc: "Create missing vpn / vpn-v4 / vpn-firewall via hcloud; converge firewall rules (idempotent)"
     silent: true
     deps: [":_check:sops-key", ":_check:secrets", _check:vpn-secrets]
     cmds:
-      # hcloud swap only — no TFC. State drifts until a later vpn:provision:apply.
       - |
         set -euo pipefail
         export SOPS_KEY_FILE="{{.SOPS_KEY_FILE}}"
         export SECRETS_DIR="{{.SECRETS_DIR}}"
         export SECRETS_VPN="{{.VPN_SECRETS}}"
-        unset TF_WORKSPACE || true
         # shellcheck disable=SC1091
-        . "./scripts/vpn-tf-secrets.sh"
-        bash ./scripts/vpn-renew-ip.sh
-      - task: config
+        . "./scripts/vpn-secrets.sh"
+        BOX_NAME=vpn bash ./scripts/box-provision.sh present
+        echo ""
+        echo "💡 Next: task vpn:ssh:allow → vpn:configure:bootstrap →"
+        echo "   vpn:configure:apply → vpn:vless-link."
 
-  provision:output:
-    desc: "Show VPN provisioning outputs (current IPv4)"
+  ssh:allow:
+    desc: "Allow current public IPv4 /32 (TCP/22) on vpn-firewall, then accept host key"
+    silent: true
+    deps: [":_check:sops-key", ":_check:secrets", _check:vpn-secrets]
     cmds:
-      - task: :_terraform:output
-        vars:
-          TF_DIR: '{{.VPN_TF_DIR}}'
+      - bash ./scripts/ssh-allow.sh vpn
+      - task hostkeys:accept -- vpn
+
+  ssh:deny:
+    desc: "Remove vpn:ssh:allow travel rules from vpn-firewall"
+    silent: true
+    deps: [":_check:sops-key", ":_check:secrets", _check:vpn-secrets]
+    cmds:
+      - bash ./scripts/ssh-deny.sh vpn
+
+  ssh:shell:
+    desc: "Interactive SSH as ubuntu on vpn (vpn:ssh:allow first if port 22 closed)"
+    interactive: true
+    silent: true
+    deps: [":_check:sops-key", ":_check:secrets", _check:vpn-secrets]
+    cmds:
+      - |
+        set -euo pipefail
+        IP=$(task hostkeys:ip -- vpn) || exit 1
+        exec ssh -4 -t -o StrictHostKeyChecking=accept-new "ubuntu@${IP}"
+
+  provision:absent:
+    desc: "Delete vpn server, all vpn primary IPv4s, and vpn-firewall via hcloud (platform untouched)"
+    silent: true
+    prompt: "Delete server vpn, its primary IPv4(s) and vpn-firewall?"
+    deps: [":_check:sops-key", ":_check:secrets", _check:vpn-secrets]
+    cmds:
+      - |
+        set -euo pipefail
+        export SOPS_KEY_FILE="{{.SOPS_KEY_FILE}}"
+        export SECRETS_DIR="{{.SECRETS_DIR}}"
+        export SECRETS_VPN="{{.VPN_SECRETS}}"
+        # shellcheck disable=SC1091
+        . "./scripts/vpn-secrets.sh"
+        BOX_NAME=vpn bash ./scripts/box-provision.sh absent
+
+  provision:renew-ip:
+    desc: "Break-glass burned IP (prefer fullmoongate/vpn IssueOps); then vpn:vless-link"
+    silent: true
+    deps: [":_check:sops-key", ":_check:secrets", _check:vpn-secrets]
+    cmds:
+      - |
+        set -euo pipefail
+        export SOPS_KEY_FILE="{{.SOPS_KEY_FILE}}"
+        export SECRETS_DIR="{{.SECRETS_DIR}}"
+        export SECRETS_VPN="{{.VPN_SECRETS}}"
+        # shellcheck disable=SC1091
+        . "./scripts/vpn-secrets.sh"
+        bash ./scripts/vpn-renew-ip.sh
+      - task: vless-link
 
   configure:bootstrap:
-    desc: "One-time bootstrap as root (after wipe recreate + hostkeys:accept; not needed for renew-ip)"
+    desc: "One-time bootstrap as root (after provision:present + vpn:ssh:allow)"
     deps: [":_check:sops-key", ":_check:secrets", _check:vpn-secrets]
     cmds:
       - task: :_ansible:bootstrap
@@ -83,7 +95,7 @@ tasks:
           PURPOSE: vpn
           PLAYBOOK: playbooks/bootstrap.yml
           SECRETS_FILE: '{{.VPN_SECRETS}}'
-          HCLOUD_SECRETS_SCRIPT: scripts/vpn-tf-secrets.sh
+          HCLOUD_SECRETS_SCRIPT: scripts/vpn-secrets.sh
 
   configure:apply:
     desc: "Apply VPN server configuration (base hardening + Xray REALITY container)"
@@ -94,7 +106,7 @@ tasks:
           PURPOSE: vpn
           PLAYBOOK: playbooks/vpn.yml
           SECRETS_FILE: '{{.VPN_SECRETS}}'
-          HCLOUD_SECRETS_SCRIPT: scripts/vpn-tf-secrets.sh
+          HCLOUD_SECRETS_SCRIPT: scripts/vpn-secrets.sh
 
   smoke:
     desc: "Hotel binary smoke (OneXray on): works? / renew? — exit 0 = OK"
@@ -110,8 +122,8 @@ tasks:
         fi
         bash scripts/vpn-china-smoke.sh
 
-  config:
-    desc: "Emit OneXray share link + QR from secrets and the current IPv4 (no SSH; does not install Xray)"
+  vless-link:
+    desc: "Emit OneXray vless:// link + QR from secrets and the current IPv4 (no SSH; does not install Xray)"
     silent: true
     deps: [":_check:sops-key", ":_check:secrets", _check:vpn-secrets]
     cmds:
@@ -121,7 +133,7 @@ tasks:
         export SECRETS_DIR="{{.SECRETS_DIR}}"
         export SECRETS_VPN="{{.VPN_SECRETS}}"
         # shellcheck disable=SC1091
-        . "./scripts/vpn-tf-secrets.sh"
+        . "./scripts/vpn-secrets.sh"
         SECRETS=$(SOPS_AGE_KEY_FILE="{{.SOPS_KEY_FILE}}" sops -d "{{.VPN_SECRETS}}")
         UUID=$(echo "$SECRETS" | yq -r '.vpn_uuid // ""')
         PBK=$(echo "$SECRETS" | yq -r '.vpn_reality_public_key // ""')
