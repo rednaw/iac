@@ -1,0 +1,22 @@
+#!/usr/sbin/nft -f
+# Wire counters for everything hitting :443 (authenticated or not). Own table
+# only: never `flush ruleset`, Docker's iptables-nft rules live beside it.
+table inet xray_usage
+delete table inet xray_usage
+
+table inet xray_usage {
+	counter conns {}
+	counter wire_in {}
+	counter wire_out {}
+
+	chain input {
+		type filter hook input priority -10; policy accept;
+		tcp dport 443 ct state new counter name conns
+		tcp dport 443 counter name wire_in
+	}
+
+	chain output {
+		type filter hook output priority -10; policy accept;
+		tcp sport 443 counter name wire_out
+	}
+}

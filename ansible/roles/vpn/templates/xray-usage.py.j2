@@ -1,0 +1,47 @@
+#!/usr/bin/env python3
+# Read-and-reset Xray user traffic counters and the nft :443 wire counters;
+# append one line to the usage log. up/down = authenticated payload only;
+# conns/wire_* = everything on :443, probes included (wire bytes > payload).
+# Xray counters live in memory: a container restart drops the partial hour.
+import json
+import subprocess
+from datetime import datetime, timezone
+
+
+def size(n):
+    for unit in ("B", "KB", "MB", "GB"):
+        if n < 1000 or unit == "GB":
+            return f"{n}{unit}" if unit == "B" else f"{n:.1f}{unit}"
+        n /= 1000
+
+
+def run(*cmd):
+    return subprocess.run(cmd, check=True, capture_output=True, text=True).stdout
+
+
+xray = run(
+    "docker", "exec", "xray", "/usr/local/bin/xray", "api", "statsquery",
+    "--server=127.0.0.1:{{ vpn_xray_api_port }}",
+    "-pattern", "user>>>", "-reset",
+)
+user = {"uplink": 0, "downlink": 0}
+for stat in json.loads(xray or "{}").get("stat", []):
+    direction = stat["name"].rsplit(">>>", 1)[-1]
+    if direction in user:
+        user[direction] += int(stat.get("value", 0))
+
+nft = run("nft", "-j", "reset", "counters", "table", "inet", "xray_usage")
+wire = {
+    c["name"]: c
+    for item in json.loads(nft)["nftables"]
+    if (c := item.get("counter"))
+}
+
+stamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+with open("{{ vpn_usage_log }}", "a") as log:
+    log.write(
+        f"{stamp} up={size(user['uplink'])} down={size(user['downlink'])}"
+        f" conns={wire['conns']['packets']}"
+        f" wire_in={size(wire['wire_in']['bytes'])}"
+        f" wire_out={size(wire['wire_out']['bytes'])}\n"
+    )

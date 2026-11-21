@@ -8,3 +8,6 @@
 
 - name: Configure Xray REALITY container
   ansible.builtin.import_tasks: xray.yml
+
+- name: Meter Xray usage (hourly byte totals)
+  ansible.builtin.import_tasks: usage.yml

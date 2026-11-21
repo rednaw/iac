@@ -4,3 +4,9 @@
     name: xray
     state: started
     restart: true
+
+- name: Restart xray-usage counters
+  ansible.builtin.systemd:
+    name: xray-usage-counters.service
+    state: restarted
+    daemon_reload: true
