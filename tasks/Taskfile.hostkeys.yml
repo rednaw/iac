@@ -8,8 +8,8 @@
 #   gate:     Hetzner server name "gate"; inventory "gate" (Cloud project Gate).
 #   SSH/Ansible always use the API IPv4 (no platform DNS name).
 #
-# Purpose vpn / gate always load HCLOUD_TOKEN from secrets/vpn.yml or gate.yml
-# (never ambient Default token alone — vpn.yml should mirror Default).
+# Each purpose loads HCLOUD_TOKEN from its own secrets file (infra.yml /
+# vpn.yml / gate.yml), never the ambient hcloud context.
 version: '3'
 
 tasks:
@@ -30,7 +30,10 @@ tasks:
         esac
         export SOPS_KEY_FILE="{{.SOPS_KEY_FILE}}"
         export SECRETS_DIR="{{.SECRETS_DIR}}"
-        if [ "{{.PURPOSE}}" = "vpn" ]; then
+        if [ "{{.PURPOSE}}" = "platform" ]; then
+          # shellcheck disable=SC1091
+          . "./scripts/platform-secrets.sh"
+        elif [ "{{.PURPOSE}}" = "vpn" ]; then
           # shellcheck disable=SC1091
           . "./scripts/vpn-secrets.sh"
         elif [ "{{.PURPOSE}}" = "gate" ]; then
@@ -86,7 +89,7 @@ tasks:
           attempt=$((attempt + 1))
         done
         echo "❌ Could not SSH to ${IP} as ubuntu or root after ${MAX} attempts." >&2
-        echo "   SSH closed by default on vpn/gate — task {{.PURPOSE}}:ssh:allow (opens 22 + accept), then retry." >&2
+        echo "   SSH closed by default — task {{.PURPOSE}}:ssh:allow (opens 22 + accept), then retry." >&2
         exit 1
 
   _check:purpose:

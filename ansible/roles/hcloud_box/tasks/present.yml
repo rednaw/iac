@@ -1,7 +1,8 @@
 ---
-# Create whatever is missing; converge firewall standing rules and labels.
-# Never resizes, rebuilds or re-addresses an existing server: renew owns the
-# IPv4 once the box exists.
+# Create whatever is missing; converge firewall standing rules, labels, backups
+# and the primary IPv4's name. Never resizes, rebuilds or re-addresses an
+# existing server: renew owns the IPv4 once the box exists.
+# Sets hcloud_box_ipv4 / hcloud_box_ipv6 (address, not /64) for callers.
 
 - name: Read firewall
   hetzner.hcloud.firewall_info:
@@ -25,12 +26,21 @@
 
 - name: Existing server
   when: _server_info.hcloud_server_info | length > 0
+  vars:
+    _srv: "{{ _server_info.hcloud_server_info[0] }}"
   block:
     - name: Refuse to touch a server without IPv4 (mid-renew?)
       ansible.builtin.assert:
-        that: _server_info.hcloud_server_info[0].ipv4_address | default('', true) | length > 0
+        that: _srv.ipv4_address | default('', true) | length > 0
         fail_msg: "{{ hcloud_box_name }} has no IPv4 (mid-renew?). Finish or rerun renew."
         quiet: true
+
+    - name: Converge server labels and backups
+      hetzner.hcloud.server:
+        name: "{{ hcloud_box_name }}"
+        labels: "{{ hcloud_box_labels }}"
+        backups: "{{ hcloud_box_backups[hcloud_box_profile] }}"
+        state: present
 
     - name: Attach firewall
       hetzner.hcloud.firewall_resource:
@@ -38,9 +48,36 @@
         servers: ["{{ hcloud_box_name }}"]
         state: present
 
+    - name: Read primary IPs
+      hetzner.hcloud.primary_ip_info:
+      register: _ips
+
+    - name: Adopt assigned primary IPv4 (name, labels, keep on server delete)
+      ansible.builtin.uri:
+        url: "https://api.hetzner.cloud/v1/primary_ips/{{ _ip.id }}"
+        method: PUT
+        headers:
+          Authorization: "Bearer {{ hcloud_box_api_token }}"
+        body_format: json
+        body:
+          name: "{{ hcloud_box_ip_name }}"
+          labels: "{{ hcloud_box_labels }}"
+          auto_delete: false
+      vars:
+        _ip: >-
+          {{ _ips.hcloud_primary_ip_info | selectattr('type', 'equalto', 'ipv4')
+             | selectattr('assignee_id', 'equalto', _srv.id) | first }}
+      when: >-
+        _ip.name != hcloud_box_ip_name or _ip.auto_delete | bool
+        or _ip.labels != hcloud_box_labels
+      changed_when: true
+      no_log: true
+
     - name: Record outcome (existing server)
       ansible.builtin.set_fact:
-        hcloud_box_summary: "✅ {{ hcloud_box_name }} present ({{ _server_info.hcloud_server_info[0].ipv4_address }}); server left as-is."
+        hcloud_box_ipv4: "{{ _srv.ipv4_address }}"
+        hcloud_box_ipv6: "{{ (_srv.ipv6 | split('/'))[0] ~ '1' }}"
+        hcloud_box_summary: "✅ {{ hcloud_box_name }} present ({{ _srv.ipv4_address }}); server left as-is."
 
 - name: New server
   when: _server_info.hcloud_server_info | length == 0
@@ -81,6 +118,7 @@
         firewalls: ["{{ hcloud_box_firewall_name }}"]
         ssh_keys: "{{ hcloud_box_ssh_keys | map('string') | list }}"
         labels: "{{ hcloud_box_labels }}"
+        backups: "{{ hcloud_box_backups[hcloud_box_profile] }}"
         state: present
       register: _server
 
@@ -92,4 +130,6 @@
 
     - name: Record outcome (new server)
       ansible.builtin.set_fact:
+        hcloud_box_ipv4: "{{ _server.hcloud_server.ipv4_address }}"
+        hcloud_box_ipv6: "{{ (_server.hcloud_server.ipv6 | split('/'))[0] ~ '1' }}"
         hcloud_box_summary: "✅ {{ hcloud_box_name }} created ({{ _server.hcloud_server.ipv4_address }}). SSH closed until: task {{ hcloud_box_name }}:ssh:allow"

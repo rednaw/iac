@@ -53,12 +53,12 @@ None.
 
 ### 2. Platform adopt on Ansible
 
-- [ ] Agent: implemented
-- [ ] Human: reviewed
+- [x] Agent: implemented
+- [x] Human: reviewed
 
-**Agent will implement** — platform profile (ICMP+80+443, backups on, `purpose=platform`); DIY TransIP for the `dns.tf` record set; `platform:ssh:allow|deny|shell` via existing ops scripts loading `infra.yml`; drop standing `allowed_ssh_ips`; Task replaces TF provision tasks.
+**Agent will implement** — `hcloud_box` profile `platform` (ICMP+80+443, backups on); existing servers converge labels/backups and adopt the assigned primary IPv4 (rename `<name>-v4`, `auto_delete=false`); DIY `ansible/library/transip_dns.py` + role `platform_dns` (exact `dns.tf` set); `platform:provision:present|absent`, `platform:ssh:allow|deny|shell` (`scripts/platform-secrets.sh`); TF platform tasks + `platform-tf-secrets.sh` removed; `validate-stack.py`, README, help updated. `allowed_ssh_ips` stays (fail2ban ignore list only). Verified `--check`: platform = firewall + server labels changed, DNS 0 changes; vpn 0 changes.
 
-**Human must:** `task platform:ssh:allow` before the first converge; run converge, confirm server/IP unchanged and DNS records identical; then approve DELETE of TFC `platform` via API.
+**Human must:** `task platform:provision:present` (closes the standing SSH rule; 80/443 untouched; renames `primary_ip-149643588` → `platform-v4`) → `task platform:ssh:allow` → `task platform:configure:apply` → rerun `present`, expect `changed=0`; then approve DELETE of TFC `platform` via API (abandon state).
 
 ### 3. Friend secrets parameterization
 

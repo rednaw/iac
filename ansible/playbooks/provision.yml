@@ -1,8 +1,11 @@
 ---
-# Cloud provision for one box (server + primary IPv4 + firewall) via hetzner.hcloud.
-# Token and ssh_keys come only from secrets_file (never an ambient HCLOUD_TOKEN).
+# Cloud provision for one box (server + primary IPv4 + firewall) via hetzner.hcloud,
+# plus TransIP DNS for platform. Token and ssh_keys come only from secrets_file
+# (never an ambient HCLOUD_TOKEN).
 #
-#   ansible-playbook playbooks/provision.yml -e box=vpn -e secrets_file=… [-e state=absent]
+#   ansible-playbook -i localhost, playbooks/provision.yml -e box=vpn|platform -e secrets_file=… [-e state=absent]
+#
+# absent leaves DNS records in place.
 
 - name: Provision cloud box
   hosts: localhost
@@ -30,8 +33,13 @@
     - role: hcloud_box
       vars:
         hcloud_box_name: "{{ box }}"
+        hcloud_box_profile: "{{ 'platform' if box == 'platform' else 'reality' }}"
         hcloud_box_state: "{{ state | default('present') }}"
         hcloud_box_ssh_keys: "{{ infrastructure_secrets.ssh_keys | default([]) }}"
+        hcloud_box_api_token: "{{ infrastructure_secrets.hcloud_token }}"
+
+    - role: platform_dns
+      when: box == 'platform' and state | default('present') == 'present'
 
   post_tasks:
     - name: Write outcome for the Task wrapper

@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# VPN-family travel SSH: allow current public IPv4 (/32, TCP/22) on one
-# purpose's firewalls (purpose=vpn|gate). Platform is never a valid purpose.
+# Travel SSH: allow current public IPv4 (/32, TCP/22) on one
+# purpose's firewalls (purpose=platform|vpn|gate).
 #
-#   task vpn:ssh:allow | task gate:ssh:allow
-#   bash scripts/ssh-allow.sh vpn|gate
+#   task platform|vpn|gate:ssh:allow
+#   bash scripts/ssh-allow.sh platform|vpn|gate
 #
-# Loads that purpose's secrets (vpn.yml / gate.yml). Description marker
-# "Allow SSH from trusted IPs"; kept across provision:present. Legacy gate
-# TF apply still wipes markers.
+# Loads that purpose's secrets (infra.yml / vpn.yml / gate.yml). Description marker
+# "Allow SSH from trusted IPs"; kept across <purpose>:provision:present.
+# Legacy gate TF apply still wipes markers.
 set -euo pipefail
 
 PURPOSE="${1:-}"
@@ -17,12 +17,12 @@ SECRETS_DIR="${SECRETS_DIR:-$(realpath -m "${ROOT}/../secrets")}"
 SOPS_KEY_FILE="${SOPS_KEY_FILE:-${HOME}/.config/sops/age/keys.txt}"
 
 usage() {
-  echo "Usage: task vpn:ssh:allow | task gate:ssh:allow" >&2
+  echo "Usage: task platform|vpn|gate:ssh:allow" >&2
   exit 1
 }
 
 case "$PURPOSE" in
-  vpn|gate) ;;
+  platform|vpn|gate) ;;
   *) usage ;;
 esac
 
@@ -49,6 +49,10 @@ fi
 export SOPS_KEY_FILE SECRETS_DIR
 
 case "$PURPOSE" in
+  platform)
+    # shellcheck disable=SC1091
+    . "${ROOT}/scripts/platform-secrets.sh"
+    ;;
   vpn)
     # shellcheck disable=SC1091
     . "${ROOT}/scripts/vpn-secrets.sh"
@@ -74,8 +78,8 @@ fi
 FIREWALLS=$(hcloud firewall list -l "purpose=${PURPOSE}" -o noheader -o columns=name | awk 'NF')
 if [ -z "$FIREWALLS" ]; then
   echo "❌ No firewall with purpose=${PURPOSE} in this project." >&2
-  if [ "$PURPOSE" = "vpn" ]; then
-    echo "   Create first: task vpn:provision:present" >&2
+  if [ "$PURPOSE" != "gate" ]; then
+    echo "   Create first: task ${PURPOSE}:provision:present" >&2
   fi
   exit 1
 fi
@@ -118,7 +122,7 @@ for FW in $FIREWALLS; do
 done
 
 echo ""
-echo "⚠️  Marker rules are Hetzner-only. vpn:provision:present keeps them; legacy gate TF apply wipes them."
+echo "⚠️  Marker rules are Hetzner-only. <purpose>:provision:present keeps them; legacy gate TF apply wipes them."
 echo "   Done for the day: task ${PURPOSE}:ssh:deny"
 echo "   Summary: added=${ADDED} skipped=${SKIPPED}"
 if [ "$FAILED" -ne 0 ]; then

@@ -7,6 +7,8 @@ hcloud_box_location: nbg1
 hcloud_box_server_type: cx23
 hcloud_box_image: ubuntu-24.04
 hcloud_box_ssh_keys: []
+# Same token as module_defaults; only for the primary IP rename (no module option).
+hcloud_box_api_token: ""
 
 hcloud_box_ip_name: "{{ hcloud_box_name }}-v4"
 hcloud_box_firewall_name: "{{ hcloud_box_name }}-firewall"
@@ -37,3 +39,26 @@ hcloud_box_standing_rules:
       source_ips: ["0.0.0.0/0", "::/0"]
       destination_ips: []
       description: REALITY (VLESS over TLS)
+  platform:
+    - direction: in
+      protocol: icmp
+      port: null
+      source_ips: ["0.0.0.0/0", "::/0"]
+      destination_ips: []
+      description: Allow ping from anywhere
+    - direction: in
+      protocol: tcp
+      port: "80"
+      source_ips: ["0.0.0.0/0", "::/0"]
+      destination_ips: []
+      description: HTTP
+    - direction: in
+      protocol: tcp
+      port: "443"
+      source_ips: ["0.0.0.0/0", "::/0"]
+      destination_ips: []
+      description: HTTPS
+
+hcloud_box_backups:
+  reality: false
+  platform: true

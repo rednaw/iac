@@ -1,7 +1,7 @@
 # yaml-language-server: $schema=https://taskfile.dev/schema.json
 #
 # Internal Terraform tasks. Not callable from CLI; called by purpose namespaces
-# (e.g. platform:provision:plan -> _terraform:plan).
+# (e.g. gate:provision:plan -> _terraform:plan). Legacy gate only.
 #
 # Parameters consumers pass:
 #   TF_DIR          Terraform root directory (e.g. "terraform/platform")

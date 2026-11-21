@@ -1,6 +1,6 @@
 # Infrastructure as Code
 
-Opinionated IaC for a **single Hetzner VPS**: Terraform provisions, Ansible configures, SOPS encrypts secrets, Docker Compose runs apps.
+Opinionated IaC for a **single Hetzner VPS**: Ansible provisions (Hetzner + TransIP DNS) and configures, SOPS encrypts secrets, Docker Compose runs apps.
 
 Public repo **`rednaw/iac`** has no infra secrets. Encrypted infra lives in the **private sibling** [`rednaw/secrets`](https://github.com/rednaw/secrets) (`../secrets` beside this clone).
 
@@ -27,8 +27,9 @@ Tasks resolve apps at `/workspaces/<app>/` (parent mount). Infra secrets resolve
 # First machine / new age key only:
 task secrets:init                          # writes encrypted template into ../secrets
 
-task platform:provision:plan               # Terraform
-task platform:configure:apply              # Ansible
+task platform:provision:present            # server, firewall, DNS (idempotent)
+task platform:ssh:allow                    # open 22 for your current IP
+task platform:configure:apply
 task app:versions -- <app>
 task app:deploy -- <app> <7-char-sha>
 task tunnel:start                          # OpenObserve / Traefik / Prefect UI (portal.html)
@@ -43,7 +44,7 @@ Run `task` for the full list.
 | OS + Docker baseline | `ansible/roles/base/` |
 | Traefik, registry, OpenObserve, CMS OAuth, Prefect | `ansible/roles/platform/` |
 | App deploy | `ansible/roles/deploy_app/`, `tasks/Taskfile.app.yml` |
-| Server provisioning | `terraform/platform/` (+ `terraform/modules/server/`) |
+| Server provisioning | `ansible/playbooks/provision.yml`, `ansible/roles/hcloud_box/`, `ansible/roles/platform_dns/` |
 | Scheduled flows | `prefect/` |
 | Automation | `Taskfile.yml`, `tasks/` |
 | Dev environment | `.devcontainer/` |
