@@ -38,7 +38,7 @@ tasks:
           . "./scripts/vpn-secrets.sh"
         elif [ "{{.PURPOSE}}" = "gate" ]; then
           # shellcheck disable=SC1091
-          . "./scripts/gate-tf-secrets.sh"
+          . "./scripts/gate-secrets.sh"
         fi
         IP=$(hcloud server ip "$SERVER_NAME") || {
           echo "No Hetzner server named $SERVER_NAME (not provisioned?)" >&2

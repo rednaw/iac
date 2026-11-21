@@ -39,7 +39,7 @@ case "$PURPOSE" in
     ;;
   gate)
     # shellcheck disable=SC1091
-    . "${ROOT}/scripts/gate-tf-secrets.sh"
+    . "${ROOT}/scripts/gate-secrets.sh"
     ;;
 esac
 

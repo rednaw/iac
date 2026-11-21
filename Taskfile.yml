@@ -20,7 +20,6 @@ env:
 
 includes:
   hostkeys: tasks/Taskfile.hostkeys.yml
-  _terraform: tasks/Taskfile._terraform.yml
   _ansible: tasks/Taskfile._ansible.yml
   platform: tasks/Taskfile.platform.yml
   vpn: tasks/Taskfile.vpn.yml
@@ -60,8 +59,7 @@ tasks:
         echo "  task vpn:configure:bootstrap|apply"
         echo "  task vpn:vless-link"
         echo ""
-        echo "Gate — legacy shared box (Hetzner project Gate / TFC gate):"
-        echo "  task gate:provision:plan|apply|destroy|output"
+        echo "Gate — legacy shared box (Hetzner project Gate; unmanaged until decommission):"
         echo "  task gate:ssh:allow|deny"
         echo "  task gate:configure:bootstrap|apply"
         echo "  # secrets: ../secrets/gate.yml only; never for server vpn"

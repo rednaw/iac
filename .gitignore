@@ -1,12 +1,6 @@
 # SOPS VS Code extension temp files
 .decrypted~*
 
-# Terraform
-terraform/**/*.tfstate
-terraform/**/*.tfstate.*
-terraform/**/.terraform/
-terraform/**/crash.log
-
 # Ansible
 ansible/.ansible/
 

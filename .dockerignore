@@ -6,7 +6,6 @@
 .devcontainer
 docs
 ansible
-terraform
 scripts
 tasks
 secrets

@@ -22,7 +22,7 @@
 | Platform cutover | **Adopt in place** by name — keep server, disk, IP; no recreate. Hetzner backups stay on. |
 | DNS | TransIP records = today’s `terraform/platform/dns.tf` set: apex/registry/auth/analytics A+AAAA, www, null MX + SPF + DMARC (base and app domains). Values from `infra.yml` + server IPs. |
 | Downtime | **Gate / lab vpn (REALITY):** none for routine ops — converge in place; IP renew = brief poweroff only. **Platform:** downtime acceptable but adopt-in-place avoids it. |
-| Legacy gate | **Not migrated** — stays on `terraform/gate` + TFC `gate` untouched until decommission. |
+| Legacy gate | **Not migrated**, **unmanaged** — TFC `gate` deleted + `terraform/gate` removed early (state already drifted via `gate` repo renew-ip). Only `gate:ssh:*` / `gate:configure:*` remain until decommission. |
 | Secrets files | Platform: `infra.yml`. Lab: `vpn.yml`. Friends: `gate-{id}.yml` + `.sops.yaml` rule `gate-[0-9]+\.yml$` — **deferred** until near Friend 1 go-live. Legacy `gate.yml` until decommission. Never platform token in friend files. |
 | Lab vpn | Rewrite provision onto Ansible; keep renew + vless-link. Primary renew = `fullmoongate/vpn` IssueOps. |
 | Friends | Never open `iac`. Maintainer only runs provision/configure. |
@@ -92,15 +92,15 @@ None.
 - [ ] Agent: implemented
 - [ ] Human: reviewed
 
-**Agent will implement** — remove `terraform/gate`, gate TF tasks, `scripts/gate-tf-secrets.sh` legacy paths.
+**Agent will implement** — remove `tasks/Taskfile.gate.yml`, `scripts/gate-secrets.sh`, gate branches in `ssh-allow.sh` / `ssh-deny.sh` / `Taskfile.hostkeys.yml` / help. (Done early: `terraform/gate`, gate TF tasks, `_terraform` Taskfile, TFC `gate`.)
 
-**Human must:** confirm no users left on legacy Gate; delete server/IP/firewall in that customer; DELETE TFC `gate` via API; retire `gate.yml`; archive `fullmoongate/gate` when ready.
+**Human must:** confirm no users left on legacy Gate; delete server/IP/firewall in that customer (hcloud/console); retire `gate.yml`; archive `fullmoongate/gate` when ready.
 
 ### 7. Purge Terraform from repo + CI
 
-- [ ] Agent: implemented
+- [x] Agent: implemented
 - [ ] Human: reviewed
 
-**Agent will implement** — delete remaining TF roots/modules; remove `test:terraform:*` / tfsec; replace `terraform.mdc` with hcloud/Ansible invariants; propose `project.mdc` identity line + `rednaw-map` skill updates (sibling/skill edits after go).
+**Agent will implement** — done: `terraform/` deleted; `test:terraform:*` + CI tfsec/validate steps removed; terraform/tfsec dropped from `mise.toml`, Renovate, ignore/attributes files; TFC token block dropped from `devcontainer-setup.sh`; `terraform_cloud_*` dropped from the secrets template. Pending (agent blocked): delete `.cursor/rules/terraform.mdc`; `project.mdc` identity line; `rednaw-map` skill updates (after go).
 
-**Human must:** confirm TFC holds no iac workspaces you care about.
+**Human must:** delete `terraform.mdc`; fix `project.mdc` line 8; rebuild container; remove `terraform_cloud_*` from `../secrets/infra.yml`; revoke the TFC token (and the org if unused).

@@ -31,7 +31,7 @@ mise trust -a
 
 _sync_mise_tools() {
   if ! sudo -n true 2>/dev/null; then
-    echo "WARN: passwordless sudo unavailable; if terraform/terraform fail, rebuild the dev image or run: sudo mise install" >&2
+    echo "WARN: passwordless sudo unavailable; if mise tools fail, rebuild the dev image or run: sudo mise install" >&2
     return 0
   fi
   echo "Syncing mise tools to match workspace mise.toml (sudo mise install)..."
@@ -136,24 +136,6 @@ active_context = "default"
 EOF
 chmod 600 "$HCLOUD_CONFIG_DIR/cli.toml"
 echo "hcloud CLI configured (context \"default\")."
-
-########################################
-# Terraform Cloud
-########################################
-
-TFC_TOKEN=$(echo "$DECRYPTED" | yq -r '.terraform_cloud_token // ""')
-[ -n "$TFC_TOKEN" ] || { echo "ERROR: terraform_cloud_token missing from $INFRA_FILE." >&2; exit 1; }
-
-export TF_TOKEN_app_terraform_io="$TFC_TOKEN"
-# Always refresh — a stale line in bashrc/zshrc survives rebuilds when $HOME persists
-# and otherwise leaves TF_TOKEN pointing at a revoked token ("No existing workspaces").
-for profile in "${HOME}/.bashrc" "${HOME}/.zshrc"; do
-  if [ -f "$profile" ]; then
-    grep -v 'TF_TOKEN_app_terraform_io=' "$profile" > "${profile}.tmp" && mv "${profile}.tmp" "$profile"
-    printf '\nexport TF_TOKEN_app_terraform_io="%s"\n' "$TFC_TOKEN" >> "$profile"
-  fi
-done
-echo "Terraform Cloud token configured."
 
 ########################################
 # SSH config (Host platform → API IPv4)
