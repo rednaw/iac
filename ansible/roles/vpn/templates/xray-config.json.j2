@@ -1,5 +1,16 @@
 {
   "log": { "loglevel": "warning" },
+  "api": {
+    "tag": "api",
+    "listen": "127.0.0.1:{{ vpn_xray_api_port }}",
+    "services": ["StatsService"]
+  },
+  "stats": {},
+  "policy": {
+    "levels": {
+      "0": { "statsUserUplink": true, "statsUserDownlink": true }
+    }
+  },
   "inbounds": [
     {
       "listen": "0.0.0.0",
@@ -9,6 +20,7 @@
         "clients": [
           {
             "id": "{{ infrastructure_secrets.vpn_uuid }}",
+            "email": "{{ vpn_xray_stats_user }}",
             "flow": "xtls-rprx-vision"
           }
         ],

@@ -14,4 +14,4 @@ After a burned IP, the GFW blocked **our** Hetzner address, not the dest’s rea
 | #2 | `seapalace.nl` | roster |
 | #3 | `jamstudios.nl` | was trip live |
 
-Friend cutover picks a **fresh per-friend** dest from this pool (see `vpn/.cursor/plans/friend1-cutover.md`).
+Friend cutover picks a **fresh per-friend** dest from this pool (see `vpn/.cursor/plans/vpn.md`).

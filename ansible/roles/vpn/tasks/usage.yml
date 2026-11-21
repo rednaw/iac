@@ -1,0 +1,91 @@
+---
+- name: Install nftables (wire counters on :443)
+  ansible.builtin.apt:
+    name: nftables
+    state: present
+
+- name: Install :443 wire counter ruleset
+  ansible.builtin.template:
+    src: xray-usage.nft.j2
+    dest: /etc/xray-usage.nft
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Restart xray-usage counters
+
+# Not nftables.service: Ubuntu's /etc/nftables.conf flushes the whole ruleset,
+# which would drop Docker's rules.
+- name: Install :443 wire counter service
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/xray-usage-counters.service
+    owner: root
+    group: root
+    mode: '0644'
+    content: |
+      [Unit]
+      Description=nft wire counters for :443 (xray-usage)
+      After=network-pre.target
+
+      [Service]
+      Type=oneshot
+      RemainAfterExit=yes
+      ExecStart=/usr/sbin/nft -f /etc/xray-usage.nft
+      ExecStop=/usr/sbin/nft delete table inet xray_usage
+
+      [Install]
+      WantedBy=multi-user.target
+  notify: Restart xray-usage counters
+
+- name: Enable :443 wire counters
+  ansible.builtin.systemd:
+    name: xray-usage-counters.service
+    enabled: true
+    state: started
+    daemon_reload: true
+
+- name: Install Xray usage script
+  ansible.builtin.template:
+    src: xray-usage.py.j2
+    dest: /usr/local/sbin/xray-usage
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Install Xray usage service
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/xray-usage.service
+    owner: root
+    group: root
+    mode: '0644'
+    content: |
+      [Unit]
+      Description=Append Xray user traffic totals to {{ vpn_usage_log }}
+      After=docker.service
+
+      [Service]
+      Type=oneshot
+      ExecStart=/usr/local/sbin/xray-usage
+
+- name: Install Xray usage timer
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/xray-usage.timer
+    owner: root
+    group: root
+    mode: '0644'
+    content: |
+      [Unit]
+      Description=Hourly Xray usage totals
+
+      [Timer]
+      OnCalendar=hourly
+      Persistent=true
+
+      [Install]
+      WantedBy=timers.target
+
+- name: Enable Xray usage timer
+  ansible.builtin.systemd:
+    name: xray-usage.timer
+    enabled: true
+    state: started
+    daemon_reload: true

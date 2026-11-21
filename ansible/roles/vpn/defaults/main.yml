@@ -5,6 +5,12 @@ vpn_xray_image: "ghcr.io/xtls/xray-core@sha256:592ec4d11f656db95598d01e76dbcc6e0
 
 vpn_xray_config_dir: /etc/xray
 
+# Usage metering: byte totals of authenticated users only (no IPs, no
+# destinations). API is loopback-only; the timer appends one line per hour.
+vpn_xray_api_port: 10085
+vpn_xray_stats_user: shared
+vpn_usage_log: /var/log/xray-usage.log
+
 # Held so nothing bounces dockerd (and with it Xray) during the travel window.
 # Belt-and-braces: unattended-upgrades Allowed-Origins is Ubuntu-only, so
 # download.docker.com packages are never auto-upgraded anyway.
