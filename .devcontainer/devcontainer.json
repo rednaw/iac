@@ -34,7 +34,8 @@
           "Taskfile.yml": "yaml",
           "**/Taskfile*.yml": "yaml"
         },
-        "ansible.python.interpreterPath": "/usr/bin/python3"
+        "ansible.python.interpreterPath": "/usr/bin/python3",
+        "python.defaultInterpreterPath": "/opt/ansible-venv/bin/python"
       }
     },
     "remote.containers.autoReopen": true

@@ -1,0 +1,33 @@
+---
+# TransIP records pointing at the platform server. Only these name/type sets are
+# managed; other records in the zones are left alone.
+# No platform hostname on base_domain (SSH/Ansible use API IPv4). App apex/www
+# live on the site domain (app_domain, or base_domain when unset).
+
+- name: Converge TransIP DNS
+  transip_dns:
+    account_name: "{{ infrastructure_secrets.transip_account_name }}"
+    private_key: "{{ infrastructure_secrets.transip_private_key }}"
+    records: "{{ _records + (_app_no_mail if _base != _site else []) }}"
+  vars:
+    _base: "{{ infrastructure_secrets.base_domain }}"
+    _site: "{{ infrastructure_secrets.app_domain | default('', true) or _base }}"
+    _v4: "{{ hcloud_box_ipv4 }}"
+    _v6: "{{ hcloud_box_ipv6 }}"
+    _records:
+      - {domain: "{{ _site }}", name: "@", type: A, expire: 60, content: ["{{ _v4 }}"]}
+      - {domain: "{{ _site }}", name: "@", type: AAAA, expire: 60, content: ["{{ _v6 }}"]}
+      - {domain: "{{ _site }}", name: www, type: CNAME, expire: 60, content: ["{{ _site }}."]}
+      - {domain: "{{ _base }}", name: registry, type: A, expire: 60, content: ["{{ _v4 }}"]}
+      - {domain: "{{ _base }}", name: registry, type: AAAA, expire: 60, content: ["{{ _v6 }}"]}
+      - {domain: "{{ _base }}", name: auth, type: A, expire: 60, content: ["{{ _v4 }}"]}
+      - {domain: "{{ _base }}", name: auth, type: AAAA, expire: 60, content: ["{{ _v6 }}"]}
+      - {domain: "{{ _base }}", name: analytics, type: A, expire: 60, content: ["{{ _v4 }}"]}
+      - {domain: "{{ _base }}", name: analytics, type: AAAA, expire: 60, content: ["{{ _v6 }}"]}
+      - {domain: "{{ _base }}", name: "@", type: MX, expire: 86400, content: ["0 ."]}
+      - {domain: "{{ _base }}", name: "@", type: TXT, expire: 86400, content: ["v=spf1 -all"]}
+      - {domain: "{{ _base }}", name: _dmarc, type: TXT, expire: 86400, content: ["v=DMARC1; p=reject;"]}
+    _app_no_mail:
+      - {domain: "{{ _site }}", name: "@", type: MX, expire: 86400, content: ["0 ."]}
+      - {domain: "{{ _site }}", name: "@", type: TXT, expire: 86400, content: ["v=spf1 -all"]}
+      - {domain: "{{ _site }}", name: _dmarc, type: TXT, expire: 86400, content: ["v=DMARC1; p=reject;"]}

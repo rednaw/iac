@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Remove travel SSH rules (description "Allow SSH from trusted IPs") from one
-# purpose's firewalls (purpose=vpn|gate). Platform never targeted.
+# purpose's firewalls (purpose=platform|vpn|gate).
 #
-#   task vpn:ssh:deny | task gate:ssh:deny
-#   bash scripts/ssh-deny.sh vpn|gate
+#   task platform|vpn|gate:ssh:deny
+#   bash scripts/ssh-deny.sh platform|vpn|gate
 set -euo pipefail
 
 PURPOSE="${1:-}"
@@ -13,12 +13,12 @@ SECRETS_DIR="${SECRETS_DIR:-$(realpath -m "${ROOT}/../secrets")}"
 SOPS_KEY_FILE="${SOPS_KEY_FILE:-${HOME}/.config/sops/age/keys.txt}"
 
 usage() {
-  echo "Usage: task vpn:ssh:deny | task gate:ssh:deny" >&2
+  echo "Usage: task platform|vpn|gate:ssh:deny" >&2
   exit 1
 }
 
 case "$PURPOSE" in
-  vpn|gate) ;;
+  platform|vpn|gate) ;;
   *) usage ;;
 esac
 
@@ -29,6 +29,10 @@ fi
 export SOPS_KEY_FILE SECRETS_DIR
 
 case "$PURPOSE" in
+  platform)
+    # shellcheck disable=SC1091
+    . "${ROOT}/scripts/platform-secrets.sh"
+    ;;
   vpn)
     # shellcheck disable=SC1091
     . "${ROOT}/scripts/vpn-secrets.sh"

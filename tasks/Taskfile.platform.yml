@@ -1,71 +1,76 @@
 # yaml-language-server: $schema=https://taskfile.dev/schema.json
 #
 # Public commands for the "platform" server purpose.
+# Secrets: ../secrets/infra.yml. Provision = Ansible hetzner.hcloud + TransIP DNS.
 #
-# Two phases (mirror the underlying tools):
-#   provision:* — Terraform lifecycle (cloud server, firewall, DNS)
-#   configure:* — Ansible lifecycle (what runs on the server)
-#
-# Thin wrappers over _terraform:* and _ansible:* internals; future server
-# purposes (vpn, honeypot, ...) follow the same shape with different params.
-#
-# provision:* and configure:* have no env argument (single platform box).
+#   provision:* — cloud server, primary IPv4, firewall, DNS
+#   configure:* — what runs on the server
+#   ssh:*       — temporary /32 on platform-firewall (no standing allowlist)
 #
 # Do not put PURPOSE / SECRETS_SCRIPT / PLAYBOOK_* in include-level `vars:` —
 # Task merges those into one scope and a later include (vpn) overwrites them.
 version: '3'
 
-vars:
-  PLATFORM_TF_DIR: terraform/platform
-
 tasks:
-  provision:reconfigure:
-    desc: "Reconfigure Terraform backend after org/project change"
+  provision:present:
+    desc: "Create missing platform / platform-v4 / platform-firewall; converge firewall + DNS (Ansible, idempotent)"
+    silent: true
+    deps: [":_check:sops-key", ":_check:secrets"]
     cmds:
-      - task: :_terraform:reconfigure
+      - task: :_ansible:provision
         vars:
-          TF_DIR: '{{.PLATFORM_TF_DIR}}'
-
-  provision:plan:
-    desc: "Plan provisioning changes"
-    cmds:
-      - task: :_terraform:plan
-        vars:
-          TF_DIR: '{{.PLATFORM_TF_DIR}}'
-          SECRETS_SCRIPT: scripts/platform-tf-secrets.sh
-
-  provision:apply:
-    desc: "Apply provisioning changes"
-    cmds:
-      - task: :_terraform:apply
-        vars:
-          TF_DIR: '{{.PLATFORM_TF_DIR}}'
           PURPOSE: platform
-          SECRETS_SCRIPT: scripts/platform-tf-secrets.sh
+          STATE: present
+          SECRETS_FILE: '{{.SECRETS_INFRA}}'
+      - echo ""
+      - echo "💡 New box? task platform:ssh:allow → platform:configure:bootstrap → platform:configure:apply."
 
-  provision:destroy:
-    desc: "Destroy provisioned resources"
+  provision:absent:
+    desc: "Delete platform server (all data), its primary IPv4s and platform-firewall; DNS left in place"
+    silent: true
+    prompt: "Delete server platform (ALL APP DATA), its primary IPv4(s) and platform-firewall?"
+    deps: [":_check:sops-key", ":_check:secrets"]
     cmds:
-      - task: :_terraform:destroy
+      - task: :_ansible:provision
         vars:
-          TF_DIR: '{{.PLATFORM_TF_DIR}}'
           PURPOSE: platform
-          SECRETS_SCRIPT: scripts/platform-tf-secrets.sh
+          STATE: absent
+          SECRETS_FILE: '{{.SECRETS_INFRA}}'
 
-  provision:output:
-    desc: "Show provisioning outputs"
+  ssh:allow:
+    desc: "Allow current public IPv4 /32 (TCP/22) on platform-firewall, then accept host key"
+    silent: true
+    deps: [":_check:sops-key", ":_check:secrets"]
     cmds:
-      - task: :_terraform:output
-        vars:
-          TF_DIR: '{{.PLATFORM_TF_DIR}}'
+      - bash ./scripts/ssh-allow.sh platform
+      - task hostkeys:accept -- platform
+
+  ssh:deny:
+    desc: "Remove platform:ssh:allow travel rules from platform-firewall"
+    silent: true
+    deps: [":_check:sops-key", ":_check:secrets"]
+    cmds:
+      - bash ./scripts/ssh-deny.sh platform
+
+  ssh:shell:
+    desc: "Interactive SSH as ubuntu on platform (platform:ssh:allow first if port 22 closed)"
+    interactive: true
+    silent: true
+    deps: [":_check:sops-key", ":_check:secrets"]
+    cmds:
+      - |
+        set -euo pipefail
+        IP=$(task hostkeys:ip -- platform) || exit 1
+        exec ssh -4 -t -o StrictHostKeyChecking=accept-new "ubuntu@${IP}"
 
   configure:bootstrap:
-    desc: "One-time bootstrap as root"
+    desc: "One-time bootstrap as root (after provision:present + platform:ssh:allow)"
     cmds:
       - task: :_ansible:bootstrap
         vars:
           PURPOSE: platform
           PLAYBOOK: playbooks/bootstrap.yml
+          HCLOUD_SECRETS_SCRIPT: scripts/platform-secrets.sh
 
   configure:apply:
     desc: "Apply server configuration"
@@ -74,3 +79,4 @@ tasks:
         vars:
           PURPOSE: platform
           PLAYBOOK: playbooks/server.yml
+          HCLOUD_SECRETS_SCRIPT: scripts/platform-secrets.sh

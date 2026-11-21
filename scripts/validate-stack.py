@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Do a full circle infrastructure recreation: apply, wait for server, bootstrap, run, destroy.
+Do a full circle infrastructure recreation: present, ssh allow, wait for server, bootstrap, run, absent.
 
 Usage: validate-stack.py
 """
@@ -22,7 +22,7 @@ def run_task(task_name: str, *args: str) -> int:
 
 
 def wait_for_server(timeout: int = 300, interval: int = 10) -> bool:
-    """Wait for the platform server to be ready after terraform apply."""
+    """Wait for the platform server to be ready after provision:present."""
     print(f"⏳ Waiting for server to be ready (timeout: {timeout}s, check every {interval}s)...")
     print("")
 
@@ -50,29 +50,29 @@ def main():
     print("")
 
     print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-    print("1️⃣  Applying Terraform changes...")
+    print("1️⃣  Provisioning (platform:provision:present)...")
     print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-    exit_code = run_task("platform:provision:apply")
+    exit_code = run_task("platform:provision:present")
     if exit_code != 0:
-        print("\n❌ Step failed: Applying Terraform changes")
+        print("\n❌ Step failed: Provisioning")
         sys.exit(exit_code)
     print("")
 
     print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-    print("2️⃣  Waiting for server to be ready...")
+    print("2️⃣  Opening SSH + accepting host key (platform:ssh:allow)...")
+    print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    exit_code = run_task("platform:ssh:allow")
+    if exit_code != 0:
+        print("\n❌ Step failed: Opening SSH / accepting host key")
+        sys.exit(exit_code)
+    print("")
+
+    print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+    print("2️⃣b Waiting for server to be ready...")
     print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
     if not wait_for_server():
         print("\n❌ Step failed: Server not ready")
         sys.exit(1)
-    print("")
-
-    print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-    print("2️⃣b Accepting new host key (hostkeys:accept)...")
-    print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-    exit_code = run_task("hostkeys:accept", "platform")
-    if exit_code != 0:
-        print("\n❌ Step failed: Accepting host key")
-        sys.exit(exit_code)
     print("")
 
     print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
@@ -96,7 +96,7 @@ def main():
     print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
     print("5️⃣  Destroying infrastructure...")
     print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-    exit_code = run_task("platform:provision:destroy")
+    exit_code = run_task("platform:provision:absent")
     if exit_code != 0:
         print("\n❌ Step failed: Destroying infrastructure")
         sys.exit(exit_code)
