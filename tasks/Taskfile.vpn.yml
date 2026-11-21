@@ -1,7 +1,7 @@
 # yaml-language-server: $schema=https://taskfile.dev/schema.json
 #
 # Public commands for the "vpn" server purpose (dev REALITY box on Default).
-# Secrets: ../secrets/vpn.yml only. Provision = Ansible hetzner.hcloud (no Terraform).
+# Secrets: ../secrets/vpn.yml only. Provision = Ansible hetzner.hcloud.
 #
 # Burned IP (break-glass): provision:renew-ip
 #   Primary renew = fullmoongate/vpn IssueOps.

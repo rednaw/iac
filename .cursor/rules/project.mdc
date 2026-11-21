@@ -5,7 +5,7 @@ alwaysApply: true
 
 # Project
 
-Single Hetzner VPS. Terraform + Ansible + SOPS + Docker.
+Single Hetzner VPS. Ansible (hetzner.hcloud) + SOPS + Docker.
 
 Open the **`iac` folder** (not a multi-root of all apps). In the container, apps are `/workspaces/<app>/`; contract is `.iac/` (`iac.yml`, `docker-compose.yml`, SOPS `.env`). Infra secrets: private sibling `../secrets` (`infra.yml`).
 

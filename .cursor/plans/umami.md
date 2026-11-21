@@ -21,7 +21,7 @@ App snippet cutovers are sibling-repo edits — state paths and wait for go per 
 | Data | Docker named volume `umami-db-data` (same idiom as `prefect-db-data`). Old bind `/var/lib/umami` migrated and **removed**. **No backup in v1** (analytics history disposable; Prefect only covers `/opt/iac/deploy/*/backup.yml`) |
 | Secrets | `umami_db_password`, `umami_app_secret` (`APP_SECRET`) via SOPS / `infrastructure_secrets.*`; both unset → Umami containers absent (cms-oauth idiom); optional `umami_two_factor_encryption_key` later |
 | Env | `DATABASE_URL`, `APP_SECRET`, `DISABLE_TELEMETRY=1`, `DISABLE_UPDATES=1`, `CLIENT_IP_HEADER=x-real-ip` (Traefik has no trusted forwarders, so it overwrites `X-Real-Ip` with the peer), `SKIP_LOCATION_HEADERS=1` (no CDN, so client-sent `cf-ipcountry` etc. must not override GeoIP) |
-| DNS | Terraform `terraform/platform/` record for `analytics` → VPS |
+| DNS | `ansible/roles/platform_dns` A/AAAA for `analytics` → VPS |
 | Memory | App 512m, Postgres 256m; raise if OOM |
 | Default login | First boot `admin` / `umami` — **Human changes immediately** |
 | Cloaking | None — honest hostname + default `script.js` / `/api/send`; accept blocker undercount |
@@ -77,7 +77,7 @@ Checkboxes track status only. The agent may change only **Agent** boxes; only th
 - [x] Agent: implemented
 - [x] Human: reviewed
 
-**Agent will implement** — `ansible/roles/platform/tasks/umami.yml` (+ import in `main.yml`), fail2ban `traefik-auth` ignore, `analytics_a`/`analytics_aaaa` in `terraform/platform/dns.tf`, key names in `tasks/Taskfile.secrets.yml` template + `tasks/Taskfile.app.yml` forbidden list, README lines.
+**Agent will implement** — `ansible/roles/platform/tasks/umami.yml` (+ import in `main.yml`), fail2ban `traefik-auth` ignore, `analytics` A/AAAA in `ansible/roles/platform_dns`, key names in `tasks/Taskfile.secrets.yml` template + `tasks/Taskfile.app.yml` forbidden list, README lines.
 
 **Human must:** (done) secrets, DNS, configure apply, smoke, admin password rotate, RAM check.
 

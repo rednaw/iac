@@ -12,14 +12,14 @@ Ephemeral dedicated Hetzner VPS running a standalone [T-Pot](https://github.com/
 | Software | Standalone T-Pot **Hive** (upstream Sensor requires a Hive and cannot target OpenObserve — rejected) |
 | Host | Dedicated CX53 (32 GB RAM, 320 GB local disk). No block volume. Hetzner backups off |
 | Lifecycle | Ephemeral campaigns: provision → observe → destroy. Duration chosen by the human |
-| Naming | TFC workspace `honeypot`; server / firewall / Ansible inventory `honeypot` (mirror VPN). No DNS |
+| Naming | Server / firewall / Ansible inventory `honeypot` (mirror VPN). No DNS |
 | Isolation | No private network to platform/VPN. No platform credentials, registry, or SOPS key on the box. Dedicated SSH key |
 | Inbound | Public TCP/UDP **1–64000**. Cowrie on public **22**. Real SSH **64295** and web UI **64297** restricted to admin IPs |
 | Observability | Built-in Elastic/Kibana on the box only. No OpenObserve, no public ingest endpoint |
 | Community | T-Pot community data submission **disabled** |
 | Retention | Local honeypot data ~7 days; malware/binaries stay on the box and die with destroy |
 | Egress | Maintenance mode: temporary HTTPS for install/update. Runtime: established + fixed DNS resolvers only |
-| Pattern | Same as VPN: `terraform/honeypot/` → `modules/server`; `roles/honeypot/` + `playbooks/honeypot.yml` = `[base, honeypot]`; `tasks/Taskfile.honeypot.yml` |
+| Pattern | Same as VPN: `hcloud_box` profile `honeypot` via `playbooks/provision.yml`; `roles/honeypot/` + `playbooks/honeypot.yml` = `[base, honeypot]`; `tasks/Taskfile.honeypot.yml` |
 
 ## Decide
 
@@ -34,9 +34,9 @@ Checkboxes track status only. The agent may change only **Agent** boxes; only th
 - [ ] Agent: implemented
 - [ ] Human: reviewed
 
-**Agent will implement** — after `remove-dev.md` and `public-secrets.md` land (or against current `secrets/` until then): add honeypot keys to the secrets scaffold (`honeypot_allowed_ssh_ips`, dedicated SSH key IDs, T-Pot web user/password hash, pinned T-Pot version/repo); add `scripts/honeypot-tf-secrets.sh` mirroring `vpn-tf-secrets.sh`; assert only honeypot keys are required on that purpose.
+**Agent will implement** — after `remove-dev.md` and `public-secrets.md` land (or against current `secrets/` until then): add honeypot keys to the secrets scaffold (`honeypot_allowed_ssh_ips`, dedicated SSH key IDs, T-Pot web user/password hash, pinned T-Pot version/repo); add `scripts/honeypot-secrets.sh` mirroring `vpn-secrets.sh`; assert only honeypot keys are required on that purpose.
 
-**Human must:** Create TFC workspace `honeypot`. Generate a dedicated Hetzner SSH key for this purpose only. Store `honeypot_allowed_ssh_ips`, key IDs, and T-Pot web credentials in the active SOPS secrets repo. Do not paste plaintext secrets into chat.
+**Human must:** Generate a dedicated Hetzner SSH key for this purpose only. Store `honeypot_allowed_ssh_ips`, key IDs, and T-Pot web credentials in the active SOPS secrets repo. Do not paste plaintext secrets into chat.
 
 ### 1. Shared plumbing
 
@@ -44,24 +44,24 @@ Checkboxes track status only. The agent may change only **Agent** boxes; only th
 - [ ] Human: reviewed
 
 **Agent will implement** — can start now:
-- Parameterize SSH listen port in `terraform/modules/server/` (default 22; honeypot uses 64295) and in `ansible/roles/base` SSH + fail2ban jails.
+- Parameterize SSH listen port in `ansible/roles/hcloud_box` firewall rules (default 22; honeypot uses 64295) and in `ansible/roles/base` SSH + fail2ban jails.
 - Extend `tasks/Taskfile.hostkeys.yml` and `tasks/Taskfile._ansible.yml` for purpose `honeypot` (inventory name `honeypot`, API IPv4, port 64295).
 - Add `honeypot` to `tasks/Taskfile.test.yml` validation loops.
 - Prove platform and VPN still plan/configure with unchanged defaults.
 
 **Human must:** Review the shared-module diffs; confirm no change to platform SSH on 22 or VPN behavior.
 
-### 2. Terraform root
+### 2. Provision profile
 
 - [ ] Agent: implemented
 - [ ] Human: reviewed
 
-**Agent will implement** — after 1: create `terraform/honeypot/` composing `modules/server`:
-- Image Debian 13 (T-Pot supported), type `cx53`, `backups = false`, no TransIP/DNS, workspace `name = "honeypot"`.
+**Agent will implement** — after 1: add `hcloud_box` profile `honeypot`:
+- Image Debian 13 (T-Pot supported), type `cx53`, backups off, no TransIP/DNS.
 - Inbound: TCP/UDP 1–64000 from anywhere; SSH rule on **64295** from `honeypot_allowed_ssh_ips`; management **64297** from the same allowlist; ICMP as module default.
-- Labels `purpose=honeypot`, `iac_managed=true` (via module).
+- Labels `purpose=honeypot` (via `hcloud_box`).
 
-**Human must:** Review `task honeypot:provision:plan` (in-place create only). Apply. Run `task hostkeys:accept -- honeypot` against port 64295.
+**Human must:** Review `task honeypot:provision:present` in `--check` (create only). Run it. Run `task hostkeys:accept -- honeypot` against port 64295.
 
 ### 3. T-Pot Hive install
 
@@ -110,9 +110,9 @@ Checkboxes track status only. The agent may change only **Agent** boxes; only th
 - [ ] Agent: implemented
 - [ ] Human: reviewed
 
-**Agent will implement** — after 5: pre-destroy checklist task; after destroy, verify no residual Hetzner volume, DNS, primary IP, or Terraform resources for `honeypot`.
+**Agent will implement** — after 5: pre-destroy checklist task; after destroy, verify no residual Hetzner volume, DNS, primary IP, or firewall for `honeypot`.
 
-**Human must:** Export only sanitized notes/screenshots if desired — **never** copy malware binaries off the box. Run `task honeypot:provision:destroy`. Revoke campaign-specific web password / rotate allowlist entries if they were temporary.
+**Human must:** Export only sanitized notes/screenshots if desired — **never** copy malware binaries off the box. Run `task honeypot:provision:absent`. Revoke campaign-specific web password / rotate allowlist entries if they were temporary.
 
 ### 8. Roadmap sync
 

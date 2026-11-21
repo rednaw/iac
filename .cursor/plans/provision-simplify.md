@@ -1,6 +1,6 @@
-# One stack: Ansible (no Terraform)
+# One stack: Ansible
 
-**All** boxes: cloud + DNS + OS via **Ansible**; Task = UX; **no Terraform**. Includes the Friend 1 track (lab vpn → fullmoongate1 go-live → communication → legacy gate decommission). Earlier vpn-family work: [../completed/gate-friend-provision.md](../completed/gate-friend-provision.md).
+**All** boxes: cloud + DNS + OS via **Ansible**; Task = UX. Includes the Friend 1 track (lab vpn → fullmoongate1 go-live → communication → legacy gate decommission). Earlier vpn-family work: [../completed/gate-friend-provision.md](../completed/gate-friend-provision.md).
 
 **Not legal advice.**
 
@@ -9,20 +9,19 @@
 | | |
 |--|--|
 | Ownership | This plan = **iac** (+ `secrets` when a Do says so). Renew ops hardening = **vpn** `operations.md`; Friend 1 cutover = **vpn** `friend1-cutover.md`. Both peer tracks finish before Friend 1 cutover. |
-| Sequence | **1)** lab `vpn` development. **2)** Friend 1 go-live on **fullmoongate1/gate**. **3)** communication. **4)** decommission legacy `gate`. Platform adoption: any time. Terraform purge: last. |
+| Sequence | **1)** lab `vpn` development. **2)** Friend 1 go-live on **fullmoongate1/gate**. **3)** communication. **4)** decommission legacy `gate`. Platform adoption: any time. Old-stack purge: last. |
 | Engine | **Ansible** = desired state: server, primary IPv4, firewall standing rules, DNS, OS/apps. Task wraps playbooks. |
 | Ops scripts | One-off ops stay thin Task + `hcloud` scripts: `<purpose>:ssh:allow\|deny\|shell`, `hostkeys`, break-glass `vpn:provision:renew-ip`. |
 | Hetzner | Official collection **`hetzner.hcloud`** only. |
 | TransIP | **Simplest DIY** (thin `uri` or tiny local module) — no third-party TransIP Galaxy deps. |
-| Terraform | **Not viable** — stop operator TF; DELETE TFC workspaces via API after Ansible owns resources (abandon state; never TFC-destroy live boxes). |
 | Uniformity | **Same engine/SSH model for all boxes, platform included.** |
 | SSH | **No standing SSH allowlist.** `<purpose>:ssh:allow` adds a /32 rule (description `Allow SSH from trusted IPs`); `:ssh:deny` removes them. Firewall converge **keeps** marker rules → allow once after create (or when operator IP changes). |
 | Firewall standing | REALITY: ICMP+443. Platform: ICMP+80+443. Firewalls labelled `purpose=<name>`. |
 | Names | `platform`/`platform-v4`/`platform-firewall`; `vpn`/`vpn-v4`/`vpn-firewall`; friends `gate`/`gate-v4`/`gate-firewall` (isolation = token). |
 | Platform cutover | **Adopt in place** by name — keep server, disk, IP; no recreate. Hetzner backups stay on. |
-| DNS | TransIP records = today’s `terraform/platform/dns.tf` set: apex/registry/auth/analytics A+AAAA, www, null MX + SPF + DMARC (base and app domains). Values from `infra.yml` + server IPs. |
+| DNS | TransIP records = `ansible/roles/platform_dns` set: apex/registry/auth/analytics A+AAAA, www, null MX + SPF + DMARC (base and app domains). Values from `infra.yml` + server IPs. |
 | Downtime | **Gate / lab vpn (REALITY):** none for routine ops — converge in place; IP renew = brief poweroff only. **Platform:** downtime acceptable but adopt-in-place avoids it. |
-| Legacy gate | **Not migrated**, **unmanaged** — TFC `gate` deleted + `terraform/gate` removed early (state already drifted via `gate` repo renew-ip). Only `gate:ssh:*` / `gate:configure:*` remain until decommission. |
+| Legacy gate | **Not migrated**, **unmanaged** — no provision tasks (cloud drifted via `gate` repo renew-ip). Only `gate:ssh:*` / `gate:configure:*` remain until decommission. |
 | Secrets files | Platform: `infra.yml`. Lab: `vpn.yml`. Friends: `gate-{id}.yml` + `.sops.yaml` rule `gate-[0-9]+\.yml$` — **deferred** until near Friend 1 go-live. Legacy `gate.yml` until decommission. Never platform token in friend files. |
 | Lab vpn | Rewrite provision onto Ansible; keep renew + vless-link. Primary renew = `fullmoongate/vpn` IssueOps. |
 | Friends | Never open `iac`. Maintainer only runs provision/configure. |
@@ -56,9 +55,9 @@ None.
 - [x] Agent: implemented
 - [x] Human: reviewed
 
-**Agent will implement** — `hcloud_box` profile `platform` (ICMP+80+443, backups on); existing servers converge labels/backups and adopt the assigned primary IPv4 (rename `<name>-v4`, `auto_delete=false`); DIY `ansible/library/transip_dns.py` + role `platform_dns` (exact `dns.tf` set); `platform:provision:present|absent`, `platform:ssh:allow|deny|shell` (`scripts/platform-secrets.sh`); TF platform tasks + `platform-tf-secrets.sh` removed; `validate-stack.py`, README, help updated. `allowed_ssh_ips` stays (fail2ban ignore list only). Verified `--check`: platform = firewall + server labels changed, DNS 0 changes; vpn 0 changes.
+**Agent will implement** — `hcloud_box` profile `platform` (ICMP+80+443, backups on); existing servers converge labels/backups and adopt the assigned primary IPv4 (rename `<name>-v4`, `auto_delete=false`); DIY `ansible/library/transip_dns.py` + role `platform_dns`; `platform:provision:present|absent`, `platform:ssh:allow|deny|shell` (`scripts/platform-secrets.sh`); `validate-stack.py`, README, help updated. `allowed_ssh_ips` stays (fail2ban ignore list only). Verified `--check`: platform = firewall + server labels changed, DNS 0 changes; vpn 0 changes.
 
-**Human must:** `task platform:provision:present` (closes the standing SSH rule; 80/443 untouched; renames `primary_ip-149643588` → `platform-v4`) → `task platform:ssh:allow` → `task platform:configure:apply` → rerun `present`, expect `changed=0`; then approve DELETE of TFC `platform` via API (abandon state).
+**Human must:** `task platform:provision:present` (closes the standing SSH rule; 80/443 untouched; renames `primary_ip-149643588` → `platform-v4`) → `task platform:ssh:allow` → `task platform:configure:apply` → rerun `present`, expect `changed=0`.
 
 ### 3. Friend secrets parameterization
 
@@ -92,15 +91,15 @@ None.
 - [ ] Agent: implemented
 - [ ] Human: reviewed
 
-**Agent will implement** — remove `tasks/Taskfile.gate.yml`, `scripts/gate-secrets.sh`, gate branches in `ssh-allow.sh` / `ssh-deny.sh` / `Taskfile.hostkeys.yml` / help. (Done early: `terraform/gate`, gate TF tasks, `_terraform` Taskfile, TFC `gate`.)
+**Agent will implement** — remove `tasks/Taskfile.gate.yml`, `scripts/gate-secrets.sh`, gate branches in `ssh-allow.sh` / `ssh-deny.sh` / `Taskfile.hostkeys.yml` / help.
 
 **Human must:** confirm no users left on legacy Gate; delete server/IP/firewall in that customer (hcloud/console); retire `gate.yml`; archive `fullmoongate/gate` when ready.
 
-### 7. Purge Terraform from repo + CI
+### 7. Purge the old provisioning stack from repo + CI
 
 - [x] Agent: implemented
 - [ ] Human: reviewed
 
-**Agent will implement** — done: `terraform/` deleted; `test:terraform:*` + CI tfsec/validate steps removed; terraform/tfsec dropped from `mise.toml`, Renovate, ignore/attributes files; TFC token block dropped from `devcontainer-setup.sh`; `terraform_cloud_*` dropped from the secrets template. Pending (agent blocked): delete `.cursor/rules/terraform.mdc`; `project.mdc` identity line; `rednaw-map` skill updates (after go).
+**Agent will implement** — done: old roots, tests, CI steps, tool pins, Renovate manager, ignore entries, setup token block and secrets-template keys removed; `rednaw-map` + project rule updated.
 
-**Human must:** delete `terraform.mdc`; fix `project.mdc` line 8; rebuild container; remove `terraform_cloud_*` from `../secrets/infra.yml`; revoke the TFC token (and the org if unused).
+**Human must:** rebuild container; drop the retired state-backend keys from `../secrets/infra.yml`; revoke that token (and its org if unused).

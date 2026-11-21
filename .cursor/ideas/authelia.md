@@ -51,9 +51,9 @@ Checkboxes track status only. The agent may change only **Agent** boxes; only th
 - [ ] Agent: implemented
 - [ ] Human: reviewed
 
-**Agent will implement** — after `remove-dev.md`: add and validate `transip_dns_record` A/AAAA records in `terraform/platform/dns.tf` for `login`, `traefik`, `prefect` and `openobserve` on `base_domain`, using `for_each`.
+**Agent will implement** — add A/AAAA records to `ansible/roles/platform_dns` for `login`, `traefik`, `prefect` and `openobserve` on `base_domain`.
 
-**Human must:** Review the Terraform plan, confirm it only adds those eight DNS records, then apply it.
+**Human must:** Review `task platform:provision:present` in `--check`, confirm it only adds those eight DNS records, then run it.
 
 ### 2. Role tasks
 

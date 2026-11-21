@@ -7,7 +7,6 @@
 #
 # Loads that purpose's secrets (infra.yml / vpn.yml / gate.yml). Description marker
 # "Allow SSH from trusted IPs"; kept across <purpose>:provision:present.
-# Legacy gate TF apply still wipes markers.
 set -euo pipefail
 
 PURPOSE="${1:-}"
@@ -122,7 +121,7 @@ for FW in $FIREWALLS; do
 done
 
 echo ""
-echo "⚠️  Marker rules are Hetzner-only. <purpose>:provision:present keeps them; legacy gate TF apply wipes them."
+echo "⚠️  Marker rules are Hetzner-only. <purpose>:provision:present keeps them."
 echo "   Done for the day: task ${PURPOSE}:ssh:deny"
 echo "   Summary: added=${ADDED} skipped=${SKIPPED}"
 if [ "$FAILED" -ne 0 ]; then

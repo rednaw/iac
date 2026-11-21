@@ -16,7 +16,7 @@ Implement after explicit go.
 | Hardware | This admin MacBook: Intel, **Apple T2** (`system_profiler SPiBridgeDataType`). One admin machine; it may travel. iPhone is not SSH admin. |
 | Identity | Non-exportable **P-256** in the T2. Chip cannot do Ed25519. Public key is normal `ecdsa-sha2-nistp256` (Hetzner upload + `authorized_keys`). File Ed25519 **retired after** enroll. New Mac = new key, update Hetzner + Ansible. |
 | Container | iac Dev Container is Linux. Signing stays on the **host**. Forward host `SSH_AUTH_SOCK` (Secretive or equivalent). Bind-mount of `~/.ssh` files is not enough. |
-| Not this | Firewall IP allowlists (home / `ssh-allow-me`). SOPS age key, `hcloud_token`, TFC, TransIP — still files on disk. No MDM, Tailscale, or YubiKey. |
+| Not this | Firewall IP allowlists (home / `ssh-allow-me`). SOPS age key, `hcloud_token`, TransIP — still files on disk. No MDM, Tailscale, or YubiKey. |
 | vs VPN | Uncoupled from `provision-simplify` / vpn ops. If this ships first, renew/provision smoke must use the host agent (Touch ID in the container path). |
 
 ---

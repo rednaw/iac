@@ -19,8 +19,8 @@ Public `iac` template without secrets; ciphertext in a **private sibling**; **fu
 | Renames | A path-based purge handles renames, because it filters every commit's tree by path. It only needs the complete list of historical paths: the whole `secrets/` directory |
 | GitHub PR refs | 374 `refs/pull/*` on origin keep old commits reachable. They are read-only: a force-push does not remove them. Only deleting and recreating the repo, or GitHub Support, clears them (and cached commit views) |
 | Repo facts | 531 commits, 37 remote branches, tag `v1.0.0`, pack ~241 KiB |
-| Operator sequence (per rotate) | Edit sibling → push **secrets** → reload setup if hcloud/TFC/docker auth → smoke (`provision:plan` and/or `configure:apply` as that plan says) → revoke old. |
-| Usually keep | `base_domain`, `app_domain`, `terraform_cloud_organization`, `ssh_keys`, `allowed_ssh_ips`, `cms_oauth_allowed_domains`, `server_type`, `github_oauth_hostname`, `vpn_dest`, `vpn_allowed_ssh_ips` (optional hygiene only). |
+| Operator sequence (per rotate) | Edit sibling → push **secrets** → reload setup if hcloud/docker auth → smoke (`provision:present` and/or `configure:apply` as that plan says) → revoke old. |
+| Usually keep | `base_domain`, `app_domain`, `ssh_keys`, `allowed_ssh_ips`, `cms_oauth_allowed_domains`, `server_type`, `github_oauth_hostname`, `vpn_dest`, `vpn_allowed_ssh_ips` (optional hygiene only). |
 | App `.iac/.env` | Never in public `iac` history for this migration — rotate only if published elsewhere. |
 
 ## Decide
@@ -70,14 +70,14 @@ Checkboxes track status only. The agent may change only **Agent** boxes; only th
 
 **Human must:** Review the deletion and path changes, confirm the private sibling decrypts first, then commit and push the clean public tip normally. Do not orphan or force-push yet.
 
-**Done as:** `git rm` of tracked `secrets/*`; `.gitignore` keeps ignoring `secrets/` as a safety net (sibling is `../secrets`). Platform TF secrets script decrypts sibling. No history rewrite.
+**Done as:** `git rm` of tracked `secrets/*`; `.gitignore` keeps ignoring `secrets/` as a safety net (sibling is `../secrets`). Platform secrets script decrypts sibling. No history rewrite.
 
 ### 2. Full rotate (per-provider plans)
 
 - [x] Agent: implemented
 - [x] Human: reviewed
 
-**Agent will implement** — inventory + one three-list per provider; sibling wiring already refreshes hcloud + `TF_TOKEN` from `../secrets`.
+**Agent will implement** — inventory + one three-list per provider; sibling wiring already refreshes hcloud from `../secrets`.
 
 **Human must:** Drive each open rotate plan to both boxes checked (or explicit out-of-scope). Never paste plaintext into chat or the public repo.
 
@@ -86,7 +86,6 @@ Checkboxes track status only. The agent may change only **Agent** boxes; only th
 | Provider | Plan | Status |
 |--|--|--|
 | Hetzner Cloud | [completed/rotate/hetzner.md](../completed/rotate/hetzner.md) | done |
-| Terraform Cloud | [completed/rotate/terraform-cloud.md](../completed/rotate/terraform-cloud.md) | done |
 | TransIP | [completed/rotate/transip.md](../completed/rotate/transip.md) | done |
 | Platform registry | [completed/rotate/registry.md](../completed/rotate/registry.md) | done |
 | OpenObserve | [completed/rotate/openobserve.md](../completed/rotate/openobserve.md) | done |
