@@ -60,7 +60,7 @@ tasks:
         echo "  task vpn:vless-link"
         echo ""
         echo "Gate — legacy shared box (Hetzner project Gate; unmanaged until decommission):"
-        echo "  task gate:ssh:allow|deny"
+        echo "  task gate:ssh:allow|deny|shell"
         echo "  task gate:configure:bootstrap|apply"
         echo "  # secrets: ../secrets/gate.yml only; never for server vpn"
         echo ""

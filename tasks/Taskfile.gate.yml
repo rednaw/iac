@@ -25,6 +25,17 @@ tasks:
     cmds:
       - bash ./scripts/ssh-deny.sh gate
 
+  ssh:shell:
+    desc: "Interactive SSH as ubuntu on gate (gate:ssh:allow first if port 22 closed)"
+    interactive: true
+    silent: true
+    deps: [":_check:sops-key", ":_check:secrets", _check:gate-secrets]
+    cmds:
+      - |
+        set -euo pipefail
+        IP=$(task hostkeys:ip -- gate) || exit 1
+        exec ssh -4 -t -o StrictHostKeyChecking=accept-new "ubuntu@${IP}"
+
   configure:bootstrap:
     desc: "One-time bootstrap as root (after hostkeys:accept -- gate)"
     deps: [":_check:sops-key", ":_check:secrets", _check:gate-secrets]
