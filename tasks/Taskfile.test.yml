@@ -3,20 +3,16 @@ version: '3'
 
 tasks:
   run:
-    desc: Run all tests (validate, security scan, Ansible lint & syntax, taskfiles, fail2ban regex)
+    desc: Run all tests (Ansible lint & syntax, taskfiles, fail2ban regex)
     silent: true
     cmds:
       - |
         echo "🧪 Running test suite..."
         echo ""
-        VALIDATE_RESULT=0
-        SECURITY_RESULT=0
         ANSIBLE_LINT_RESULT=0
         ANSIBLE_SYNTAX_RESULT=0
         TASKFILE_RESULT=0
         FAIL2BAN_REGEX_RESULT=0
-        task test:terraform:validate || VALIDATE_RESULT=$?
-        task test:terraform:security || SECURITY_RESULT=$?
         task test:ansible:lint || ANSIBLE_LINT_RESULT=$?
         task test:ansible:syntax || ANSIBLE_SYNTAX_RESULT=$?
         task test:taskfiles || TASKFILE_RESULT=$?
@@ -24,16 +20,6 @@ tasks:
         echo ""
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
         echo "Test Results:"
-        if [ $VALIDATE_RESULT -eq 0 ]; then
-          echo "  ✅ Terraform Validation: PASSED"
-        else
-          echo "  ❌ Terraform Validation: FAILED"
-        fi
-        if [ $SECURITY_RESULT -eq 0 ]; then
-          echo "  ✅ Terraform Security:   PASSED"
-        else
-          echo "  ❌ Terraform Security:   FAILED"
-        fi
         if [ $ANSIBLE_LINT_RESULT -eq 0 ]; then
           echo "  ✅ Ansible Lint:         PASSED"
         else
@@ -55,7 +41,7 @@ tasks:
           echo "  ❌ Fail2ban <HOST> regex: FAILED"
         fi
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-        if [ $VALIDATE_RESULT -eq 0 ] && [ $SECURITY_RESULT -eq 0 ] && [ $ANSIBLE_LINT_RESULT -eq 0 ] && [ $ANSIBLE_SYNTAX_RESULT -eq 0 ] && [ $TASKFILE_RESULT -eq 0 ] && [ $FAIL2BAN_REGEX_RESULT -eq 0 ]; then
+        if [ $ANSIBLE_LINT_RESULT -eq 0 ] && [ $ANSIBLE_SYNTAX_RESULT -eq 0 ] && [ $TASKFILE_RESULT -eq 0 ] && [ $FAIL2BAN_REGEX_RESULT -eq 0 ]; then
           echo ""
           echo "🎉 All tests passed!"
           exit 0
@@ -64,39 +50,6 @@ tasks:
           echo "❌ Some tests failed"
           exit 1
         fi
-
-  terraform:validate:
-    desc: Validate Terraform configuration (all roots)
-    silent: true
-    dir: terraform
-    cmds:
-      - |
-        echo "🔍 Validating Terraform configuration..."
-        echo "  → terraform/platform"
-        if ! terraform -chdir=platform init -backend=false >/dev/null; then
-          echo ""
-          echo "❌ Terraform initialization failed (terraform/platform)."
-          echo "   Common cause: mise tried to install Terraform under /opt/mise/installs (root-owned)."
-          echo "   Fix: rebuild/pull the dev image (tools should be baked), or run: sudo mise install"
-          exit 1
-        fi
-        if ! terraform -chdir=platform validate; then
-          echo "❌ Terraform validation failed (terraform/platform)"
-          exit 1
-        fi
-      - echo "✅ Terraform validation passed"
-
-  terraform:security:
-    desc: Run Terraform security scan (tfsec, all roots)
-    dir: terraform
-    silent: true
-    cmds:
-      - |
-        echo ""
-        echo "🔒 Running security scan with tfsec..."
-        echo "  → terraform/platform"
-        tfsec platform --minimum-severity MEDIUM || (echo "❌ Security scan found issues (terraform/platform)" && exit 1)
-      - echo "✅ Security scan passed"
 
   ansible:lint:
     desc: Lint Ansible playbooks (ansible-lint)

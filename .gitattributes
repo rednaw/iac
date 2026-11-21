@@ -4,7 +4,3 @@
 *.yml linguist-detectable=true linguist-language=YAML
 *.yaml linguist-detectable=true linguist-language=YAML
 *.md linguist-detectable=true linguist-language=Markdown linguist-documentation=false
-
-# Generated / lockfiles
-.terraform.lock.hcl linguist-generated=true
-terraform/**/.terraform.lock.hcl linguist-generated=true

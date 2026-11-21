@@ -15,7 +15,6 @@
     "github-actions",
     "dockerfile",
     "devcontainer",
-    "terraform",
     "ansible",
     "ansible-galaxy",
     "pip_requirements",

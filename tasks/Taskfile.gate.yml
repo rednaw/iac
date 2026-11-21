@@ -1,60 +1,16 @@
 # yaml-language-server: $schema=https://taskfile.dev/schema.json
 #
-# Parallel Gate box in Hetzner Cloud project Gate (TFC workspace "gate").
-# Legacy shared box only. Dev vpn box = vpn:provision:present|absent (Ansible).
+# Legacy shared Gate box in Hetzner Cloud project Gate. Unmanaged until
+# decommission (no provision tasks; server/IP/firewall via hcloud or console).
+# Dev vpn box = vpn:provision:present|absent (Ansible).
 #
 # Secrets: ../secrets/gate.yml only for Hetzner + Fresh vpn_*.
-# TFC org/token: still from infra.yml via _terraform:init.
 version: '3'
 
 vars:
-  GATE_TF_DIR: terraform/gate
   GATE_SECRETS: '{{.SECRETS_DIR}}/gate.yml'
 
 tasks:
-  provision:reconfigure:
-    desc: "Reconfigure Terraform backend for gate (TFC workspace gate)"
-    cmds:
-      - task: :_terraform:reconfigure
-        vars:
-          TF_DIR: '{{.GATE_TF_DIR}}'
-
-  provision:plan:
-    desc: "Plan Gate provisioning (project Gate token from gate.yml; not trip vpn)"
-    deps: [":_check:sops-key", ":_check:secrets", _check:gate-secrets]
-    cmds:
-      - task: :_terraform:plan
-        vars:
-          TF_DIR: '{{.GATE_TF_DIR}}'
-          SECRETS_SCRIPT: scripts/gate-tf-secrets.sh
-
-  provision:apply:
-    desc: "Apply Gate provisioning (creates gate-v4 + server gate + firewall)"
-    deps: [":_check:sops-key", ":_check:secrets", _check:gate-secrets]
-    cmds:
-      - task: :_terraform:apply
-        vars:
-          TF_DIR: '{{.GATE_TF_DIR}}'
-          PURPOSE: gate
-          SECRETS_SCRIPT: scripts/gate-tf-secrets.sh
-
-  provision:destroy:
-    desc: "Destroy Gate box + primary IP + firewall (trip vpn untouched)"
-    deps: [":_check:sops-key", ":_check:secrets", _check:gate-secrets]
-    cmds:
-      - task: :_terraform:destroy
-        vars:
-          TF_DIR: '{{.GATE_TF_DIR}}'
-          PURPOSE: gate
-          SECRETS_SCRIPT: scripts/gate-tf-secrets.sh
-
-  provision:output:
-    desc: "Show Gate provisioning outputs (current IPv4)"
-    cmds:
-      - task: :_terraform:output
-        vars:
-          TF_DIR: '{{.GATE_TF_DIR}}'
-
   ssh:allow:
     desc: "Allow current public IPv4 /32 (TCP/22) on gate-firewall"
     silent: true
@@ -78,7 +34,7 @@ tasks:
           PURPOSE: gate
           PLAYBOOK: playbooks/bootstrap.yml
           SECRETS_FILE: '{{.GATE_SECRETS}}'
-          HCLOUD_SECRETS_SCRIPT: scripts/gate-tf-secrets.sh
+          HCLOUD_SECRETS_SCRIPT: scripts/gate-secrets.sh
 
   configure:apply:
     desc: "Apply Gate config (base + Xray REALITY; Fresh vpn_* from gate.yml)"
@@ -89,7 +45,7 @@ tasks:
           PURPOSE: gate
           PLAYBOOK: playbooks/vpn.yml
           SECRETS_FILE: '{{.GATE_SECRETS}}'
-          HCLOUD_SECRETS_SCRIPT: scripts/gate-tf-secrets.sh
+          HCLOUD_SECRETS_SCRIPT: scripts/gate-secrets.sh
 
   _check:gate-secrets:
     desc: "(internal) Ensure secrets/gate.yml exists"
