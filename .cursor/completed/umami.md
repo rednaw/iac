@@ -2,7 +2,7 @@
 
 # Umami (platform analytics)
 
-Self-hosted **Umami** on the platform VPS: Traefik + Docker + SOPS. Portfolio visitor stats alongside (later instead of) Simple Analytics, with a multi-user, multi-site dashboard (free SA blocks API: “upgrade to the Simple plan”). Origin: SA-mirror discussion in the rednaw window; SA free mirror/proxy paths abandoned.
+Self-hosted **Umami** on the platform VPS: Traefik + Docker + SOPS. Portfolio visitor stats alongside (later instead of) Simple Analytics, with a multi-user, multi-site dashboard (free SA blocks API: “upgrade to the Simple plan”). Origin: SA-mirror discussion in the rednaw window; SA free mirror/proxy paths abandoned. Open follow-ups (retention, compleanno, privacy copy, doc sync): `../ideas/umami-followups.md`.
 
 App snippet cutovers are sibling-repo edits — state paths and wait for go per repo.
 
@@ -53,20 +53,7 @@ When adding a website in Umami: **Domain** = hostname in the table (not the path
 
 ## Decide
 
-### How long to keep Umami visit data?
-
-Self-hosted Umami today: **no retention policy** (`app_setting` empty). API reports `sessionDeletionEnabled: true` (product can delete sessions). DB is tiny. **No backup** already Decided — history is disposable. OpenObserve (ops logs/metrics) is separate: **7-day** compact retention.
-
-| | Option | Trade-off |
-|--|--|--|
-| **A** | **Keep forever** (status quo) — no job, no UI schedule | Simplest; disk grows slowly at portfolio traffic; privacy copy can’t claim a short window |
-| **B** | **Fixed window (e.g. 90 days)** — delete older sessions/events on a schedule (Umami UI if it covers it, else Prefect/cron SQL) | Matches “stats, not archive”; need to pick N and say it in privacy text |
-| **C** | **Short window (e.g. 30 days)** — same mechanism as B | Stronger minimization; year-over-year trends gone |
-| **D** | **Align with OpenObserve (7 days)** | One story for “box data”; too short for useful visitor trends for most people |
-
-Also decide (can piggyback on B/C): whether privacy pages **state** the retention period (recommended if not A).
-
-Choice: _unpicked_
+None.
 
 ## Do
 
@@ -90,15 +77,6 @@ Checkboxes track status only. The agent may change only **Agent** boxes; only th
 
 **Human must:** (done for those four) website ids, deploy/merge, confirm hits in SA + Umami.
 
-### 2. Idea / map doc sync
-
-- [ ] Agent: implemented
-- [ ] Human: reviewed
-
-**Agent will implement** — Sibling go first: update analytics rows in `rednaw/.cursor/ideas/portfolio/{private-data,sovereign-exit,portfolio-levers}.md` and `rednaw-map` platform table to name Umami (dual-run / self-hosted on VPS), not SA-only.
-
-**Human must:** Review those edits.
-
 ### 3. GeoIP check
 
 - [x] Agent: implemented
@@ -117,35 +95,9 @@ Checkboxes track status only. The agent may change only **Agent** boxes; only th
 
 **Human must:** (done) migrate + confirm visits; `/var/lib/umami` removed.
 
-### 5. Remaining portfolio sites
-
-- [ ] Agent: implemented
-- [ ] Human: reviewed
-
-**can start now** (after Human supplies website id)
-
-**Agent will implement** — State repo + paths; wait for go. Add Umami snippet alongside SA on `compleanno` (`src/app.html`; SA uses `data-collect-dnt="true"` — do not add DNT on Umami). Do not remove SA. (`tientje-ketama` done: id `941c8400-…`, nonce + CSP.)
-
-**Human must:** Create website in Umami (Domain `rednaw.github.io`); give `data-website-id`; deploy; confirm hits in both SA and Umami.
-
-### 6. Privacy copy on dual-run sites
-
-- [ ] Agent: implemented
-- [ ] Human: reviewed
-
-**can start now** (per site after Human says go)
-
-**Agent will implement** — Dual-run privacy text naming SA + Umami (geo from IP, IP not stored), matching baglio’s bar: unicorn, simonacella, marialoni (compleanno when wired). `tientje-ketama` has no privacy page today — only if Human wants one added. Sibling paths + go first.
-
-**Human must:** Pick site / approve wording; merge/deploy.
-
 ## Operator checklist (Human)
 
 - [x] DNS `analytics.rednaw.nl` live
 - [x] Admin password rotated **before** any site snippet
 - [x] First-wave sites (baglio, unicorn, marialoni, simonacella) show hits in Umami while SA keeps running
 - [x] tientje-ketama on Umami
-- [ ] compleanno on Umami
-- [ ] Privacy dual-run on unicorn / simonacella / marialoni
-- [ ] Idea / map doc sync reviewed
-- [ ] Retention Decide (A/B/C/D) picked
