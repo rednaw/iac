@@ -8,7 +8,7 @@
 |--|--|
 | Ownership | This plan = **iac** (+ `secrets` when a Do says so). The renew side and the Friend 1 cutover live in `vpn` `vpn.md`. |
 | Engine | **Ansible** = desired state: server, primary IPv4, standing firewall rules, DNS, OS/apps. Official **`hetzner.hcloud`** only; TransIP via the DIY `ansible/library/transip_dns.py`. Task wraps playbooks. |
-| Ops scripts | One-off ops stay thin Task + `hcloud` scripts: `<purpose>:ssh:allow\|deny\|shell`, `hostkeys`, break-glass `vpn:provision:renew-ip` (fate: `vpn.md` Decide). |
+| Ops scripts | One-off ops stay thin Task + `hcloud` scripts: `<purpose>:ssh:allow\|deny\|shell`, `hostkeys`. Burned-IP renew: `vpn:ip:renew` wraps sibling `/workspaces/vpn` (`task ip:renew` / IssueOps) — no fork in iac. |
 | Uniformity | Same engine/SSH model for all boxes, platform included. |
 | SSH | **No standing SSH allowlist.** `<purpose>:ssh:allow` adds a /32 rule (description `Allow SSH from trusted IPs`); `:ssh:deny` removes them. Converge **keeps** marker rules. |
 | Firewall standing | REALITY: ICMP+443. Platform: ICMP+80+443. Firewalls labelled `purpose=<name>`. |

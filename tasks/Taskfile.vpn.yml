@@ -3,14 +3,14 @@
 # Public commands for the "vpn" server purpose (dev REALITY box on Default).
 # Secrets: ../secrets/vpn.yml only. Provision = Ansible hetzner.hcloud.
 #
-# Burned IP (break-glass): provision:renew-ip
-#   Primary renew = fullmoongate/vpn IssueOps.
+# Burned IP renew: thin wrap → sibling /workspaces/vpn (`task ip:renew` / IssueOps).
 # Wipe: provision:absent → provision:present → ssh:allow →
-#   configure:bootstrap → configure:apply → vless-link.
+#   configure:bootstrap → configure:apply → vless-link (wrap → vpn).
 version: '3'
 
 vars:
   VPN_SECRETS: '{{.SECRETS_DIR}}/vpn.yml'
+  VPN_REPO: /workspaces/vpn
 
 tasks:
   provision:present:
@@ -64,20 +64,15 @@ tasks:
           STATE: absent
           SECRETS_FILE: '{{.VPN_SECRETS}}'
 
-  provision:renew-ip:
-    desc: "Break-glass burned IP (prefer fullmoongate/vpn IssueOps); then vpn:vless-link"
+  ip:renew:
+    desc: "Burned-IP renew via sibling fullmoongate/vpn (same code as IssueOps)"
     silent: true
-    deps: [":_check:sops-key", ":_check:secrets", _check:vpn-secrets]
+    dir: '{{.VPN_REPO}}'
+    preconditions:
+      - sh: test -f "{{.VPN_REPO}}/Taskfile.yml"
+        msg: "Sibling vpn missing at {{.VPN_REPO}}. Clone fullmoongate/vpn beside iac, rebuild the container, then retry."
     cmds:
-      - |
-        set -euo pipefail
-        export SOPS_KEY_FILE="{{.SOPS_KEY_FILE}}"
-        export SECRETS_DIR="{{.SECRETS_DIR}}"
-        export SECRETS_VPN="{{.VPN_SECRETS}}"
-        # shellcheck disable=SC1091
-        . "./scripts/vpn-secrets.sh"
-        bash ./scripts/vpn-renew-ip.sh
-      - task: vless-link
+      - task ip:renew
 
   configure:bootstrap:
     desc: "One-time bootstrap as root (after provision:present + vpn:ssh:allow)"
@@ -116,43 +111,14 @@ tasks:
         bash scripts/vpn-china-smoke.sh
 
   vless-link:
-    desc: "Emit OneXray vless:// link + QR from secrets and the current IPv4 (no SSH; does not install Xray)"
+    desc: "Emit vless:// + QR via sibling fullmoongate/vpn (task vless:link)"
     silent: true
-    deps: [":_check:sops-key", ":_check:secrets", _check:vpn-secrets]
+    dir: '{{.VPN_REPO}}'
+    preconditions:
+      - sh: test -f "{{.VPN_REPO}}/Taskfile.yml"
+        msg: "Sibling vpn missing at {{.VPN_REPO}}. Clone fullmoongate/vpn beside iac, rebuild the container, then retry."
     cmds:
-      - |
-        set -euo pipefail
-        export SOPS_KEY_FILE="{{.SOPS_KEY_FILE}}"
-        export SECRETS_DIR="{{.SECRETS_DIR}}"
-        export SECRETS_VPN="{{.VPN_SECRETS}}"
-        # shellcheck disable=SC1091
-        . "./scripts/vpn-secrets.sh"
-        SECRETS=$(SOPS_AGE_KEY_FILE="{{.SOPS_KEY_FILE}}" sops -d "{{.VPN_SECRETS}}")
-        UUID=$(echo "$SECRETS" | yq -r '.vpn_uuid // ""')
-        PBK=$(echo "$SECRETS" | yq -r '.vpn_reality_public_key // ""')
-        SID=$(echo "$SECRETS" | yq -r '.vpn_short_id // ""')
-        DEST=$(echo "$SECRETS" | yq -r '.vpn_dest // ""')
-        for pair in "vpn_uuid:$UUID" "vpn_reality_public_key:$PBK" "vpn_short_id:$SID" "vpn_dest:$DEST"; do
-          if [ -z "${pair#*:}" ]; then
-            echo "❌ ${pair%%:*} missing from {{.VPN_SECRETS}}" >&2
-            exit 1
-          fi
-        done
-        IP=$(task hostkeys:ip -- vpn) || exit 1
-        LINK="vless://${UUID}@${IP}:443?type=tcp&security=reality&sni=${DEST}&fp=chrome&pbk=${PBK}&sid=${SID}&flow=xtls-rprx-vision#vpn-${DEST}"
-        echo "OneXray share link (import on BOTH devices; address is the IPv4 on purpose):"
-        echo ""
-        echo "  ${LINK}"
-        echo ""
-        if command -v qrencode >/dev/null 2>&1; then
-          qrencode -t ansiutf8 "${LINK}"
-        else
-          echo "(qrencode not installed — no QR; paste the link into OneXray on the Mac,"
-          echo " then use OneXray's own QR display for the iPhone)"
-        fi
-        echo ""
-        echo "⚠️  This link IS the credential (UUID + public key). Never share it."
-        echo "   Client routing: geosite:cn → direct, everything else → this outbound; no geoip:cn."
+      - task vless:link
 
   _check:vpn-secrets:
     desc: "(internal) Ensure secrets/vpn.yml exists"
