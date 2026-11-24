@@ -2,7 +2,7 @@
 # Install with: pip install -r requirements.txt (in a venv)
 ansible ==13.8.0
 ansible-lint ==26.11.0
-PyYAML == 6.0.3
+PyYAML ==6.0.4
 # hetzner.hcloud collection runtime deps
 python-dateutil ==4.0.0
 requests ==2.34.2
