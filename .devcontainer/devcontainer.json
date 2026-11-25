@@ -11,10 +11,14 @@
 
   "mounts": [
     "source=iac-cursor-state,target=/home/vscode/.cursor,type=volume",
+    "source=${localEnv:HOME}/projects/rednaw/store/iac,target=/workspaces/iac/.cursor,type=bind",
     "source=${localEnv:HOME}/.cursor/skills,target=/home/vscode/.cursor/skills,type=bind",
     "source=${localEnv:HOME}/.cursor/skills,target=/workspaces/iac/.cursor/skills,type=bind",
+    "source=${localEnv:HOME}/projects/rednaw/store/rednaw/history.md,target=/workspaces/iac/.cursor/history.md,type=bind",
     "source=${localEnv:HOME}/.ssh,target=/home/vscode/.ssh,type=bind",
-    "source=${localEnv:HOME}/.config/sops,target=/home/vscode/.config/sops,type=bind"
+    "source=${localEnv:HOME}/.config/sops,target=/home/vscode/.config/sops,type=bind",
+    "source=${localEnv:HOME}/.config/gh,target=/home/vscode/.config/gh,type=bind",
+    "source=${localEnv:HOME}/.config/gate,target=/home/vscode/.config/gate,type=bind,readonly"
   ],
 
   "customizations": {

@@ -76,6 +76,33 @@ if [ ! -f "$SOPS_KEY_FILE" ]; then
   exit 1
 fi
 
+if [ ! -d "${HOME}/.config/gh" ]; then
+  echo "ERROR: ${HOME}/.config/gh missing. Mount ~/.config/gh." >&2
+  exit 1
+fi
+
+if ! gh auth status >/dev/null 2>&1; then
+  echo "ERROR: gh is not logged in. Run gh auth login once in this container; ~/.config/gh keeps it across rebuilds." >&2
+  exit 1
+fi
+
+GATE_DIR="${HOME}/.config/gate"
+if [ ! -d "$GATE_DIR" ]; then
+  echo "ERROR: $GATE_DIR missing. Mount ~/.config/gate read-only." >&2
+  exit 1
+fi
+
+if touch "$GATE_DIR/.iac-mount-probe" 2>/dev/null; then
+  rm -f "$GATE_DIR/.iac-mount-probe"
+  echo "ERROR: $GATE_DIR is writable. Mount ~/.config/gate read-only." >&2
+  exit 1
+fi
+
+if ! compgen -G "$GATE_DIR/*.private-key.pem" >/dev/null; then
+  echo "ERROR: No *.private-key.pem in $GATE_DIR." >&2
+  exit 1
+fi
+
 DECRYPTED=$(SOPS_AGE_KEY_FILE="$SOPS_KEY_FILE" sops -d "$INFRA_FILE") || {
   echo "ERROR: Failed to decrypt $INFRA_FILE. Check your SOPS key." >&2
   exit 1

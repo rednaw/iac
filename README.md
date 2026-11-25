@@ -53,4 +53,4 @@ Run `task` for the full list.
 
 ## Roadmap
 
-Pending work: [`.cursor/plans/`](.cursor/plans/). Finished: [`.cursor/completed/`](.cursor/completed/).
+Pending agent plans live in the private portfolio store (`rednaw/store/iac/plans/`), mounted at `.cursor/plans/` in the Dev Container — not in this public tree.
