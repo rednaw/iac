@@ -1,6 +1,5 @@
 ---
 # VPN server playbook: hardened base + Xray REALITY container.
-# Dest roster: .cursor/ideas/vpn-travel-china.md. Trip archive: .cursor/completed/vpn-travel-china*.md.
 # Inventory name is "vpn" (own fact cache); ansible_host is always the API IPv4.
 
 - name: Configure VPN Server

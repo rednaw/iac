@@ -2,8 +2,8 @@
 """Fail if fail2ban <HOST> patterns would hit 'redefinition of group name'.
 
 fail2ban expands each <HOST> to a regex with named groups (ip4, ip6, …).
-Two <HOST> tokens in one compiled pattern crash fail2ban on start
-(see .cursor/plans/rotate/abuseipdb.md). Each ignoreregex/failregex line
+Two <HOST> tokens in one compiled pattern crash fail2ban on start,
+which silently stopped AbuseIPDB reporting. Each ignoreregex/failregex line
 must contain at most one <HOST>; multi-line options are checked separately.
 """
 from __future__ import annotations
