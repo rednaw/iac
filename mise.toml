@@ -14,5 +14,5 @@ github-cli = "2.105.0"  # cli/cli
 hcloud = "1.70.2"  # hetznercloud/cli
 trivy = "0.76.2"  # aquasecurity/trivy
 shellcheck  = "0.11.0"    # koalaman/shellcheck
-restic = "0.19.1"  # restic/restic
+restic = "0.20.0"  # restic/restic
 uv = "0.13.9"  # astral-sh/uv
