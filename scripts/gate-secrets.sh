@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
-# Source this from the IaC repo root to load the legacy gate box's Hetzner token
-# from the private secrets sibling (../secrets/gate.yml) only.
+# Source this from the IaC repo root to load a gate box's Hetzner token from
+# the private secrets sibling. Default file: ../secrets/gate.yml (legacy).
+# Friend boxes: export SECRETS_GATE=.../gate-{id}.yml (task gate:* -- <id>),
+# or set SECRETS_FILE to that path (Ansible path).
 #
 # Exports HCLOUD_TOKEN (overwriting any ambient Default/Rednaw token in the
-# shell) so hcloud/hostkeys hit project Gate. Never reads infra.yml.
+# shell) so hcloud/hostkeys hit that account's project. Never reads infra.yml.
 
 : "${SOPS_KEY_FILE:?SOPS_KEY_FILE must be exported before sourcing this script}"
 
@@ -14,10 +16,10 @@ if [ -z "${SECRETS_DIR:-}" ]; then
   SECRETS_DIR="$(realpath -m "${_IAC_ROOT}/../secrets")"
   unset _here _IAC_ROOT
 fi
-SECRETS_GATE="${SECRETS_GATE:-${SECRETS_DIR}/gate.yml}"
+SECRETS_GATE="${SECRETS_GATE:-${SECRETS_FILE:-${SECRETS_DIR}/gate.yml}}"
 if [ ! -f "${SECRETS_GATE}" ]; then
   echo "❌ Encrypted gate secrets missing: ${SECRETS_GATE}" >&2
-  echo "   Add gate.yml in private rednaw/secrets (project-Gate token + Fresh vpn_*)." >&2
+  echo "   Friend: gate-<id>.yml (that account's token + Fresh vpn_*). Legacy: gate.yml." >&2
   return 1 2>/dev/null || exit 1
 fi
 

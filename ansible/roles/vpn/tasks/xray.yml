@@ -29,12 +29,19 @@
   no_log: true # contains the REALITY private key
   notify: Restart Xray
 
-- name: Ensure Xray container is running (host network, pinned digest)
+# Image tag tracks XTLS/Xray-core releases (GHCR tag = GitHub tag without leading v).
+# Renovate bumps the tag; no automerge — human merges, then configure:apply.
+# Image bump ≠ credential rotation: do not touch vpn_* or ask clients to re-import.
+- name: Ensure Xray container is running (host network)
   community.docker.docker_container:
     name: xray
-    image: "{{ vpn_xray_image }}"
+    image: ghcr.io/xtls/xray-core:26.10.21
     state: started
     restart_policy: unless-stopped
+    # Pull so a Renovate tag bump recreates onto the new image.
+    pull: always
+    comparisons:
+      image: strict
     network_mode: host # bridge cannot egress IPv6; host keeps the box dual-stack
     # The image defaults to uid 65532, which cannot bind :443 on the host
     # network (no ambient CAP_NET_BIND_SERVICE for non-root, and network

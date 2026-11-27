@@ -1,7 +1,6 @@
 ---
-# Pinned by digest (spec: no floating tags on the travel box).
-# Digest resolved from ghcr.io/xtls/xray-core:26.3.27 (Xray-core v26.3.27).
-vpn_xray_image: "ghcr.io/xtls/xray-core@sha256:592ec4d11f656db95598d01e76dbcc6e002d67360b96a5436500a938230f52c7"
+# Xray image pin lives next to the container task (ansible/roles/vpn/tasks/xray.yml),
+# same pattern as Traefik/Umami — Renovate ansible manager + no automerge.
 
 vpn_xray_config_dir: /etc/xray
 

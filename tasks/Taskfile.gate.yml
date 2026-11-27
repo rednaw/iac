@@ -1,29 +1,46 @@
 # yaml-language-server: $schema=https://taskfile.dev/schema.json
 #
-# Legacy shared Gate box in Hetzner Cloud project Gate. Unmanaged until
-# decommission (no provision tasks; server/IP/firewall via hcloud or console).
-# Dev vpn box = vpn:provision:present|absent (Ansible).
+# Legacy shared Gate box (Hetzner project Gate) until decommission — no
+# provision tasks; server/IP/firewall via hcloud or console.
+# Friend boxes: task gate:* -- <id> → secrets/gate-{id}.yml (same purpose name
+# "gate"; isolation = that file's token). No CLI_ARGS → legacy gate.yml.
 #
-# Secrets: ../secrets/gate.yml only for Hetzner + Fresh vpn_*.
+# Dev vpn box = vpn:provision:present|absent (Ansible).
 version: '3'
 
 vars:
-  GATE_SECRETS: '{{.SECRETS_DIR}}/gate.yml'
+  # Friend id (digits) → gate-{id}.yml; empty → legacy gate.yml.
+  GATE_ID:
+    sh: echo "{{.CLI_ARGS}}" | awk '{print $1}'
+  GATE_SECRETS:
+    sh: |
+      id=$(echo "{{.CLI_ARGS}}" | awk '{print $1}')
+      if [ -z "$id" ]; then
+        printf '%s\n' "{{.SECRETS_DIR}}/gate.yml"
+      else
+        printf '%s\n' "{{.SECRETS_DIR}}/gate-${id}.yml"
+      fi
 
 tasks:
   ssh:allow:
-    desc: "Allow current public IPv4 /32 (TCP/22) on gate-firewall"
+    desc: "Allow current public IPv4 /32 (TCP/22) on gate-firewall (-- <id> for friend)"
     silent: true
     deps: [":_check:sops-key", ":_check:secrets", _check:gate-secrets]
     cmds:
-      - bash ./scripts/ssh-allow.sh gate
+      - |
+        set -euo pipefail
+        export SECRETS_GATE="{{.GATE_SECRETS}}"
+        bash ./scripts/ssh-allow.sh gate
 
   ssh:deny:
-    desc: "Remove gate:ssh:allow travel rules from gate-firewall"
+    desc: "Remove gate:ssh:allow travel rules from gate-firewall (-- <id> for friend)"
     silent: true
     deps: [":_check:sops-key", ":_check:secrets", _check:gate-secrets]
     cmds:
-      - bash ./scripts/ssh-deny.sh gate
+      - |
+        set -euo pipefail
+        export SECRETS_GATE="{{.GATE_SECRETS}}"
+        bash ./scripts/ssh-deny.sh gate
 
   ssh:shell:
     desc: "Interactive SSH as ubuntu on gate (gate:ssh:allow first if port 22 closed)"
@@ -33,6 +50,7 @@ tasks:
     cmds:
       - |
         set -euo pipefail
+        export SECRETS_GATE="{{.GATE_SECRETS}}"
         IP=$(task hostkeys:ip -- gate) || exit 1
         exec ssh -4 -t -o StrictHostKeyChecking=accept-new "ubuntu@${IP}"
 
@@ -48,7 +66,7 @@ tasks:
           HCLOUD_SECRETS_SCRIPT: scripts/gate-secrets.sh
 
   configure:apply:
-    desc: "Apply Gate config (base + Xray REALITY; Fresh vpn_* from gate.yml)"
+    desc: "Apply Gate config (base + Xray REALITY; Fresh vpn_* from secrets file)"
     deps: [":_check:sops-key", ":_check:secrets", _check:gate-secrets]
     cmds:
       - task: :_ansible:run
@@ -58,11 +76,29 @@ tasks:
           SECRETS_FILE: '{{.GATE_SECRETS}}'
           HCLOUD_SECRETS_SCRIPT: scripts/gate-secrets.sh
 
-  _check:gate-secrets:
-    desc: "(internal) Ensure secrets/gate.yml exists"
+  _check:gate-id:
+    desc: "(internal) CLI_ARGS empty (legacy) or one numeric friend id"
     internal: true
     silent: true
-    deps: [":_check:secrets-dir"]
+    cmds:
+      - |
+        set -euo pipefail
+        n=$(echo "{{.CLI_ARGS}}" | wc -w | tr -d ' ')
+        id=$(echo "{{.CLI_ARGS}}" | awk '{print $1}')
+        if [ "$n" -eq 0 ]; then
+          exit 0
+        fi
+        if [ "$n" -ne 1 ] || ! [[ "$id" =~ ^[0-9]+$ ]]; then
+          echo "Usage: task gate:<task> -- <id>   # friend → secrets/gate-<id>.yml" >&2
+          echo "   or: task gate:<task>           # legacy → secrets/gate.yml" >&2
+          exit 1
+        fi
+
+  _check:gate-secrets:
+    desc: "(internal) Ensure the resolved gate secrets file exists"
+    internal: true
+    silent: true
+    deps: [":_check:secrets-dir", _check:gate-id]
     preconditions:
       - sh: test -f "{{.GATE_SECRETS}}"
-        msg: "Encrypted gate secrets missing: {{.GATE_SECRETS}}. Add gate.yml (project-Gate token + Fresh vpn_*)."
+        msg: "Encrypted gate secrets missing: {{.GATE_SECRETS}}. Friend: add gate-<id>.yml (that account's token + Fresh vpn_*). Legacy: gate.yml."

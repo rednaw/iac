@@ -5,8 +5,9 @@
 #   task platform|vpn|gate:ssh:allow
 #   bash scripts/ssh-allow.sh platform|vpn|gate
 #
-# Loads that purpose's secrets (infra.yml / vpn.yml / gate.yml). Description marker
-# "Allow SSH from trusted IPs"; kept across <purpose>:provision:present.
+# Loads that purpose's secrets (infra.yml / vpn.yml / gate.yml or gate-{id}.yml
+# via SECRETS_GATE). Description marker "Allow SSH from trusted IPs"; kept
+# across <purpose>:provision:present.
 set -euo pipefail
 
 PURPOSE="${1:-}"

@@ -5,11 +5,13 @@
 # Naming:
 #   platform: Hetzner server name "platform"; Ansible inventory "platform".
 #   vpn:      Hetzner server name "vpn"; inventory "vpn" (Default; secrets/vpn.yml).
-#   gate:     Hetzner server name "gate"; inventory "gate" (Cloud project Gate).
+#   gate:     Hetzner server name "gate"; inventory "gate" (legacy project Gate,
+#             or a friend account when SECRETS_GATE=…/gate-{id}.yml is set).
 #   SSH/Ansible always use the API IPv4 (no platform DNS name).
 #
 # Each purpose loads HCLOUD_TOKEN from its own secrets file (infra.yml /
-# vpn.yml / gate.yml), never the ambient hcloud context.
+# vpn.yml / gate.yml|gate-{id}.yml), never the ambient hcloud context.
+# Friend id on hostkeys CLI is Do 1; until then gate tasks export SECRETS_GATE.
 version: '3'
 
 tasks:

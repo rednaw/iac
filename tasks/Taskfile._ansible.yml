@@ -54,6 +54,11 @@ tasks:
         set -euo pipefail
         export SOPS_KEY_FILE="{{.SOPS_KEY_FILE}}"
         export SECRETS_DIR="{{.SECRETS_DIR}}"
+        if [ -n "{{.SECRETS_FILE}}" ]; then
+          # gate-secrets.sh prefers SECRETS_GATE, else SECRETS_FILE (friend id).
+          export SECRETS_FILE="{{.SECRETS_FILE}}"
+          export SECRETS_GATE="{{.SECRETS_FILE}}"
+        fi
         if [ -n "{{.HCLOUD_SECRETS_SCRIPT}}" ]; then
           # This task runs with dir: ansible — script path is from repo root.
           # shellcheck disable=SC1090
@@ -80,6 +85,11 @@ tasks:
         set -euo pipefail
         export SOPS_KEY_FILE="{{.SOPS_KEY_FILE}}"
         export SECRETS_DIR="{{.SECRETS_DIR}}"
+        if [ -n "{{.SECRETS_FILE}}" ]; then
+          # gate-secrets.sh prefers SECRETS_GATE, else SECRETS_FILE (friend id).
+          export SECRETS_FILE="{{.SECRETS_FILE}}"
+          export SECRETS_GATE="{{.SECRETS_FILE}}"
+        fi
         if [ -n "{{.HCLOUD_SECRETS_SCRIPT}}" ]; then
           # This task runs with dir: ansible — script path is from repo root.
           # shellcheck disable=SC1090

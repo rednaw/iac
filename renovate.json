@@ -45,6 +45,12 @@
       "description": "Automerge minor and patch when CI passes",
       "matchUpdateTypes": ["minor", "patch"],
       "automerge": true
+    },
+    {
+      "description": "Xray: no automerge — human merges then configure:apply (link/vpn_* unchanged)",
+      "matchPackageNames": ["ghcr.io/xtls/xray-core"],
+      "automerge": false,
+      "addLabels": ["xray"]
     }
   ]
 }
